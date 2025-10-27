@@ -295,16 +295,15 @@ export default function HomeScreen() {
           setShowFilters(false);
         }}
       >
-        <View style={styles.modalOverlay}>
-          <Pressable 
-            style={StyleSheet.absoluteFill}
-            onPress={() => {
-              if (!showBrandsModal) {
-                setShowFilters(false);
-              }
-            }}
-          />
-          <View style={styles.modalContent}>
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => {
+            if (!showBrandsModal) {
+              setShowFilters(false);
+            }
+          }}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>تصفية المنتجات</Text>
               <Pressable onPress={() => {
@@ -365,8 +364,7 @@ export default function HomeScreen() {
                 <Text style={styles.filterSectionTitle}>العلامة التجارية</Text>
                 <Pressable
                   style={styles.brandSelectButton}
-                  onPress={(e) => {
-                    e.stopPropagation();
+                  onPress={() => {
                     console.log('[Filter] Opening brand modal');
                     setShowBrandsModal(true);
                   }}
@@ -414,8 +412,8 @@ export default function HomeScreen() {
                 <Text style={styles.applyButtonText}>تطبيق</Text>
               </Pressable>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <Modal
