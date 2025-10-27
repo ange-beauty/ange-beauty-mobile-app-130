@@ -23,7 +23,13 @@ export interface FetchProductsParams {
   barcode?: string;
 }
 
-export async function fetchProducts(params: FetchProductsParams = {}): Promise<Product[]> {
+export interface FetchProductsResponse {
+  products: Product[];
+  hasMore: boolean;
+  totalRows: number;
+}
+
+export async function fetchProducts(params: FetchProductsParams = {}): Promise<FetchProductsResponse> {
   const { page = 1, limit = 50, keyword, category, brand, barcode } = params;
   console.log(`[API] Fetching products - params:`, params);
   
@@ -51,12 +57,12 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<P
     
     if (!response) {
       console.error(`[API] No response received`);
-      return [];
+      return { products: [], hasMore: false, totalRows: 0 };
     }
     
     if (!response.ok) {
       console.error(`[API] Failed to fetch products - Status: ${response.status}`);
-      return [];
+      return { products: [], hasMore: false, totalRows: 0 };
     }
     
     let result;
@@ -64,28 +70,37 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<P
       result = await response.json();
     } catch (jsonError) {
       console.error(`[API] Error parsing JSON response:`, jsonError);
-      return [];
+      return { products: [], hasMore: false, totalRows: 0 };
     }
     
     console.log(`[API] Successfully fetched products response:`, result);
     
-    if (!result || result.status !== 'success') {
+    if (!result || result.success !== true) {
       console.error(`[API] Invalid response status`);
-      return [];
+      return { products: [], hasMore: false, totalRows: 0 };
     }
     
     if (!result.data) {
       console.log(`[API] No data in response`);
-      return [];
+      return { products: [], hasMore: false, totalRows: 0 };
     }
     
     const products = Array.isArray(result.data) ? result.data : [];
-    console.log(`[API] Successfully fetched ${products.length} products`);
+    const hasMore = result.has_more === true;
+    const totalRows = typeof result.total_rows === 'number' ? result.total_rows : 0;
     
-    return products.map(mapAPIProductToProduct).filter((product: Product) => product && product.id);
+    console.log(`[API] Successfully fetched ${products.length} products. Has more: ${hasMore}, Total: ${totalRows}`);
+    
+    const mappedProducts = products.map(mapAPIProductToProduct).filter((product: Product) => product && product.id);
+    
+    return {
+      products: mappedProducts,
+      hasMore,
+      totalRows,
+    };
   } catch (error) {
     console.error('[API] Error fetching products:', error);
-    return [];
+    return { products: [], hasMore: false, totalRows: 0 };
   }
 }
 

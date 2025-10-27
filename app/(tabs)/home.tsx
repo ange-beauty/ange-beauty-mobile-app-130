@@ -75,7 +75,7 @@ export default function HomeScreen() {
       barcode: barcodeFilter || undefined,
     }),
     getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.length < 20) return undefined;
+      if (!lastPage.hasMore) return undefined;
       return allPages.length + 1;
     },
     initialPageParam: 1,
@@ -84,7 +84,7 @@ export default function HomeScreen() {
   const products = useMemo(() => {
     if (!data || !data.pages) return [];
     try {
-      return data.pages.flat().filter((p: Product) => p && p.id);
+      return data.pages.flatMap(page => page.products).filter((p: Product) => p && p.id);
     } catch (error) {
       console.error('[Home] Error flattening products:', error);
       return [];
