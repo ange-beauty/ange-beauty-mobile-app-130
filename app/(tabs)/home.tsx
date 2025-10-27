@@ -290,13 +290,19 @@ export default function HomeScreen() {
         visible={showFilters}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowFilters(false)}
+        onRequestClose={() => {
+          setShowBrandsModal(false);
+          setShowFilters(false);
+        }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>تصفية المنتجات</Text>
-              <Pressable onPress={() => setShowFilters(false)}>
+              <Pressable onPress={() => {
+                setShowBrandsModal(false);
+                setShowFilters(false);
+              }}>
                 <X color="#1A1A1A" size={24} />
               </Pressable>
             </View>
@@ -388,7 +394,10 @@ export default function HomeScreen() {
               </Pressable>
               <Pressable
                 style={styles.applyButton}
-                onPress={() => setShowFilters(false)}
+                onPress={() => {
+                  setShowBrandsModal(false);
+                  setShowFilters(false);
+                }}
               >
                 <Text style={styles.applyButtonText}>تطبيق</Text>
               </Pressable>
