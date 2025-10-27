@@ -35,6 +35,8 @@ export default function HomeScreen() {
   const [selectedBrand, setSelectedBrand] = useState<string>('');
   const [barcodeFilter, setBarcodeFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [showBrandsModal, setShowBrandsModal] = useState(false);
+  const [selectedLetter, setSelectedLetter] = useState<string>('A');
 
   const { data: brandsData } = useQuery({
     queryKey: ['brands'],
@@ -55,6 +57,24 @@ export default function HomeScreen() {
     if (!categoriesData) return [];
     return Array.isArray(categoriesData) ? categoriesData : [];
   }, [categoriesData]);
+
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0-9'.split('');
+  
+  const brandsByLetter = useMemo(() => {
+    const grouped: Record<string, typeof brands> = {};
+    brands.forEach(brand => {
+      if (!brand || !brand.brand_name_ar) return;
+      const firstChar = brand.brand_name_ar[0].toUpperCase();
+      const letter = /[A-Z]/.test(firstChar) ? firstChar : /[0-9]/.test(firstChar) ? '0-9' : 'A';
+      if (!grouped[letter]) grouped[letter] = [];
+      grouped[letter].push(brand);
+    });
+    return grouped;
+  }, [brands]);
+
+  const availableLetters = useMemo(() => {
+    return alphabet.filter(letter => brandsByLetter[letter] && brandsByLetter[letter].length > 0);
+  }, [brandsByLetter, alphabet]);
 
   const {
     data,
@@ -325,50 +345,20 @@ export default function HomeScreen() {
                 </View>
               )}
 
-              {brands.length > 0 && (
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterSectionTitle}>العلامة التجارية</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={styles.filterOptions}>
-                      <Pressable
-                        style={[
-                          styles.filterOption,
-                          !selectedBrand && styles.filterOptionActive,
-                        ]}
-                        onPress={() => setSelectedBrand('')}
-                      >
-                        <Text
-                          style={[
-                            styles.filterOptionText,
-                            !selectedBrand && styles.filterOptionTextActive,
-                          ]}
-                        >
-                          الكل
-                        </Text>
-                      </Pressable>
-                      {brands.map((brand) => brand && brand.id ? (
-                        <Pressable
-                          key={brand.id}
-                          style={[
-                            styles.filterOption,
-                            selectedBrand === brand.id && styles.filterOptionActive,
-                          ]}
-                          onPress={() => setSelectedBrand(brand.id)}
-                        >
-                          <Text
-                            style={[
-                              styles.filterOptionText,
-                              selectedBrand === brand.id && styles.filterOptionTextActive,
-                            ]}
-                          >
-                            {brand.brand_name_ar || 'علامة'}
-                          </Text>
-                        </Pressable>
-                      ) : null)}
-                    </View>
-                  </ScrollView>
-                </View>
-              )}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>العلامة التجارية</Text>
+                <Pressable
+                  style={styles.brandSelectButton}
+                  onPress={() => setShowBrandsModal(true)}
+                >
+                  <Text style={styles.brandSelectButtonText}>
+                    {selectedBrand && brands.length > 0
+                      ? brands.find(b => b && b.id === selectedBrand)?.brand_name_ar || 'اختر العلامة'
+                      : 'اختر العلامة'}
+                  </Text>
+                  <Text style={styles.brandSelectArrow}>›</Text>
+                </Pressable>
+              </View>
 
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>الباركود</Text>
@@ -397,6 +387,98 @@ export default function HomeScreen() {
               <Pressable
                 style={styles.applyButton}
                 onPress={() => setShowFilters(false)}
+              >
+                <Text style={styles.applyButtonText}>تطبيق</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showBrandsModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowBrandsModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>اختر العلامة التجارية</Text>
+              <Pressable onPress={() => setShowBrandsModal(false)}>
+                <X color="#1A1A1A" size={24} />
+              </Pressable>
+            </View>
+
+            <View style={styles.alphabetNavigation}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.alphabetRow}>
+                  {alphabet.map((letter) => {
+                    const isAvailable = availableLetters.includes(letter);
+                    const isSelected = selectedLetter === letter;
+                    return (
+                      <Pressable
+                        key={letter}
+                        style={[
+                          styles.letterButton,
+                          isSelected && styles.letterButtonActive,
+                          !isAvailable && styles.letterButtonDisabled,
+                        ]}
+                        onPress={() => isAvailable && setSelectedLetter(letter)}
+                        disabled={!isAvailable}
+                      >
+                        <Text
+                          style={[
+                            styles.letterText,
+                            isSelected && styles.letterTextActive,
+                            !isAvailable && styles.letterTextDisabled,
+                          ]}
+                        >
+                          {letter}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            </View>
+
+            <ScrollView style={styles.brandsListContainer}>
+              <View style={styles.brandsGrid}>
+                {brandsByLetter[selectedLetter]?.map((brand) => (
+                  <Pressable
+                    key={brand.id}
+                    style={styles.brandItem}
+                    onPress={() => {
+                      setSelectedBrand(brand.id);
+                      setShowBrandsModal(false);
+                    }}
+                  >
+                    <Text style={styles.brandItemName}>{brand.brand_name_ar || brand.brand_name_en}</Text>
+                    <Text style={styles.brandItemCount}>منتج</Text>
+                  </Pressable>
+                ))}
+              </View>
+              {(!brandsByLetter[selectedLetter] || brandsByLetter[selectedLetter].length === 0) && (
+                <View style={styles.emptyBrandsContainer}>
+                  <Text style={styles.emptyBrandsText}>لا توجد علامات تجارية تبدأ بـ {selectedLetter}</Text>
+                </View>
+              )}
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <Pressable
+                style={styles.clearButton}
+                onPress={() => {
+                  setSelectedBrand('');
+                  setShowBrandsModal(false);
+                }}
+              >
+                <Text style={styles.clearButtonText}>مسح</Text>
+              </Pressable>
+              <Pressable
+                style={styles.applyButton}
+                onPress={() => setShowBrandsModal(false)}
               >
                 <Text style={styles.applyButtonText}>تطبيق</Text>
               </Pressable>
@@ -610,6 +692,102 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
     color: '#FFFFFF',
+  },
+  brandSelectButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  brandSelectButtonText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+    fontWeight: '500' as const,
+  },
+  brandSelectArrow: {
+    fontSize: 24,
+    color: '#666',
+  },
+  alphabetNavigation: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    backgroundColor: '#FAFAFA',
+  },
+  alphabetRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  letterButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  letterButtonActive: {
+    backgroundColor: '#1A1A1A',
+    borderColor: '#1A1A1A',
+  },
+  letterButtonDisabled: {
+    backgroundColor: '#F8F8F8',
+    borderColor: '#F0F0F0',
+  },
+  letterText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#1A1A1A',
+  },
+  letterTextActive: {
+    color: '#FFFFFF',
+  },
+  letterTextDisabled: {
+    color: '#CCCCCC',
+  },
+  brandsListContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  brandsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  brandItem: {
+    width: (SCREEN_WIDTH - 64) / 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  brandItemName: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  brandItemCount: {
+    fontSize: 13,
+    color: '#999',
+  },
+  emptyBrandsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyBrandsText: {
+    fontSize: 16,
+    color: '#999',
   },
   productsContainer: {
     padding: 16,
