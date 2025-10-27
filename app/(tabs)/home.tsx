@@ -295,8 +295,15 @@ export default function HomeScreen() {
           setShowFilters(false);
         }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => {
+            if (!showBrandsModal) {
+              setShowFilters(false);
+            }
+          }}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>تصفية المنتجات</Text>
               <Pressable onPress={() => {
@@ -402,18 +409,21 @@ export default function HomeScreen() {
                 <Text style={styles.applyButtonText}>تطبيق</Text>
               </Pressable>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <Modal
-        visible={showBrandsModal}
+        visible={showBrandsModal && showFilters}
         animationType="slide"
         transparent={true}
         onRequestClose={() => setShowBrandsModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowBrandsModal(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>اختر العلامة التجارية</Text>
               <Pressable onPress={() => setShowBrandsModal(false)}>
@@ -494,8 +504,8 @@ export default function HomeScreen() {
                 <Text style={styles.applyButtonText}>تطبيق</Text>
               </Pressable>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
