@@ -295,15 +295,16 @@ export default function HomeScreen() {
           setShowFilters(false);
         }}
       >
-        <Pressable 
-          style={styles.modalOverlay}
-          onPress={() => {
-            if (!showBrandsModal) {
-              setShowFilters(false);
-            }
-          }}
-        >
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+        <View style={styles.modalOverlay}>
+          <Pressable 
+            style={StyleSheet.absoluteFill}
+            onPress={() => {
+              if (!showBrandsModal) {
+                setShowFilters(false);
+              }
+            }}
+          />
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>تصفية المنتجات</Text>
               <Pressable onPress={() => {
@@ -364,7 +365,11 @@ export default function HomeScreen() {
                 <Text style={styles.filterSectionTitle}>العلامة التجارية</Text>
                 <Pressable
                   style={styles.brandSelectButton}
-                  onPress={() => setShowBrandsModal(true)}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    console.log('[Filter] Opening brand modal');
+                    setShowBrandsModal(true);
+                  }}
                 >
                   <Text style={styles.brandSelectButtonText}>
                     {selectedBrand && brands.length > 0
@@ -409,8 +414,8 @@ export default function HomeScreen() {
                 <Text style={styles.applyButtonText}>تطبيق</Text>
               </Pressable>
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <Modal
@@ -419,11 +424,12 @@ export default function HomeScreen() {
         transparent={true}
         onRequestClose={() => setShowBrandsModal(false)}
       >
-        <Pressable 
-          style={styles.modalOverlay}
-          onPress={() => setShowBrandsModal(false)}
-        >
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+        <View style={styles.modalOverlay}>
+          <Pressable 
+            style={StyleSheet.absoluteFill}
+            onPress={() => setShowBrandsModal(false)}
+          />
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>اختر العلامة التجارية</Text>
               <Pressable onPress={() => setShowBrandsModal(false)}>
@@ -504,8 +510,8 @@ export default function HomeScreen() {
                 <Text style={styles.applyButtonText}>تطبيق</Text>
               </Pressable>
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </View>
   );
