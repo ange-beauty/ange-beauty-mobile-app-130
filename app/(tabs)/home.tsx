@@ -63,8 +63,10 @@ export default function HomeScreen() {
   const brandsByLetter = useMemo(() => {
     const grouped: Record<string, typeof brands> = {};
     brands.forEach(brand => {
-      if (!brand || !brand.brand_name_ar) return;
-      const firstChar = brand.brand_name_ar[0].toUpperCase();
+      if (!brand) return;
+      const nameToUse = brand.brand_name_en || brand.brand_name_ar;
+      if (!nameToUse) return;
+      const firstChar = nameToUse[0].toUpperCase();
       const letter = /[A-Z]/.test(firstChar) ? firstChar : /[0-9]/.test(firstChar) ? '0-9' : 'A';
       if (!grouped[letter]) grouped[letter] = [];
       grouped[letter].push(brand);
