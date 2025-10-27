@@ -35,7 +35,6 @@ export default function HomeScreen() {
   const [selectedBrand, setSelectedBrand] = useState<string>('');
   const [barcodeFilter, setBarcodeFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [showBrandsModal, setShowBrandsModal] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState<string>('A');
 
   const { data: brandsData } = useQuery({
@@ -290,26 +289,16 @@ export default function HomeScreen() {
         visible={showFilters}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => {
-          setShowBrandsModal(false);
-          setShowFilters(false);
-        }}
+        onRequestClose={() => setShowFilters(false)}
       >
         <Pressable 
           style={styles.modalOverlay}
-          onPress={() => {
-            if (!showBrandsModal) {
-              setShowFilters(false);
-            }
-          }}
+          onPress={() => setShowFilters(false)}
         >
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>تصفية المنتجات</Text>
-              <Pressable onPress={() => {
-                setShowBrandsModal(false);
-                setShowFilters(false);
-              }}>
+              <Pressable onPress={() => setShowFilters(false)}>
                 <X color="#1A1A1A" size={24} />
               </Pressable>
             </View>
@@ -361,24 +350,6 @@ export default function HomeScreen() {
               )}
 
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>العلامة التجارية</Text>
-                <Pressable
-                  style={styles.brandSelectButton}
-                  onPress={() => {
-                    console.log('[Filter] Opening brand modal');
-                    setShowBrandsModal(true);
-                  }}
-                >
-                  <Text style={styles.brandSelectButtonText}>
-                    {selectedBrand && brands.length > 0
-                      ? brands.find(b => b && b.id === selectedBrand)?.brand_name_ar || 'اختر العلامة'
-                      : 'اختر العلامة'}
-                  </Text>
-                  <Text style={styles.brandSelectArrow}>›</Text>
-                </Pressable>
-              </View>
-
-              <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>الباركود</Text>
                 <TextInput
                   style={styles.barcodeInput}
@@ -388,6 +359,64 @@ export default function HomeScreen() {
                   onChangeText={setBarcodeFilter}
                   keyboardType="default"
                 />
+              </View>
+
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>العلامة التجارية</Text>
+                <View style={styles.alphabetNavigation}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={styles.alphabetRow}>
+                      {alphabet.map((letter) => {
+                        const isAvailable = availableLetters.includes(letter);
+                        const isSelected = selectedLetter === letter;
+                        return (
+                          <Pressable
+                            key={letter}
+                            style={[
+                              styles.letterButton,
+                              isSelected && styles.letterButtonActive,
+                              !isAvailable && styles.letterButtonDisabled,
+                            ]}
+                            onPress={() => isAvailable && setSelectedLetter(letter)}
+                            disabled={!isAvailable}
+                          >
+                            <Text
+                              style={[
+                                styles.letterText,
+                                isSelected && styles.letterTextActive,
+                                !isAvailable && styles.letterTextDisabled,
+                              ]}
+                            >
+                              {letter}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
+                </View>
+                <View style={styles.brandsGrid}>
+                  {brandsByLetter[selectedLetter]?.map((brand) => (
+                    <Pressable
+                      key={brand.id}
+                      style={[
+                        styles.brandItem,
+                        selectedBrand === brand.id && styles.brandItemSelected,
+                      ]}
+                      onPress={() => setSelectedBrand(brand.id)}
+                    >
+                      <Text style={[
+                        styles.brandItemName,
+                        selectedBrand === brand.id && styles.brandItemNameSelected,
+                      ]}>{brand.brand_name_ar || brand.brand_name_en}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                {(!brandsByLetter[selectedLetter] || brandsByLetter[selectedLetter].length === 0) && (
+                  <View style={styles.emptyBrandsContainer}>
+                    <Text style={styles.emptyBrandsText}>لا توجد علامات تجارية تبدأ بـ {selectedLetter}</Text>
+                  </View>
+                )}
               </View>
             </ScrollView>
 
@@ -404,112 +433,13 @@ export default function HomeScreen() {
               </Pressable>
               <Pressable
                 style={styles.applyButton}
-                onPress={() => {
-                  setShowBrandsModal(false);
-                  setShowFilters(false);
-                }}
+                onPress={() => setShowFilters(false)}
               >
                 <Text style={styles.applyButtonText}>تطبيق</Text>
               </Pressable>
             </View>
           </Pressable>
         </Pressable>
-      </Modal>
-
-      <Modal
-        visible={showBrandsModal && showFilters}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowBrandsModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable 
-            style={StyleSheet.absoluteFill}
-            onPress={() => setShowBrandsModal(false)}
-          />
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>اختر العلامة التجارية</Text>
-              <Pressable onPress={() => setShowBrandsModal(false)}>
-                <X color="#1A1A1A" size={24} />
-              </Pressable>
-            </View>
-
-            <View style={styles.alphabetNavigation}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.alphabetRow}>
-                  {alphabet.map((letter) => {
-                    const isAvailable = availableLetters.includes(letter);
-                    const isSelected = selectedLetter === letter;
-                    return (
-                      <Pressable
-                        key={letter}
-                        style={[
-                          styles.letterButton,
-                          isSelected && styles.letterButtonActive,
-                          !isAvailable && styles.letterButtonDisabled,
-                        ]}
-                        onPress={() => isAvailable && setSelectedLetter(letter)}
-                        disabled={!isAvailable}
-                      >
-                        <Text
-                          style={[
-                            styles.letterText,
-                            isSelected && styles.letterTextActive,
-                            !isAvailable && styles.letterTextDisabled,
-                          ]}
-                        >
-                          {letter}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </ScrollView>
-            </View>
-
-            <ScrollView style={styles.brandsListContainer}>
-              <View style={styles.brandsGrid}>
-                {brandsByLetter[selectedLetter]?.map((brand) => (
-                  <Pressable
-                    key={brand.id}
-                    style={styles.brandItem}
-                    onPress={() => {
-                      setSelectedBrand(brand.id);
-                      setShowBrandsModal(false);
-                    }}
-                  >
-                    <Text style={styles.brandItemName}>{brand.brand_name_ar || brand.brand_name_en}</Text>
-                    <Text style={styles.brandItemCount}>منتج</Text>
-                  </Pressable>
-                ))}
-              </View>
-              {(!brandsByLetter[selectedLetter] || brandsByLetter[selectedLetter].length === 0) && (
-                <View style={styles.emptyBrandsContainer}>
-                  <Text style={styles.emptyBrandsText}>لا توجد علامات تجارية تبدأ بـ {selectedLetter}</Text>
-                </View>
-              )}
-            </ScrollView>
-
-            <View style={styles.modalFooter}>
-              <Pressable
-                style={styles.clearButton}
-                onPress={() => {
-                  setSelectedBrand('');
-                  setShowBrandsModal(false);
-                }}
-              >
-                <Text style={styles.clearButtonText}>مسح</Text>
-              </Pressable>
-              <Pressable
-                style={styles.applyButton}
-                onPress={() => setShowBrandsModal(false)}
-              >
-                <Text style={styles.applyButtonText}>تطبيق</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
       </Modal>
     </View>
   );
@@ -718,30 +648,10 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#FFFFFF',
   },
-  brandSelectButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 48,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-  },
-  brandSelectButtonText: {
-    fontSize: 16,
-    color: '#1A1A1A',
-    fontWeight: '500' as const,
-  },
-  brandSelectArrow: {
-    fontSize: 24,
-    color: '#666',
-  },
   alphabetNavigation: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
     backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    marginBottom: 12,
   },
   alphabetRow: {
     flexDirection: 'row',
@@ -778,32 +688,31 @@ const styles = StyleSheet.create({
   letterTextDisabled: {
     color: '#CCCCCC',
   },
-  brandsListContainer: {
-    flex: 1,
-    padding: 16,
-  },
   brandsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 8,
+    marginTop: 12,
   },
   brandItem: {
-    width: (SCREEN_WIDTH - 64) / 2,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: '#F5F5F5',
+  },
+  brandItemSelected: {
+    backgroundColor: '#1A1A1A',
+    borderColor: '#1A1A1A',
   },
   brandItemName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600' as const,
-    color: '#1A1A1A',
-    marginBottom: 4,
+    color: '#666',
   },
-  brandItemCount: {
-    fontSize: 13,
-    color: '#999',
+  brandItemNameSelected: {
+    color: '#FFFFFF',
   },
   emptyBrandsContainer: {
     alignItems: 'center',
