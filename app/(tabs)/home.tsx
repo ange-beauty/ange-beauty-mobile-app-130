@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Search, Filter, X } from 'lucide-react-native';
+import { Search, Filter, X, Heart } from 'lucide-react-native';
 import React, { useMemo, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fetchProducts, fetchBrands, fetchCategories } from '@/services/api';
 import { Product } from '@/types/product';
+import { useFavorites } from '@/contexts/FavoritesContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
@@ -30,6 +31,7 @@ const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedBrand, setSelectedBrand] = useState<string>('');
@@ -139,6 +141,8 @@ export default function HomeScreen() {
       }).start();
     };
 
+    const isItemFavorite = isFavorite(item.id);
+
     return (
       <View style={{ width: CARD_WIDTH, marginBottom: 16 }}>
         <Pressable
@@ -157,6 +161,19 @@ export default function HomeScreen() {
                 resizeMode="cover" 
               />
             )}
+            <Pressable
+              style={styles.favoriteButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                toggleFavorite(item.id);
+              }}
+            >
+              <Heart
+                color={isItemFavorite ? '#FF69B4' : '#999'}
+                size={18}
+                fill={isItemFavorite ? '#FF69B4' : 'transparent'}
+              />
+            </Pressable>
           </View>
           <View style={styles.productInfo}>
             <Text style={styles.brandText}>{item.brand}</Text>
@@ -759,6 +776,23 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     backgroundColor: '#FFFFFF',
+    position: 'relative' as const,
+  },
+  favoriteButton: {
+    position: 'absolute' as const,
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   productImage: {
     width: '100%',

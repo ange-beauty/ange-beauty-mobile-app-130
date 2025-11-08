@@ -1,7 +1,9 @@
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Heart, ShoppingBag } from 'lucide-react-native';
+import { Heart, ShoppingBag, Plus } from 'lucide-react-native';
 import React from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   Pressable,
@@ -11,14 +13,31 @@ import {
 } from 'react-native';
 
 import { useFavorites } from '@/contexts/FavoritesContext';
-import { PRODUCTS } from '@/mocks/products';
+import { useBasket } from '@/contexts/BasketContext';
+import { fetchProducts } from '@/services/api';
 import { Product } from '@/types/product';
 
 export default function FavoritesScreen() {
   const router = useRouter();
   const { favorites, toggleFavorite } = useFavorites();
+  const { addToBasket } = useBasket();
 
-  const favoriteProducts = PRODUCTS.filter((product) => favorites.includes(product.id));
+  const { data: productsData, isLoading } = useQuery({
+    queryKey: ['favorite-products', favorites],
+    queryFn: async () => {
+      if (favorites.length === 0) return [];
+      const response = await fetchProducts({ limit: 100 });
+      return response.products.filter(p => favorites.includes(p.id));
+    },
+    enabled: favorites.length > 0,
+  });
+
+  const favoriteProducts = productsData || [];
+
+  const handleAddToBasket = (productId: string, e: any) => {
+    e.stopPropagation();
+    addToBasket(productId, 1);
+  };
 
   const renderProduct = ({ item }: { item: Product }) => (
     <Pressable
@@ -26,7 +45,15 @@ export default function FavoritesScreen() {
       onPress={() => router.push(`/product/${item.id}`)}
     >
       <View style={styles.productImageContainer}>
-        <Image source={{ uri: item.image }} style={styles.productImage} />
+        {item.image ? (
+          <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="contain" />
+        ) : (
+          <Image 
+            source={{ uri: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop' }} 
+            style={styles.productImage} 
+            resizeMode="cover" 
+          />
+        )}
         <Pressable
           style={styles.favoriteButton}
           onPress={(e) => {
@@ -40,18 +67,26 @@ export default function FavoritesScreen() {
       <View style={styles.productInfo}>
         <Text style={styles.brandText}>{item.brand}</Text>
         <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-        <View style={styles.ratingContainer}>
-          <Text style={styles.rating}>★ {item.rating}</Text>
-          <Text style={styles.reviewCount}>({item.reviewCount})</Text>
-        </View>
-        <Text style={styles.price}>{item.price.toFixed(2)} د.إ</Text>
+        <Text style={styles.price}>{typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price as string).toFixed(2)} د.إ</Text>
+        <Pressable 
+          style={styles.addToBasketButton}
+          onPress={(e) => handleAddToBasket(item.id, e)}
+        >
+          <Plus color="#FFFFFF" size={16} />
+          <Text style={styles.addToBasketText}>أضف للسلة</Text>
+        </Pressable>
       </View>
     </Pressable>
   );
 
   return (
     <View style={styles.container}>
-      {favoriteProducts.length === 0 ? (
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1A1A1A" />
+          <Text style={styles.loadingText}>جاري تحميل المفضلات...</Text>
+        </View>
+      ) : favoriteProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconContainer}>
             <Heart color="#DDD" size={64} />
@@ -109,7 +144,7 @@ const styles = StyleSheet.create({
   productImageContainer: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#FFFFFF',
     position: 'relative' as const,
   },
   productImage: {
@@ -169,6 +204,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700' as const,
     color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  addToBasketButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1A1A1A',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 4,
+  },
+  addToBasketText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
   },
   emptyContainer: {
     flex: 1,
