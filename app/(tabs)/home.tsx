@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Search, Filter, X, Heart } from 'lucide-react-native';
+import { Search, Filter, X, Heart, ShoppingBag } from 'lucide-react-native';
 import React, { useMemo, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchProducts, fetchBrands, fetchCategories } from '@/services/api';
 import { Product } from '@/types/product';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { useBasket } from '@/contexts/BasketContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
@@ -32,6 +33,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { addToBasket } = useBasket();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedBrand, setSelectedBrand] = useState<string>('');
@@ -178,9 +180,17 @@ export default function HomeScreen() {
           <View style={styles.productInfo}>
             <Text style={styles.brandText}>{item.brand}</Text>
             <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-
             <Text style={styles.price}>{typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price as string).toFixed(2)} د.إ</Text>
           </View>
+          <Pressable
+            style={styles.addToBasketButtonHome}
+            onPress={(e) => {
+              e.stopPropagation();
+              addToBasket(item.id, 1);
+            }}
+          >
+            <ShoppingBag color="#FFFFFF" size={16} />
+          </Pressable>
           </Animated.View>
         </Pressable>
       </View>
@@ -835,6 +845,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700' as const,
     color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  addToBasketButtonHome: {
+    position: 'absolute' as const,
+    bottom: 8,
+    right: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1A1A1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
   },
   emptyContainer: {
     alignItems: 'center',

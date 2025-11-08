@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Heart, ShoppingBag, Plus } from 'lucide-react-native';
+import { Heart, ShoppingBag, Plus, X } from 'lucide-react-native';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -61,7 +61,7 @@ export default function FavoritesScreen() {
             toggleFavorite(item.id);
           }}
         >
-          <Heart color="#FF69B4" size={20} fill="#FF69B4" />
+          <X color="#FF3B30" size={20} strokeWidth={2.5} />
         </Pressable>
       </View>
       <View style={styles.productInfo}>
