@@ -33,7 +33,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { addToBasket } = useBasket();
+  const { addToBasket, getItemQuantity } = useBasket();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedBrand, setSelectedBrand] = useState<string>('');
@@ -144,6 +144,7 @@ export default function HomeScreen() {
     };
 
     const isItemFavorite = isFavorite(item.id);
+    const itemQuantity = getItemQuantity(item.id);
 
     return (
       <View style={{ width: CARD_WIDTH, marginBottom: 16 }}>
@@ -190,6 +191,11 @@ export default function HomeScreen() {
             }}
           >
             <ShoppingBag color="#FFFFFF" size={16} />
+            {itemQuantity > 0 && (
+              <View style={styles.basketCountBadge}>
+                <Text style={styles.basketCountText}>{itemQuantity}</Text>
+              </View>
+            )}
           </Pressable>
           </Animated.View>
         </Pressable>
@@ -862,6 +868,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 4,
     elevation: 3,
+  },
+  basketCountBadge: {
+    position: 'absolute' as const,
+    top: -4,
+    right: -4,
+    backgroundColor: '#FF3B30',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  basketCountText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
   },
   emptyContainer: {
     alignItems: 'center',

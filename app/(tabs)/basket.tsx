@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react-native';
 import React from 'react';
+import { useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +20,7 @@ import { Product } from '@/types/product';
 
 export default function BasketScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { basket, updateQuantity, removeFromBasket, totalItems, clearBasket } = useBasket();
 
   const productIds = basket.map(item => item.productId);
@@ -54,7 +56,10 @@ export default function BasketScreen() {
     const itemTotal = price * item.quantity;
 
     return (
-      <View style={styles.basketItem}>
+      <Pressable 
+        style={styles.basketItem}
+        onPress={() => router.push(`/product/${item.id}`)}
+      >
         <View style={styles.productImageContainer}>
           {item.image ? (
             <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="contain" />
@@ -75,7 +80,10 @@ export default function BasketScreen() {
           <View style={styles.quantityControls}>
             <Pressable
               style={styles.quantityButton}
-              onPress={() => updateQuantity(item.id, item.quantity + 1)}
+              onPress={(e) => {
+                e.stopPropagation();
+                updateQuantity(item.id, item.quantity + 1);
+              }}
             >
               <Plus color="#1A1A1A" size={16} />
             </Pressable>
@@ -84,7 +92,8 @@ export default function BasketScreen() {
 
             <Pressable
               style={styles.quantityButton}
-              onPress={() => {
+              onPress={(e) => {
+                e.stopPropagation();
                 if (item.quantity === 1) {
                   removeFromBasket(item.id);
                 } else {
@@ -101,12 +110,15 @@ export default function BasketScreen() {
           <Text style={styles.itemTotal}>{itemTotal.toFixed(2)} د.إ</Text>
           <Pressable
             style={styles.deleteButton}
-            onPress={() => removeFromBasket(item.id)}
+            onPress={(e) => {
+              e.stopPropagation();
+              removeFromBasket(item.id);
+            }}
           >
             <Trash2 color="#FF3B30" size={20} />
           </Pressable>
         </View>
-      </View>
+      </Pressable>
     );
   };
 
