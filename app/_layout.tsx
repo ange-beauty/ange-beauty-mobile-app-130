@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { I18nManager, Platform, Animated, View, Image, StyleSheet, Dimensions } from "react-native";
 
 import { FavoritesContext } from "@/contexts/FavoritesContext";
+import { BasketContext } from "@/contexts/BasketContext";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -118,9 +119,11 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <FavoritesContext>
-        <GestureHandlerRootView>
-          <RootLayoutNav />
-        </GestureHandlerRootView>
+        <BasketContext>
+          <GestureHandlerRootView>
+            <RootLayoutNav />
+          </GestureHandlerRootView>
+        </BasketContext>
       </FavoritesContext>
     </QueryClientProvider>
   );

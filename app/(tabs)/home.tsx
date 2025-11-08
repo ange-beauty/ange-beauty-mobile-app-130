@@ -148,15 +148,20 @@ export default function HomeScreen() {
         >
           <Animated.View style={[styles.productCard, { transform: [{ scale: scaleAnim }] }]}>
           <View style={styles.productImageContainer}>
-            <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="contain" />
+            {item.image ? (
+              <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="contain" />
+            ) : (
+              <Image 
+                source={{ uri: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop' }} 
+                style={styles.productImage} 
+                resizeMode="cover" 
+              />
+            )}
           </View>
           <View style={styles.productInfo}>
             <Text style={styles.brandText}>{item.brand}</Text>
             <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-            <View style={styles.ratingContainer}>
-              <Text style={styles.rating}>★ {item.rating}</Text>
-              <Text style={styles.reviewCount}>({item.reviewCount})</Text>
-            </View>
+
             <Text style={styles.price}>{typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price as string).toFixed(2)} د.إ</Text>
           </View>
           </Animated.View>

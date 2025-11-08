@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Heart, Star } from 'lucide-react-native';
+import { ArrowLeft, Heart } from 'lucide-react-native';
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { useBasket } from '@/contexts/BasketContext';
 import { fetchProductById } from '@/services/api';
 
 export default function ProductDetailScreen() {
@@ -24,6 +25,7 @@ export default function ProductDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { addToBasket, getItemQuantity } = useBasket();
 
   const { data: product, isLoading, error, refetch } = useQuery({
     queryKey: ['product', id],
@@ -75,6 +77,11 @@ export default function ProductDetailScreen() {
   }
 
   const isFav = isFavorite(product.id);
+  const quantity = getItemQuantity(product.id);
+
+  const handleAddToBasket = () => {
+    addToBasket(product.id, 1);
+  };
 
   return (
     <View style={styles.container}>
@@ -91,7 +98,15 @@ export default function ProductDetailScreen() {
         }
       >
         <View style={styles.imageContainer}>
-          <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
+          {product.image ? (
+            <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
+          ) : (
+            <Image 
+              source={{ uri: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop' }} 
+              style={styles.image} 
+              resizeMode="cover" 
+            />
+          )}
           
           <View style={[styles.headerButtons, { top: insets.top + 8 }]}>
             <Pressable style={styles.iconButton} onPress={() => router.back()}>
@@ -115,15 +130,7 @@ export default function ProductDetailScreen() {
             {product.brand && <Text style={styles.brandText}>{product.brand}</Text>}
             <Text style={styles.productName}>{product.name || 'منتج بدون اسم'}</Text>
 
-            <View style={styles.ratingRow}>
-              <View style={styles.ratingContainer}>
-                <Star color="#FFB800" size={20} fill="#FFB800" />
-                <Text style={styles.rating}>{product.rating || 0}</Text>
-              </View>
-              <Text style={styles.reviewCount}>
-                {product.reviewCount || 0} تقييم
-              </Text>
-            </View>
+
 
             {product.category && (
               <View style={styles.categoryBadge}>
@@ -175,8 +182,10 @@ export default function ProductDetailScreen() {
                 : '0.00'} د.إ
           </Text>
         </View>
-        <Pressable style={styles.addButton}>
-          <Text style={styles.addButtonText}>إضافة إلى السلة</Text>
+        <Pressable style={styles.addButton} onPress={handleAddToBasket}>
+          <Text style={styles.addButtonText}>
+            {quantity > 0 ? `في السلة (${quantity})` : 'إضافة إلى السلة'}
+          </Text>
         </Pressable>
       </View>
     </View>
