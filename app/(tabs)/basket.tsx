@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react-native';
-import React from 'react';
+import { Trash2, Plus, Minus, ShoppingBag, ChevronUp } from 'lucide-react-native';
+import React, { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import {
   ActivityIndicator,
@@ -23,6 +23,8 @@ export default function BasketScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { basket, updateQuantity, removeFromBasket, totalItems, clearBasket } = useBasket();
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const listRef = useRef<FlatList>(null);
 
   const productIds = basket.map(item => item.productId);
 
@@ -52,6 +54,15 @@ export default function BasketScreen() {
     }, 0);
   }, [basketProducts]);
 
+  const handleScrollToTop = useCallback(() => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
+
+  const handleScroll = useCallback((event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setShowScrollTop(offsetY > 500);
+  }, []);
+
   const renderItem = ({ item }: { item: Product & { quantity: number } }) => {
     const price = typeof item.price === 'number' ? item.price : parseFloat(item.price as string || '0');
     const itemTotal = price * item.quantity;
@@ -80,7 +91,10 @@ export default function BasketScreen() {
 
           <View style={styles.quantityControls}>
             <Pressable
-              style={styles.quantityButton}
+              style={({ pressed }) => [
+                styles.quantityButton,
+                pressed && styles.buttonPressed,
+              ]}
               onPress={(e) => {
                 e.stopPropagation();
                 updateQuantity(item.id, item.quantity + 1);
@@ -92,7 +106,10 @@ export default function BasketScreen() {
             <Text style={styles.quantityText}>{toArabicNumerals(item.quantity)}</Text>
 
             <Pressable
-              style={styles.quantityButton}
+              style={({ pressed }) => [
+                styles.quantityButton,
+                pressed && styles.buttonPressed,
+              ]}
               onPress={(e) => {
                 e.stopPropagation();
                 if (item.quantity === 1) {
@@ -110,7 +127,10 @@ export default function BasketScreen() {
         <View style={styles.itemActions}>
           <Text style={styles.itemTotal}>{formatPrice(itemTotal)} د.إ</Text>
           <Pressable
-            style={styles.deleteButton}
+            style={({ pressed }) => [
+              styles.deleteButton,
+              pressed && styles.buttonPressed,
+            ]}
             onPress={(e) => {
               e.stopPropagation();
               removeFromBasket(item.id);
@@ -178,26 +198,53 @@ export default function BasketScreen() {
           <Text style={styles.headerTitle}>السلة</Text>
           <Text style={styles.itemCount}>{toArabicNumerals(totalItems)} منتج</Text>
         </View>
-        <Pressable style={styles.clearButton} onPress={handleClearBasket}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.clearButton,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={handleClearBasket}
+        >
           <Trash2 color="#FF3B30" size={20} />
           <Text style={styles.clearButtonText}>إفراغ السلة</Text>
         </Pressable>
       </View>
 
-      <FlatList
-        data={basketProducts}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-      />
+      <>
+        <FlatList
+          ref={listRef}
+          data={basketProducts}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        />
+        {showScrollTop && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.scrollToTopButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={handleScrollToTop}
+          >
+            <ChevronUp color="#FFFFFF" size={24} strokeWidth={3} />
+          </Pressable>
+        )}
+      </>
 
       <View style={styles.footer}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>المجموع</Text>
           <Text style={styles.totalAmount}>{formatPrice(totalPrice)} د.إ</Text>
         </View>
-        <Pressable style={styles.checkoutButton}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.checkoutButton,
+            pressed && styles.buttonPressed,
+          ]}
+        >
           <Text style={styles.checkoutButtonText}>إتمام الطلب</Text>
         </Pressable>
       </View>
@@ -396,5 +443,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700' as const,
     color: '#FFFFFF',
+  },
+  scrollToTopButton: {
+    position: 'absolute' as const,
+    bottom: 100,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#1A1A1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  buttonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
   },
 });

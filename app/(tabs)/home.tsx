@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Search, Filter, X, Heart, ShoppingBag } from 'lucide-react-native';
-import React, { useMemo, useState, useCallback } from 'react';
+import { Search, Filter, X, Heart, ShoppingBag, ChevronUp } from 'lucide-react-native';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -41,6 +41,8 @@ export default function HomeScreen() {
   const [barcodeFilter, setBarcodeFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState<string>('A');
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const listRef = useRef<FlatList>(null);
 
   const { data: brandsData } = useQuery({
     queryKey: ['brands'],
@@ -127,6 +129,15 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [refetch]);
 
+  const handleScrollToTop = useCallback(() => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
+
+  const handleScroll = useCallback((event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setShowScrollTop(offsetY > 500);
+  }, []);
+
   const renderProduct = ({ item }: { item: Product }) => {
     const scaleAnim = new Animated.Value(1);
 
@@ -166,7 +177,10 @@ export default function HomeScreen() {
               />
             )}
             <Pressable
-              style={styles.favoriteButton}
+              style={({ pressed }) => [
+                styles.favoriteButton,
+                pressed && styles.buttonPressed,
+              ]}
               onPress={(e) => {
                 e.stopPropagation();
                 toggleFavorite(item.id);
@@ -185,7 +199,10 @@ export default function HomeScreen() {
             <Text style={styles.price}>{formatPrice(item.price)} د.إ</Text>
           </View>
           <Pressable
-            style={styles.addToBasketButtonHome}
+            style={({ pressed }) => [
+              styles.addToBasketButtonHome,
+              pressed && styles.buttonPressed,
+            ]}
             onPress={(e) => {
               e.stopPropagation();
               addToBasket(item.id, 1);
@@ -230,7 +247,10 @@ export default function HomeScreen() {
             />
           </View>
           <Pressable
-            style={styles.filterButton}
+            style={({ pressed }) => [
+              styles.filterButton,
+              pressed && styles.buttonPressed,
+            ]}
             onPress={() => setShowFilters(true)}
           >
             <Filter color="#1A1A1A" size={20} />
@@ -285,42 +305,58 @@ export default function HomeScreen() {
           <Text style={styles.errorText}>{(error as Error).message}</Text>
         </View>
       ) : (
-        <FlatList
-          data={products}
-          renderItem={renderProduct}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={styles.productsContainer}
-          columnWrapperStyle={styles.productRow}
-          showsVerticalScrollIndicator={false}
-          onEndReached={() => {
-            if (hasNextPage && !isFetchingNextPage) {
-              fetchNextPage();
+        <>
+          <FlatList
+            ref={listRef}
+            data={products}
+            renderItem={renderProduct}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            contentContainerStyle={styles.productsContainer}
+            columnWrapperStyle={styles.productRow}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            onEndReached={() => {
+              if (hasNextPage && !isFetchingNextPage) {
+                fetchNextPage();
+              }
+            }}
+            onEndReachedThreshold={0.5}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#1A1A1A"
+                colors={['#1A1A1A']}
+              />
             }
-          }}
-          onEndReachedThreshold={0.5}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#1A1A1A"
-              colors={['#1A1A1A']}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>لم يتم العثور على منتجات</Text>
-            </View>
-          }
-          ListFooterComponent={
-            isFetchingNextPage ? (
-              <View style={styles.footerLoading}>
-                <ActivityIndicator size="small" color="#1A1A1A" />
-                <Text style={styles.footerLoadingText}>جاري تحميل المزيد...</Text>
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>لم يتم العثور على منتجات</Text>
               </View>
-            ) : null
-          }
-        />
+            }
+            ListFooterComponent={
+              isFetchingNextPage ? (
+                <View style={styles.footerLoading}>
+                  <ActivityIndicator size="small" color="#1A1A1A" />
+                  <Text style={styles.footerLoadingText}>جاري تحميل المزيد...</Text>
+                </View>
+              ) : null
+            }
+          />
+          {showScrollTop && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.scrollToTopButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={handleScrollToTop}
+            >
+              <ChevronUp color="#FFFFFF" size={24} strokeWidth={3} />
+            </Pressable>
+          )}
+        </>
       )}
 
       <Modal
@@ -460,7 +496,10 @@ export default function HomeScreen() {
 
             <View style={styles.modalFooter}>
               <Pressable
-                style={styles.clearButton}
+                style={({ pressed }) => [
+                  styles.clearButton,
+                  pressed && styles.buttonPressed,
+                ]}
                 onPress={() => {
                   setSelectedCategory('');
                   setSelectedBrand('');
@@ -470,7 +509,10 @@ export default function HomeScreen() {
                 <Text style={styles.clearButtonText}>مسح الكل</Text>
               </Pressable>
               <Pressable
-                style={styles.applyButton}
+                style={({ pressed }) => [
+                  styles.applyButton,
+                  pressed && styles.buttonPressed,
+                ]}
                 onPress={() => setShowFilters(false)}
               >
                 <Text style={styles.applyButtonText}>تطبيق</Text>
@@ -920,5 +962,25 @@ const styles = StyleSheet.create({
   footerLoadingText: {
     fontSize: 14,
     color: '#666',
+  },
+  scrollToTopButton: {
+    position: 'absolute' as const,
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#1A1A1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  buttonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
   },
 });

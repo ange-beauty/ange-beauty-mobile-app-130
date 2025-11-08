@@ -69,7 +69,13 @@ export default function ProductDetailScreen() {
       <View style={styles.container}>
         <View style={[styles.errorContainer, { paddingTop: insets.top + 60 }]}>
           <Text style={styles.errorText}>لم يتم العثور على المنتج</Text>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.backButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => router.back()}
+          >
             <Text style={styles.backButtonText}>عودة</Text>
           </Pressable>
         </View>
@@ -110,11 +116,20 @@ export default function ProductDetailScreen() {
           )}
           
           <View style={[styles.headerButtons, { top: insets.top + 8 }]}>
-            <Pressable style={styles.iconButton} onPress={() => router.back()}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.iconButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={() => router.back()}
+            >
               <ArrowLeft color="#1A1A1A" size={24} />
             </Pressable>
             <Pressable
-              style={styles.iconButton}
+              style={({ pressed }) => [
+                styles.iconButton,
+                pressed && styles.buttonPressed,
+              ]}
               onPress={() => toggleFavorite(product.id)}
             >
               <Heart
@@ -175,7 +190,13 @@ export default function ProductDetailScreen() {
             {formatPrice(product.price)} د.إ
           </Text>
         </View>
-        <Pressable style={styles.addButton} onPress={handleAddToBasket}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.addButton,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={handleAddToBasket}
+        >
           <Text style={styles.addButtonText}>
             {quantity > 0 ? `في السلة (${toArabicNumerals(quantity)})` : 'إضافة إلى السلة'}
           </Text>
@@ -397,5 +418,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
     color: '#FFFFFF',
+  },
+  buttonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
   },
 });

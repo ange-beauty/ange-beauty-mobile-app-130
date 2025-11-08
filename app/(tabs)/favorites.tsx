@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Heart, ShoppingBag, Plus, X } from 'lucide-react-native';
-import React from 'react';
+import { Heart, ShoppingBag, Plus, X, ChevronUp } from 'lucide-react-native';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -22,6 +22,8 @@ export default function FavoritesScreen() {
   const router = useRouter();
   const { favorites, toggleFavorite } = useFavorites();
   const { addToBasket } = useBasket();
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const listRef = useRef<FlatList>(null);
 
   const { data: productsData, isLoading } = useQuery({
     queryKey: ['favorite-products', favorites],
@@ -40,6 +42,15 @@ export default function FavoritesScreen() {
     addToBasket(productId, 1);
   };
 
+  const handleScrollToTop = useCallback(() => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
+
+  const handleScroll = useCallback((event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setShowScrollTop(offsetY > 500);
+  }, []);
+
   const renderProduct = ({ item }: { item: Product }) => (
     <Pressable
       style={styles.productCard}
@@ -56,7 +67,10 @@ export default function FavoritesScreen() {
           />
         )}
         <Pressable
-          style={styles.favoriteButton}
+          style={({ pressed }) => [
+            styles.favoriteButton,
+            pressed && styles.buttonPressed,
+          ]}
           onPress={(e) => {
             e.stopPropagation();
             toggleFavorite(item.id);
@@ -70,7 +84,10 @@ export default function FavoritesScreen() {
         <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
         <Text style={styles.price}>{formatPrice(item.price)} د.إ</Text>
         <Pressable 
-          style={styles.addToBasketButton}
+          style={({ pressed }) => [
+            styles.addToBasketButton,
+            pressed && styles.buttonPressed,
+          ]}
           onPress={(e) => handleAddToBasket(item.id, e)}
         >
           <Plus color="#FFFFFF" size={16} />
@@ -97,7 +114,10 @@ export default function FavoritesScreen() {
             ابدأ بإضافة المنتجات إلى مفضلتك لرؤيتها هنا
           </Text>
           <Pressable
-            style={styles.shopButton}
+            style={({ pressed }) => [
+              styles.shopButton,
+              pressed && styles.buttonPressed,
+            ]}
             onPress={() => router.push('/(tabs)/home')}
           >
             <ShoppingBag color="#FFFFFF" size={20} />
@@ -105,15 +125,31 @@ export default function FavoritesScreen() {
           </Pressable>
         </View>
       ) : (
-        <FlatList
-          data={favoriteProducts}
-          renderItem={renderProduct}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={styles.productsContainer}
-          columnWrapperStyle={styles.productRow}
-          showsVerticalScrollIndicator={false}
-        />
+        <>
+          <FlatList
+            ref={listRef}
+            data={favoriteProducts}
+            renderItem={renderProduct}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            contentContainerStyle={styles.productsContainer}
+            columnWrapperStyle={styles.productRow}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+          />
+          {showScrollTop && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.scrollToTopButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={handleScrollToTop}
+            >
+              <ChevronUp color="#FFFFFF" size={24} strokeWidth={3} />
+            </Pressable>
+          )}
+        </>
       )}
     </View>
   );
@@ -273,5 +309,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
     color: '#FFFFFF',
+  },
+  scrollToTopButton: {
+    position: 'absolute' as const,
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#1A1A1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  buttonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
   },
 });
