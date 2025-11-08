@@ -16,6 +16,7 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
 import { fetchProducts } from '@/services/api';
 import { Product } from '@/types/product';
+import { formatPrice } from '@/utils/formatPrice';
 
 export default function FavoritesScreen() {
   const router = useRouter();
@@ -67,7 +68,7 @@ export default function FavoritesScreen() {
       <View style={styles.productInfo}>
         <Text style={styles.brandText}>{item.brand}</Text>
         <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-        <Text style={styles.price}>{typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price as string).toFixed(2)} د.إ</Text>
+        <Text style={styles.price}>{formatPrice(item.price)} د.إ</Text>
         <Pressable 
           style={styles.addToBasketButton}
           onPress={(e) => handleAddToBasket(item.id, e)}

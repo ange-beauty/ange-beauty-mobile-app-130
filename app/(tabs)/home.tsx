@@ -23,6 +23,7 @@ import { fetchProducts, fetchBrands, fetchCategories } from '@/services/api';
 import { Product } from '@/types/product';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
+import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
@@ -181,7 +182,7 @@ export default function HomeScreen() {
           <View style={styles.productInfo}>
             <Text style={styles.brandText}>{item.brand}</Text>
             <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-            <Text style={styles.price}>{typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price as string).toFixed(2)} د.إ</Text>
+            <Text style={styles.price}>{formatPrice(item.price)} د.إ</Text>
           </View>
           <Pressable
             style={styles.addToBasketButtonHome}
@@ -193,7 +194,7 @@ export default function HomeScreen() {
             <ShoppingBag color="#FFFFFF" size={16} />
             {itemQuantity > 0 && (
               <View style={styles.basketCountBadge}>
-                <Text style={styles.basketCountText}>{itemQuantity}</Text>
+                <Text style={styles.basketCountText}>{toArabicNumerals(itemQuantity)}</Text>
               </View>
             )}
           </Pressable>

@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
 import { fetchProductById } from '@/services/api';
+import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -141,11 +142,7 @@ export default function ProductDetailScreen() {
             )}
 
             <Text style={styles.price}>
-              {typeof product.price === 'number' 
-                ? product.price.toFixed(2) 
-                : !isNaN(parseFloat(String(product.price))) 
-                  ? parseFloat(String(product.price)).toFixed(2) 
-                  : '0.00'} د.إ
+              {formatPrice(product.price)} د.إ
             </Text>
 
             {product.description && (
@@ -175,16 +172,12 @@ export default function ProductDetailScreen() {
         <View>
           <Text style={styles.bottomBarLabel}>السعر</Text>
           <Text style={styles.bottomBarPrice}>
-            {typeof product.price === 'number' 
-              ? product.price.toFixed(2) 
-              : !isNaN(parseFloat(String(product.price))) 
-                ? parseFloat(String(product.price)).toFixed(2) 
-                : '0.00'} د.إ
+            {formatPrice(product.price)} د.إ
           </Text>
         </View>
         <Pressable style={styles.addButton} onPress={handleAddToBasket}>
           <Text style={styles.addButtonText}>
-            {quantity > 0 ? `في السلة (${quantity})` : 'إضافة إلى السلة'}
+            {quantity > 0 ? `في السلة (${toArabicNumerals(quantity)})` : 'إضافة إلى السلة'}
           </Text>
         </Pressable>
       </View>

@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBasket } from '@/contexts/BasketContext';
 import { fetchProducts } from '@/services/api';
 import { Product } from '@/types/product';
+import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
 
 export default function BasketScreen() {
   const insets = useSafeAreaInsets();
@@ -75,7 +76,7 @@ export default function BasketScreen() {
         <View style={styles.productDetails}>
           <Text style={styles.brandText}>{item.brand || 'غير محدد'}</Text>
           <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-          <Text style={styles.productPrice}>{price.toFixed(2)} د.إ</Text>
+          <Text style={styles.productPrice}>{formatPrice(price)} د.إ</Text>
 
           <View style={styles.quantityControls}>
             <Pressable
@@ -88,7 +89,7 @@ export default function BasketScreen() {
               <Plus color="#1A1A1A" size={16} />
             </Pressable>
 
-            <Text style={styles.quantityText}>{item.quantity}</Text>
+            <Text style={styles.quantityText}>{toArabicNumerals(item.quantity)}</Text>
 
             <Pressable
               style={styles.quantityButton}
@@ -107,7 +108,7 @@ export default function BasketScreen() {
         </View>
 
         <View style={styles.itemActions}>
-          <Text style={styles.itemTotal}>{itemTotal.toFixed(2)} د.إ</Text>
+          <Text style={styles.itemTotal}>{formatPrice(itemTotal)} د.إ</Text>
           <Pressable
             style={styles.deleteButton}
             onPress={(e) => {
@@ -175,7 +176,7 @@ export default function BasketScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View>
           <Text style={styles.headerTitle}>السلة</Text>
-          <Text style={styles.itemCount}>{totalItems} منتج</Text>
+          <Text style={styles.itemCount}>{toArabicNumerals(totalItems)} منتج</Text>
         </View>
         <Pressable style={styles.clearButton} onPress={handleClearBasket}>
           <Trash2 color="#FF3B30" size={20} />
@@ -194,7 +195,7 @@ export default function BasketScreen() {
       <View style={styles.footer}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>المجموع</Text>
-          <Text style={styles.totalAmount}>{totalPrice.toFixed(2)} د.إ</Text>
+          <Text style={styles.totalAmount}>{formatPrice(totalPrice)} د.إ</Text>
         </View>
         <Pressable style={styles.checkoutButton}>
           <Text style={styles.checkoutButtonText}>إتمام الطلب</Text>
