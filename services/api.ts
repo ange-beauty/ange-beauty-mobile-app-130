@@ -1,6 +1,6 @@
 import { mapAPIProductToProduct, Product } from '@/types/product';
 
-const API_BASE_URL = 'https://yasir.tech/angeapidev/';
+const API_BASE_URL = 'https://yasir.tech/angeapi/';
 
 export interface Brand {
   id: string;
@@ -217,7 +217,7 @@ export async function fetchProductById(id: string): Promise<Product | null> {
   }
   
   try {
-    const response = await fetch(`https://yasir.tech/angeapidev/?action=fetch-product-deep&product=${id}`, {
+    const response = await fetch(`${API_BASE_URL}?action=fetch-product-deep&product=${id}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
