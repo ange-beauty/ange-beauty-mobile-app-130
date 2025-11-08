@@ -3,6 +3,7 @@ import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react-native';
 import React from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Pressable,
@@ -18,7 +19,7 @@ import { Product } from '@/types/product';
 
 export default function BasketScreen() {
   const insets = useSafeAreaInsets();
-  const { basket, updateQuantity, removeFromBasket, totalItems } = useBasket();
+  const { basket, updateQuantity, removeFromBasket, totalItems, clearBasket } = useBasket();
 
   const productIds = basket.map(item => item.productId);
 
@@ -138,11 +139,36 @@ export default function BasketScreen() {
     );
   }
 
+  const handleClearBasket = () => {
+    Alert.alert(
+      'إفراغ السلة',
+      'اكيد افراغ السلة ؟',
+      [
+        {
+          text: 'إلغاء',
+          style: 'cancel',
+        },
+        {
+          text: 'إفراغ',
+          style: 'destructive',
+          onPress: () => clearBasket(),
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={styles.headerTitle}>السلة</Text>
-        <Text style={styles.itemCount}>{totalItems} منتج</Text>
+        <View>
+          <Text style={styles.headerTitle}>السلة</Text>
+          <Text style={styles.itemCount}>{totalItems} منتج</Text>
+        </View>
+        <Pressable style={styles.clearButton} onPress={handleClearBasket}>
+          <Trash2 color="#FF3B30" size={20} />
+          <Text style={styles.clearButtonText}>إفراغ السلة</Text>
+        </Pressable>
       </View>
 
       <FlatList
@@ -180,6 +206,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
+  },
+  clearButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#FFF0F0',
+    borderRadius: 12,
+  },
+  clearButtonText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#FF3B30',
   },
   headerTitle: {
     fontSize: 24,
