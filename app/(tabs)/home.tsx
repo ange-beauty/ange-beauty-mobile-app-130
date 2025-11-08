@@ -174,15 +174,14 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.greeting}>اكتشف</Text>
-            <Text style={styles.title}>جمالك</Text>
+          <View style={styles.brandContainer}>
+            <Image 
+              source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/rqerhironvgzmc9yhq77s' }}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.brandName}>انج بيوتي</Text>
           </View>
-          <Image 
-            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/rqerhironvgzmc9yhq77s' }}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
         </View>
 
         <View style={styles.searchRow}>
@@ -457,16 +456,30 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
   headerTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+  },
+  brandContainer: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
+  },
+  brandName: {
+    fontSize: 28,
+    fontWeight: '700' as const,
+    color: '#1A1A1A',
+    letterSpacing: 1,
   },
   greeting: {
     fontSize: 14,
@@ -486,10 +499,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF0F5',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  logoImage: {
-    width: 60,
-    height: 60,
   },
   searchRow: {
     flexDirection: 'row',
