@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#FFFFFF',
     position: 'relative' as const,
   },
   image: {
