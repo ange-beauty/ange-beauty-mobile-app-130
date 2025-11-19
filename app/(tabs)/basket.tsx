@@ -7,6 +7,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -170,22 +171,29 @@ export default function BasketScreen() {
   }
 
   const handleClearBasket = () => {
-    Alert.alert(
-      'إفراغ السلة',
-      'اكيد افراغ السلة ؟',
-      [
-        {
-          text: 'إلغاء',
-          style: 'cancel',
-        },
-        {
-          text: 'إفراغ',
-          style: 'destructive',
-          onPress: () => clearBasket(),
-        },
-      ],
-      { cancelable: true }
-    );
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('هل أنت متأكد من إفراغ السلة؟');
+      if (confirmed) {
+        clearBasket();
+      }
+    } else {
+      Alert.alert(
+        'إفراغ السلة',
+        'اكيد افراغ السلة ؟',
+        [
+          {
+            text: 'إلغاء',
+            style: 'cancel',
+          },
+          {
+            text: 'إفراغ',
+            style: 'destructive',
+            onPress: () => clearBasket(),
+          },
+        ],
+        { cancelable: true }
+      );
+    }
   };
 
   return (
