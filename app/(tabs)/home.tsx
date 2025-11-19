@@ -569,9 +569,9 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#3A7BC8',
+    borderBottomColor: '#F0F0F0',
   },
   headerInline: {
     flexDirection: 'row',
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
   brandNameSmall: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#4A90E2',
+    color: '#1A1A1A',
   },
   greeting: {
     fontSize: 14,
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#3A7BC8',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative' as const,
