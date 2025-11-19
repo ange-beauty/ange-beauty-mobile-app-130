@@ -219,6 +219,12 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     backgroundColor: '#FFFFFF',
     position: 'relative' as const,
+    ...Platform.select({
+      web: {
+        maxWidth: 600,
+        alignSelf: 'center',
+      },
+    }),
   },
   image: {
     width: '100%',
