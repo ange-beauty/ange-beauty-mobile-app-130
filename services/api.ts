@@ -1,6 +1,6 @@
 import { mapAPIProductToProduct, Product } from '@/types/product';
 
-const API_BASE_URL = 'https://yasir.tech/angeapi/';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 
 export interface Brand {
   id: string;
