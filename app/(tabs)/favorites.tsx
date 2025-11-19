@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Heart, ShoppingBag, Plus, X, ChevronUp } from 'lucide-react-native';
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -14,23 +16,51 @@ import {
 
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
-import { fetchProducts } from '@/services/api';
+import { fetchProductById } from '@/services/api';
 import { Product } from '@/types/product';
 import { formatPrice } from '@/utils/formatPrice';
+
+const getNumColumns = () => {
+  const screenWidth = Dimensions.get('window').width;
+  if (Platform.OS === 'web') {
+    if (screenWidth >= 1200) return 5;
+    if (screenWidth >= 900) return 4;
+    if (screenWidth >= 600) return 3;
+  }
+  return 2;
+};
 
 export default function FavoritesScreen() {
   const router = useRouter();
   const { favorites, toggleFavorite } = useFavorites();
   const { addToBasket } = useBasket();
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [numColumns, setNumColumns] = useState(getNumColumns());
+  const [key, setKey] = useState('fav-grid-' + getNumColumns());
   const listRef = useRef<FlatList>(null);
 
   const { data: productsData, isLoading } = useQuery({
     queryKey: ['favorite-products', favorites],
     queryFn: async () => {
       if (favorites.length === 0) return [];
-      const response = await fetchProducts({ limit: 100 });
-      return response.products.filter(p => favorites.includes(p.id));
+      
+      console.log('[Favorites] Fetching', favorites.length, 'favorite products');
+      
+      const promises = favorites.map(async (id) => {
+        try {
+          const product = await fetchProductById(id);
+          return product;
+        } catch (error) {
+          console.error(`[Favorites] Error fetching product ${id}:`, error);
+          return null;
+        }
+      });
+      
+      const results = await Promise.all(promises);
+      const validProducts = results.filter((p): p is Product => p !== null);
+      
+      console.log('[Favorites] Successfully fetched', validProducts.length, 'products');
+      return validProducts;
     },
     enabled: favorites.length > 0,
   });
@@ -51,50 +81,77 @@ export default function FavoritesScreen() {
     setShowScrollTop(offsetY > 500);
   }, []);
 
+  React.useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      const newNumColumns = (() => {
+        if (Platform.OS === 'web') {
+          if (window.width >= 1200) return 5;
+          if (window.width >= 900) return 4;
+          if (window.width >= 600) return 3;
+        }
+        return 2;
+      })();
+      
+      if (newNumColumns !== numColumns) {
+        setNumColumns(newNumColumns);
+        setKey('fav-grid-' + newNumColumns);
+      }
+    });
+
+    return () => subscription?.remove();
+  }, [numColumns]);
+
+  const cardWidth = useMemo(() => {
+    const screenWidth = Dimensions.get('window').width;
+    return (screenWidth - 16 * (numColumns + 1)) / numColumns;
+  }, [numColumns]);
+
   const renderProduct = ({ item }: { item: Product }) => (
-    <Pressable
-      style={styles.productCard}
-      onPress={() => router.push(`/product/${item.id}`)}
-    >
-      <View style={styles.productImageContainer}>
-        {item.image ? (
-          <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="contain" />
-        ) : (
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop' }} 
-            style={styles.productImage} 
-            resizeMode="cover" 
-          />
-        )}
-        <Pressable
-          style={({ pressed }) => [
-            styles.favoriteButton,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={(e) => {
-            e.stopPropagation();
-            toggleFavorite(item.id);
-          }}
-        >
-          <X color="#FF3B30" size={20} strokeWidth={2.5} />
-        </Pressable>
-      </View>
-      <View style={styles.productInfo}>
-        <Text style={styles.brandText}>{item.brand}</Text>
-        <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-        <Text style={styles.price}>{formatPrice(item.price)} د.إ</Text>
-        <Pressable 
-          style={({ pressed }) => [
-            styles.addToBasketButton,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={(e) => handleAddToBasket(item.id, e)}
-        >
-          <Plus color="#FFFFFF" size={16} />
-          <Text style={styles.addToBasketText}>أضف للسلة</Text>
-        </Pressable>
-      </View>
-    </Pressable>
+    <View style={{ width: cardWidth, marginBottom: 16 }}>
+      <Pressable
+        style={styles.productCard}
+        onPress={() => router.push(`/product/${item.id}`)}
+      >
+        <View style={styles.productImageContainer}>
+          {item.image ? (
+            <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="contain" />
+          ) : (
+            <Image 
+              source={{ uri: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop' }} 
+              style={styles.productImage} 
+              resizeMode="cover" 
+            />
+          )}
+          <Pressable
+            style={({ pressed }) => [
+              styles.favoriteButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={(e) => {
+              e.stopPropagation();
+              toggleFavorite(item.id);
+            }}
+          >
+            <X color="#FF3B30" size={20} strokeWidth={2.5} />
+          </Pressable>
+        </View>
+        <View style={styles.productInfo}>
+          <Text style={styles.brandText}>{item.brand}</Text>
+          <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+          <Text style={styles.price}>{formatPrice(item.price)} د.إ</Text>
+          <Pressable 
+            style={({ pressed }) => [
+              styles.addToBasketButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={(e) => handleAddToBasket(item.id, e)}
+          >
+            <Plus color="#FFFFFF" size={16} />
+            <Text style={styles.addToBasketText}>أضف للسلة</Text>
+          </Pressable>
+        </View>
+      </Pressable>
+    </View>
   );
 
   return (
@@ -128,10 +185,11 @@ export default function FavoritesScreen() {
         <>
           <FlatList
             ref={listRef}
+            key={key}
             data={favoriteProducts}
             renderItem={renderProduct}
             keyExtractor={(item) => item.id}
-            numColumns={2}
+            numColumns={numColumns}
             contentContainerStyle={styles.productsContainer}
             columnWrapperStyle={styles.productRow}
             showsVerticalScrollIndicator={false}
@@ -167,7 +225,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   productCard: {
-    width: '48%',
+    width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     marginBottom: 16,
