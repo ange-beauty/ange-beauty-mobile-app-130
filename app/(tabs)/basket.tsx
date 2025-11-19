@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries } from '@tanstack/react-query';
 import { Trash2, Plus, Minus, ShoppingBag, ChevronUp } from 'lucide-react-native';
 import React, { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'expo-router';
@@ -15,7 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useBasket } from '@/contexts/BasketContext';
-import { fetchProducts } from '@/services/api';
+import { fetchProductById } from '@/services/api';
 import { Product } from '@/types/product';
 import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
 
@@ -26,23 +26,20 @@ export default function BasketScreen() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const listRef = useRef<FlatList>(null);
 
-  const productIds = basket.map(item => item.productId);
-
-  const { data: productsData, isLoading } = useQuery({
-    queryKey: ['basketProducts', productIds],
-    queryFn: async () => {
-      if (productIds.length === 0) return { products: [] };
-      const response = await fetchProducts({ limit: 100 });
-      return response;
-    },
-    enabled: productIds.length > 0,
+  const productQueries = useQueries({
+    queries: basket.map(item => ({
+      queryKey: ['product', item.productId],
+      queryFn: () => fetchProductById(item.productId),
+      staleTime: 5 * 60 * 1000,
+    })),
   });
 
+  const isLoading = productQueries.some(query => query.isLoading);
+  const productsData = productQueries.map(query => query.data);
+
   const basketProducts = React.useMemo(() => {
-    if (!productsData?.products) return [];
-    
-    return basket.map(basketItem => {
-      const product = productsData.products.find((p: Product) => p.id === basketItem.productId);
+    return basket.map((basketItem, index) => {
+      const product = productsData[index];
       return product ? { ...product, quantity: basketItem.quantity } : null;
     }).filter(Boolean) as (Product & { quantity: number })[];
   }, [basket, productsData]);
