@@ -262,18 +262,15 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <View style={styles.headerTop}>
-          <View style={styles.brandContainer}>
+        <View style={styles.headerInline}>
+          <View style={styles.brandLogoContainer}>
             <Image 
               source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/rqerhironvgzmc9yhq77s' }}
-              style={styles.logoImage}
+              style={styles.logoImageSmall}
               resizeMode="contain"
             />
-            <Text style={styles.brandName}>انج بيوتي</Text>
+            <Text style={styles.brandNameSmall}>انج بيوتي</Text>
           </View>
-        </View>
-
-        <View style={styles.searchRow}>
           <View style={styles.searchContainer}>
             <Search color="#999" size={20} style={styles.searchIcon} />
             <TextInput
@@ -291,7 +288,7 @@ export default function HomeScreen() {
             ]}
             onPress={() => setShowFilters(true)}
           >
-            <Filter color="#1A1A1A" size={20} />
+            <Filter color="#FFFFFF" size={20} />
             {(selectedCategory || selectedBrand || barcodeFilter) && (
               <View style={styles.filterBadge} />
             )}
@@ -572,29 +569,32 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#4A90E2',
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#3A7BC8',
   },
-  headerTop: {
+  headerInline: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  brandContainer: {
     alignItems: 'center',
     gap: 12,
   },
-  logoImage: {
-    width: 80,
-    height: 80,
+  brandLogoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
-  brandName: {
-    fontSize: 28,
+  logoImageSmall: {
+    width: 32,
+    height: 32,
+  },
+  brandNameSmall: {
+    fontSize: 16,
     fontWeight: '700' as const,
-    color: '#1A1A1A',
-    letterSpacing: 1,
+    color: '#4A90E2',
   },
   greeting: {
     fontSize: 14,
@@ -615,17 +615,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 48,
@@ -634,7 +628,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#3A7BC8',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative' as const,
