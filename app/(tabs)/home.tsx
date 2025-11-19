@@ -9,6 +9,7 @@ import {
   FlatList,
   Image,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -26,7 +27,17 @@ import { useBasket } from '@/contexts/BasketContext';
 import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
+
+const getNumColumns = () => {
+  if (Platform.OS === 'web') {
+    if (SCREEN_WIDTH >= 1200) return 5;
+    if (SCREEN_WIDTH >= 900) return 4;
+    if (SCREEN_WIDTH >= 600) return 3;
+  }
+  return 2;
+};
+
+const NUM_COLUMNS = getNumColumns();
 
 
 
@@ -42,6 +53,8 @@ export default function HomeScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState<string>('A');
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [numColumns, setNumColumns] = useState(NUM_COLUMNS);
+  const [key, setKey] = useState('grid-' + NUM_COLUMNS);
   const listRef = useRef<FlatList>(null);
 
   const { data: brandsData } = useQuery({
@@ -138,6 +151,31 @@ export default function HomeScreen() {
     setShowScrollTop(offsetY > 500);
   }, []);
 
+  React.useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      const newNumColumns = (() => {
+        if (Platform.OS === 'web') {
+          if (window.width >= 1200) return 5;
+          if (window.width >= 900) return 4;
+          if (window.width >= 600) return 3;
+        }
+        return 2;
+      })();
+      
+      if (newNumColumns !== numColumns) {
+        setNumColumns(newNumColumns);
+        setKey('grid-' + newNumColumns);
+      }
+    });
+
+    return () => subscription?.remove();
+  }, [numColumns]);
+
+  const cardWidth = useMemo(() => {
+    const screenWidth = Dimensions.get('window').width;
+    return (screenWidth - 16 * (numColumns + 1)) / numColumns;
+  }, [numColumns]);
+
   const renderProduct = ({ item }: { item: Product }) => {
     const scaleAnim = new Animated.Value(1);
 
@@ -159,7 +197,7 @@ export default function HomeScreen() {
     const itemQuantity = getItemQuantity(item.id);
 
     return (
-      <View style={{ width: CARD_WIDTH, marginBottom: 16 }}>
+      <View style={{ width: cardWidth, marginBottom: 16 }}>
         <Pressable
           onPress={() => router.push(`/product/${item.id}`)}
           onPressIn={handlePressIn}
@@ -308,10 +346,11 @@ export default function HomeScreen() {
         <>
           <FlatList
             ref={listRef}
+            key={key}
             data={products}
             renderItem={renderProduct}
             keyExtractor={(item) => item.id}
-            numColumns={2}
+            numColumns={numColumns}
             contentContainerStyle={styles.productsContainer}
             columnWrapperStyle={styles.productRow}
             showsVerticalScrollIndicator={false}
