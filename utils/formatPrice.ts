@@ -7,6 +7,6 @@ export function toArabicNumerals(num: string | number): string {
 
 export function formatPrice(price: string | number): string {
   const numericPrice = typeof price === 'number' ? price : parseFloat(price as string || '0');
-  const formattedPrice = numericPrice.toFixed(2);
+  const formattedPrice = Math.round(numericPrice).toString();
   return toArabicNumerals(formattedPrice);
 }
