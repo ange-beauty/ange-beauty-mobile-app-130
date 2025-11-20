@@ -40,7 +40,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
       return null;
     }
 
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId || '2zlifppxsf94bsd8q9jiw';
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId || 'a5db08fb-fcd1-47ca-929f-e3d8ebe03d73';
     console.log('[Notifications] Using project ID:', projectId);
     
     const token = await Notifications.getExpoPushTokenAsync({
