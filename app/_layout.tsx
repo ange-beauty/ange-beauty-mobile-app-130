@@ -10,6 +10,7 @@ import Constants from 'expo-constants';
 import { FavoritesContext } from "@/contexts/FavoritesContext";
 import { BasketContext } from "@/contexts/BasketContext";
 import { checkAppUpdateStatus } from "@/services/api";
+import { registerForPushNotifications, registerPushTokenWithServer } from "@/services/notifications";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -166,6 +167,24 @@ export default function RootLayout() {
       setIsCheckingUpdate(false);
     }
     checkUpdate();
+  }, []);
+
+  useEffect(() => {
+    async function setupPushNotifications() {
+      if (Platform.OS === 'web') {
+        console.log('[RootLayout] Skipping push notifications setup for web platform');
+        return;
+      }
+      
+      console.log('[RootLayout] Setting up push notifications...');
+      const pushToken = await registerForPushNotifications();
+      
+      if (pushToken) {
+        console.log('[RootLayout] Registering push token with server...');
+        await registerPushTokenWithServer(pushToken);
+      }
+    }
+    setupPushNotifications();
   }, []);
 
   if (showSplash) {
