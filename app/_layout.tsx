@@ -5,6 +5,7 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { I18nManager, Platform, Animated, View, Image, StyleSheet, Dimensions, Text } from "react-native";
+import Constants from 'expo-constants';
 
 import { FavoritesContext } from "@/contexts/FavoritesContext";
 import { BasketContext } from "@/contexts/BasketContext";
@@ -152,8 +153,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     async function checkUpdate() {
-      console.log('[RootLayout] Checking for app updates...');
-      const isUpToDate = await checkAppUpdateStatus();
+      const appVersion = Constants.expoConfig?.version || '1.0.0';
+      console.log('[RootLayout] Checking for app updates... Current version:', appVersion);
+      const isUpToDate = await checkAppUpdateStatus(appVersion);
       console.log('[RootLayout] Update check result:', isUpToDate);
       setUpdateRequired(!isUpToDate);
       setIsCheckingUpdate(false);

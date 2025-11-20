@@ -208,16 +208,19 @@ export async function fetchCategories(): Promise<Category[]> {
   }
 }
 
-export async function checkAppUpdateStatus(): Promise<boolean> {
-  console.log(`[API] Checking app update status`);
+export async function checkAppUpdateStatus(appVersion: string): Promise<boolean> {
+  console.log(`[API] Checking app update status - version: ${appVersion}`);
   
   try {
     const response = await fetch(`${API_BASE_URL}?action=must-update`, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        version: appVersion,
+      }),
     });
     
     console.log(`[API] Update check response status:`, response.status);
