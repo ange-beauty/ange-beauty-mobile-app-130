@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Search, Filter, X, Heart, ShoppingBag, ChevronUp } from 'lucide-react-native';
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
@@ -43,12 +43,13 @@ const NUM_COLUMNS = getNumColumns();
 
 export default function HomeScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ brandId?: string }>();
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToBasket, getItemQuantity } = useBasket();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [selectedBrand, setSelectedBrand] = useState<string>('');
+  const [selectedBrand, setSelectedBrand] = useState<string>(params.brandId || '');
   const [barcodeFilter, setBarcodeFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState<string>('A');
@@ -76,6 +77,12 @@ export default function HomeScreen() {
     if (!categoriesData) return [];
     return Array.isArray(categoriesData) ? categoriesData : [];
   }, [categoriesData]);
+
+  React.useEffect(() => {
+    if (params.brandId) {
+      setSelectedBrand(params.brandId);
+    }
+  }, [params.brandId]);
 
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0-9'.split('');
   

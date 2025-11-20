@@ -4,6 +4,7 @@ export interface Product {
   id: string;
   name: string;
   brand: string;
+  brandId?: string;
   category: ProductCategory;
   price: number;
   image: string;
@@ -33,6 +34,7 @@ export interface APIProduct {
     name_en?: string;
   };
   brand?: string | null;
+  brand_id?: string | number | null;
   brand_name_ar?: string | null;
   brand_name_en?: string | null;
   code_bar?: string | null;
@@ -81,6 +83,7 @@ export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
   }
   
   const brandName = apiProduct.brand_name_ar || apiProduct.brand_name_en || 'علامة تجارية غير معروفة';
+  const brandId = apiProduct.brand_id?.toString() || apiProduct.brand?.toString() || undefined;
 
   let imageUrl = '';
   try {
@@ -114,6 +117,7 @@ export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
     id: apiProduct.id?.toString() || '',
     name: productName,
     brand: brandName,
+    brandId,
     category,
     price,
     image: imageUrl,

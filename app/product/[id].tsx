@@ -145,7 +145,22 @@ export default function ProductDetailScreen() {
 
         <Animated.View style={[styles.contentContainer, { transform: [{ scale: scaleAnim }] }]}>
           <View style={styles.content}>
-            {product.brand && <Text style={styles.brandText}>{product.brand}</Text>}
+            {product.brand && (
+              <Pressable 
+                onPress={() => {
+                  if (product.brandId) {
+                    console.log('[ProductDetail] Navigating to home with brandId:', product.brandId);
+                    router.push(`/?brandId=${product.brandId}`);
+                  }
+                }}
+                style={({ pressed }) => [
+                  styles.brandPressable,
+                  pressed && styles.brandPressed,
+                ]}
+              >
+                <Text style={styles.brandText}>{product.brand}</Text>
+              </Pressable>
+            )}
             <Text style={styles.productName}>{product.name || 'منتج بدون اسم'}</Text>
 
 
@@ -347,13 +362,20 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
   },
+  brandPressable: {
+    alignSelf: 'flex-start',
+  },
+  brandPressed: {
+    opacity: 0.6,
+  },
   brandText: {
     fontSize: 14,
-    color: '#999',
+    color: '#1A1A1A',
     fontWeight: '600' as const,
     textTransform: 'uppercase' as const,
     letterSpacing: 1,
     marginBottom: 8,
+    textDecorationLine: 'underline' as const,
   },
   productName: {
     fontSize: 28,
