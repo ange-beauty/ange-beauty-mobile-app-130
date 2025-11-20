@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { WebView } from 'react-native-webview';
 
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
@@ -27,6 +28,7 @@ export default function ProductDetailScreen() {
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToBasket, getItemQuantity } = useBasket();
+  const [webViewHeight, setWebViewHeight] = useState(0);
 
   const { data: product, isLoading, error, refetch } = useQuery({
     queryKey: ['product', id],
@@ -164,7 +166,91 @@ export default function ProductDetailScreen() {
               <View style={styles.descriptionBox}>
                 <Text style={styles.descriptionTitle}>الوصف</Text>
                 <View style={styles.descriptionContent}>
-                  <Text style={styles.description}>{product.description}</Text>
+                  <WebView
+                    originWhitelist={['*']}
+                    source={{
+                      html: `
+                        <!DOCTYPE html>
+                        <html>
+                          <head>
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                            <style>
+                              * {
+                                margin: 0;
+                                padding: 0;
+                                box-sizing: border-box;
+                              }
+                              body {
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+                                font-size: 15px;
+                                line-height: 1.6;
+                                color: #4A4A4A;
+                                direction: rtl;
+                                text-align: right;
+                                padding: 0;
+                                background: transparent;
+                              }
+                              p {
+                                margin-bottom: 12px;
+                              }
+                              p:last-child {
+                                margin-bottom: 0;
+                              }
+                              h1, h2, h3, h4, h5, h6 {
+                                color: #1A1A1A;
+                                margin-bottom: 8px;
+                                font-weight: 700;
+                              }
+                              ul, ol {
+                                margin: 8px 0;
+                                padding-right: 20px;
+                              }
+                              li {
+                                margin-bottom: 4px;
+                              }
+                              strong, b {
+                                color: #1A1A1A;
+                                font-weight: 700;
+                              }
+                              a {
+                                color: #1A1A1A;
+                                text-decoration: underline;
+                              }
+                              img {
+                                max-width: 100%;
+                                height: auto;
+                                border-radius: 8px;
+                                margin: 8px 0;
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            ${product.description}
+                          </body>
+                          <script>
+                            window.addEventListener('load', function() {
+                              window.ReactNativeWebView.postMessage(JSON.stringify({ height: document.body.scrollHeight }));
+                            });
+                          </script>
+                        </html>
+                      `,
+                    }}
+                    onMessage={(event) => {
+                      try {
+                        const data = JSON.parse(event.nativeEvent.data);
+                        if (data.height) {
+                          setWebViewHeight(data.height);
+                        }
+                      } catch (e) {
+                        console.log('Error parsing WebView message:', e);
+                      }
+                    }}
+                    style={[styles.webView, { height: webViewHeight || 200 }]}
+                    scrollEnabled={false}
+                    showsVerticalScrollIndicator={false}
+                    showsHorizontalScrollIndicator={false}
+                    bounces={false}
+                  />
                 </View>
               </View>
             )}
@@ -351,15 +437,12 @@ const styles = StyleSheet.create({
   descriptionContent: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
+    overflow: 'hidden',
     borderLeftWidth: 3,
     borderLeftColor: '#1A1A1A',
   },
-  description: {
-    fontSize: 15,
-    color: '#4A4A4A',
-    lineHeight: 24,
-    textAlign: 'right',
+  webView: {
+    backgroundColor: 'transparent',
   },
   ingredientsContainer: {
     flexDirection: 'row',
