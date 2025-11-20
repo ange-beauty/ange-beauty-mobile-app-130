@@ -161,9 +161,11 @@ export default function ProductDetailScreen() {
             </Text>
 
             {product.description && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>الوصف</Text>
-                <Text style={styles.description}>{product.description}</Text>
+              <View style={styles.descriptionBox}>
+                <Text style={styles.descriptionTitle}>الوصف</Text>
+                <View style={styles.descriptionContent}>
+                  <Text style={styles.description}>{product.description}</Text>
+                </View>
               </View>
             )}
 
@@ -326,10 +328,38 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 12,
   },
+  descriptionBox: {
+    marginBottom: 32,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  descriptionTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#1A1A1A',
+    marginBottom: 16,
+    textAlign: 'right',
+  },
+  descriptionContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: '#1A1A1A',
+  },
   description: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 15,
+    color: '#4A4A4A',
     lineHeight: 24,
+    textAlign: 'right',
   },
   ingredientsContainer: {
     flexDirection: 'row',
