@@ -80,7 +80,9 @@ export default function HomeScreen() {
 
   React.useEffect(() => {
     if (params.brandId) {
+      console.log('[Home] Setting brandId from params:', params.brandId);
       setSelectedBrand(params.brandId);
+      listRef.current?.scrollToOffset({ offset: 0, animated: false });
     }
   }, [params.brandId]);
 

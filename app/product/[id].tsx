@@ -150,15 +150,15 @@ export default function ProductDetailScreen() {
                 onPress={() => {
                   if (product.brandId) {
                     console.log('[ProductDetail] Navigating to home with brandId:', product.brandId);
-                    router.push(`/?brandId=${product.brandId}`);
+                    router.push(`/(tabs)/home?brandId=${product.brandId}`);
                   }
                 }}
                 style={({ pressed }) => [
-                  styles.brandPressable,
-                  pressed && styles.brandPressed,
+                  styles.brandButton,
+                  pressed && styles.brandButtonPressed,
                 ]}
               >
-                <Text style={styles.brandText}>{product.brand}</Text>
+                <Text style={styles.brandButtonText}>{product.brand}</Text>
               </Pressable>
             )}
             <Text style={styles.productName}>{product.name || 'منتج بدون اسم'}</Text>
@@ -362,20 +362,32 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
   },
-  brandPressable: {
+  brandButton: {
     alignSelf: 'flex-start',
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  brandPressed: {
-    opacity: 0.6,
+  brandButtonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.97 }],
+    backgroundColor: '#E5E5E5',
   },
-  brandText: {
-    fontSize: 14,
+  brandButtonText: {
+    fontSize: 13,
     color: '#1A1A1A',
-    fontWeight: '600' as const,
+    fontWeight: '700' as const,
     textTransform: 'uppercase' as const,
-    letterSpacing: 1,
-    marginBottom: 8,
-    textDecorationLine: 'underline' as const,
+    letterSpacing: 0.8,
   },
   productName: {
     fontSize: 28,
