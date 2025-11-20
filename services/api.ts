@@ -208,6 +208,33 @@ export async function fetchCategories(): Promise<Category[]> {
   }
 }
 
+export async function checkAppUpdateStatus(): Promise<boolean> {
+  console.log(`[API] Checking app update status`);
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}?action=must-update`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    console.log(`[API] Update check response status:`, response.status);
+    
+    if (response && response.ok && response.status === 200) {
+      console.log(`[API] App is up to date`);
+      return true;
+    }
+    
+    console.log(`[API] App update required`);
+    return false;
+  } catch (error) {
+    console.error('[API] Error checking update status:', error);
+    return false;
+  }
+}
+
 export async function fetchProductById(id: string): Promise<Product | null> {
   console.log(`[API] Fetching product with id: ${id}`);
   

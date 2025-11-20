@@ -4,10 +4,11 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { I18nManager, Platform, Animated, View, Image, StyleSheet, Dimensions } from "react-native";
+import { I18nManager, Platform, Animated, View, Image, StyleSheet, Dimensions, Text } from "react-native";
 
 import { FavoritesContext } from "@/contexts/FavoritesContext";
 import { BasketContext } from "@/contexts/BasketContext";
+import { checkAppUpdateStatus } from "@/services/api";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -99,8 +100,45 @@ const splashStyles = StyleSheet.create({
   },
 });
 
+const updateStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F0F8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  messageBox: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 40,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  messageText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#2D3436',
+    textAlign: 'center',
+  },
+  checkingText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#2D3436',
+    textAlign: 'center',
+  },
+});
+
 export default function RootLayout() {
   const [showSplash, setShowSplash] = useState(true);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(true);
+  const [updateRequired, setUpdateRequired] = useState(false);
 
   useEffect(() => {
     if (!I18nManager.isRTL) {
@@ -112,8 +150,37 @@ export default function RootLayout() {
     SplashScreen.hideAsync();
   }, []);
 
+  useEffect(() => {
+    async function checkUpdate() {
+      console.log('[RootLayout] Checking for app updates...');
+      const isUpToDate = await checkAppUpdateStatus();
+      console.log('[RootLayout] Update check result:', isUpToDate);
+      setUpdateRequired(!isUpToDate);
+      setIsCheckingUpdate(false);
+    }
+    checkUpdate();
+  }, []);
+
   if (showSplash) {
     return <CustomSplashScreen onFinish={() => setShowSplash(false)} />;
+  }
+
+  if (isCheckingUpdate) {
+    return (
+      <View style={splashStyles.container}>
+        <Text style={updateStyles.checkingText}>جاري التحقق...</Text>
+      </View>
+    );
+  }
+
+  if (updateRequired) {
+    return (
+      <View style={updateStyles.container}>
+        <View style={updateStyles.messageBox}>
+          <Text style={updateStyles.messageText}>الرجاء تحديث البرنامج</Text>
+        </View>
+      </View>
+    );
   }
 
   return (
