@@ -153,6 +153,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     async function checkUpdate() {
+      if (Platform.OS === 'web') {
+        console.log('[RootLayout] Skipping update check for web platform');
+        setIsCheckingUpdate(false);
+        return;
+      }
       const appVersion = Constants.expoConfig?.version || '1.0.0';
       console.log('[RootLayout] Checking for app updates... Current version:', appVersion);
       const isUpToDate = await checkAppUpdateStatus(appVersion);
