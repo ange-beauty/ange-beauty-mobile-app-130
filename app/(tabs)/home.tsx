@@ -899,6 +899,7 @@ const styles = StyleSheet.create({
   },
   productInfo: {
     padding: 12,
+    paddingRight: 52,
   },
   brandText: {
     fontSize: 11,
