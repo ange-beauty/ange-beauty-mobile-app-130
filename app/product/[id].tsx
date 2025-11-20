@@ -157,7 +157,7 @@ export default function ProductDetailScreen() {
             )}
 
             <Text style={styles.price}>
-              {formatPrice(product.price)} د.إ
+              {formatPrice(product.price)}
             </Text>
 
             {product.description && (
@@ -187,7 +187,7 @@ export default function ProductDetailScreen() {
         <View>
           <Text style={styles.bottomBarLabel}>السعر</Text>
           <Text style={styles.bottomBarPrice}>
-            {formatPrice(product.price)} د.إ
+            {formatPrice(product.price)}
           </Text>
         </View>
         <Pressable

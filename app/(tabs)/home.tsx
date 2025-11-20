@@ -234,7 +234,7 @@ export default function HomeScreen() {
           <View style={styles.productInfo}>
             <Text style={styles.brandText}>{item.brand}</Text>
             <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-            <Text style={styles.price}>{formatPrice(item.price)} د.إ</Text>
+            <Text style={styles.price}>{formatPrice(item.price)}</Text>
           </View>
           <Pressable
             style={({ pressed }) => [

@@ -85,7 +85,7 @@ export default function BasketScreen() {
         <View style={styles.productDetails}>
           <Text style={styles.brandText}>{item.brand || 'غير محدد'}</Text>
           <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-          <Text style={styles.productPrice}>{formatPrice(price)} د.إ</Text>
+          <Text style={styles.productPrice}>{formatPrice(price)}</Text>
 
           <View style={styles.quantityControls}>
             <Pressable
@@ -123,7 +123,7 @@ export default function BasketScreen() {
         </View>
 
         <View style={styles.itemActions}>
-          <Text style={styles.itemTotal}>{formatPrice(itemTotal)} د.إ</Text>
+          <Text style={styles.itemTotal}>{formatPrice(itemTotal)}</Text>
           <Pressable
             style={({ pressed }) => [
               styles.deleteButton,
@@ -242,7 +242,7 @@ export default function BasketScreen() {
       <View style={styles.footer}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>المجموع</Text>
-          <Text style={styles.totalAmount}>{formatPrice(totalPrice)} د.إ</Text>
+          <Text style={styles.totalAmount}>{formatPrice(totalPrice)}</Text>
         </View>
         <Pressable
           style={({ pressed }) => [
