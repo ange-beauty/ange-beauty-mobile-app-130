@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 
@@ -54,6 +55,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
 export async function registerPushTokenWithServer(pushToken: string): Promise<boolean> {
   console.log('[Notifications] Registering push token with server:', pushToken);
   
+  const appVersion = Constants.expoConfig?.version || '1.0.0';
+  console.log('[Notifications] App version:', appVersion);
+  
   try {
     const response = await fetch(`${API_BASE_URL}?action=register-push-token`, {
       method: 'POST',
@@ -63,6 +67,7 @@ export async function registerPushTokenWithServer(pushToken: string): Promise<bo
       },
       body: JSON.stringify({
         token: pushToken,
+        app_version: appVersion,
       }),
     });
     
