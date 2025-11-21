@@ -55,26 +55,68 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 }
 
-export async function registerPushTokenWithServer(pushToken: string): Promise<boolean> {
-  console.log('[Notifications] Registering push token with server:', pushToken);
-  
-  const appVersion = Constants.expoConfig?.version || '1.0.0';
-  console.log('[Notifications] App version:', appVersion);
-  
+async function logTelemetry(data: {
+  endpoint: string;
+  payload: any;
+  response?: any;
+  error?: any;
+  statusCode?: number;
+}): Promise<void> {
   try {
-    const response = await fetch(`${API_BASE_URL}?action=register-push-token`, {
+    await fetch(`${API_BASE_URL}?action=log`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        token: pushToken,
-        app_version: appVersion,
+        timestamp: new Date().toISOString(),
+        type: 'notification_token',
+        ...data,
       }),
+    });
+  } catch (logError) {
+    console.error('[Notifications] Failed to log telemetry:', logError);
+  }
+}
+
+export async function registerPushTokenWithServer(pushToken: string): Promise<boolean> {
+  console.log('[Notifications] Registering push token with server:', pushToken);
+  
+  const appVersion = Constants.expoConfig?.version || '1.0.0';
+  console.log('[Notifications] App version:', appVersion);
+  
+  const endpoint = `${API_BASE_URL}?action=register-push-token`;
+  const payload = {
+    token: pushToken,
+    app_version: appVersion,
+  };
+  
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
     });
     
     console.log('[Notifications] Registration response status:', response.status);
+    
+    let responseData;
+    try {
+      responseData = await response.json();
+    } catch {
+      responseData = { error: 'Failed to parse response JSON' };
+    }
+    
+    await logTelemetry({
+      endpoint,
+      payload,
+      response: responseData,
+      statusCode: response.status,
+    });
     
     if (response && response.ok) {
       console.log('[Notifications] Push token registered successfully');
@@ -85,6 +127,14 @@ export async function registerPushTokenWithServer(pushToken: string): Promise<bo
     return false;
   } catch (error) {
     console.error('[Notifications] Error registering push token:', error);
+    
+    await logTelemetry({
+      endpoint,
+      payload,
+      error: error instanceof Error ? error.message : String(error),
+      statusCode: 0,
+    });
+    
     return false;
   }
 }
