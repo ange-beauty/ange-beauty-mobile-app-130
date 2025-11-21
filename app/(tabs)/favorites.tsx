@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Heart, ShoppingBag, Plus, X, ChevronUp } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   ActivityIndicator,
@@ -132,7 +132,7 @@ export default function FavoritesScreen() {
               toggleFavorite(item.id);
             }}
           >
-            <X color="#FF3B30" size={20} strokeWidth={2.5} />
+            <Feather name="x" color="#FF3B30" size={20} />
           </Pressable>
         </View>
         <View style={styles.productInfo}>
@@ -146,7 +146,7 @@ export default function FavoritesScreen() {
             ]}
             onPress={(e) => handleAddToBasket(item.id, e)}
           >
-            <Plus color="#FFFFFF" size={16} />
+            <Feather name="plus" color="#FFFFFF" size={16} />
             <Text style={styles.addToBasketText}>أضف للسلة</Text>
           </Pressable>
         </View>
@@ -164,7 +164,7 @@ export default function FavoritesScreen() {
       ) : favoriteProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconContainer}>
-            <Heart color="#DDD" size={64} />
+            <Feather name="heart" color="#DDD" size={64} />
           </View>
           <Text style={styles.emptyTitle}>لا توجد مفضلات بعد</Text>
           <Text style={styles.emptyText}>
@@ -177,7 +177,7 @@ export default function FavoritesScreen() {
             ]}
             onPress={() => router.push('/(tabs)/home')}
           >
-            <ShoppingBag color="#FFFFFF" size={20} />
+            <Feather name="shopping-bag" color="#FFFFFF" size={20} />
             <Text style={styles.shopButtonText}>ابدأ التسوق</Text>
           </Pressable>
         </View>
@@ -204,7 +204,7 @@ export default function FavoritesScreen() {
               ]}
               onPress={handleScrollToTop}
             >
-              <ChevronUp color="#FFFFFF" size={24} strokeWidth={3} />
+              <Feather name="chevron-up" color="#FFFFFF" size={24} />
             </Pressable>
           )}
         </>

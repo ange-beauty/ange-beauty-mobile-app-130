@@ -1,13 +1,13 @@
 import { Link, Stack } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
-import { AlertCircle } from "lucide-react-native";
+import { Feather } from "@expo/vector-icons";
 
 export default function NotFoundScreen() {
   return (
     <>
       <Stack.Screen options={{ title: "Oops!" }} />
       <View style={styles.container}>
-        <AlertCircle color="#999" size={64} />
+        <Feather name="alert-circle" color="#999" size={64} />
         <Text style={styles.title}>Page Not Found</Text>
         <Text style={styles.description}>This screen doesn&apos;t exist.</Text>
 

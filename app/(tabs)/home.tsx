@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Search, Filter, X, Heart, ShoppingBag, ChevronUp } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
   ActivityIndicator,
@@ -233,10 +233,10 @@ export default function HomeScreen() {
                 toggleFavorite(item.id);
               }}
             >
-              <Heart
+              <Feather
+                name="heart"
                 color={isItemFavorite ? '#FF69B4' : '#999'}
                 size={18}
-                fill={isItemFavorite ? '#FF69B4' : 'transparent'}
               />
             </Pressable>
           </View>
@@ -255,7 +255,7 @@ export default function HomeScreen() {
               addToBasket(item.id, 1);
             }}
           >
-            <ShoppingBag color="#FFFFFF" size={16} />
+            <Feather name="shopping-bag" color="#FFFFFF" size={16} />
             {itemQuantity > 0 && (
               <View style={styles.basketCountBadge}>
                 <Text style={styles.basketCountText}>{toArabicNumerals(itemQuantity)}</Text>
@@ -281,7 +281,7 @@ export default function HomeScreen() {
             <Text style={styles.brandNameSmall}>انج بيوتي</Text>
           </View>
           <View style={styles.searchContainer}>
-            <Search color="#999" size={20} style={styles.searchIcon} />
+            <Feather name="search" color="#999" size={20} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="ابحث عن المنتجات..."
@@ -297,7 +297,7 @@ export default function HomeScreen() {
             ]}
             onPress={() => setShowFilters(true)}
           >
-            <Filter color="#FFFFFF" size={20} />
+            <Feather name="filter" color="#FFFFFF" size={20} />
             {(selectedCategory || selectedBrand || barcodeFilter) && (
               <View style={styles.filterBadge} />
             )}
@@ -312,7 +312,7 @@ export default function HomeScreen() {
                   {categories.find(c => c && c.id === selectedCategory)?.name_ar || 'الفئة'}
                 </Text>
                 <Pressable onPress={() => setSelectedCategory('')}>
-                  <X color="#666" size={14} />
+                  <Feather name="x" color="#666" size={14} />
                 </Pressable>
               </View>
             )}
@@ -322,7 +322,7 @@ export default function HomeScreen() {
                   {brands.find(b => b && b.id === selectedBrand)?.brand_name_ar || 'العلامة'}
                 </Text>
                 <Pressable onPress={() => setSelectedBrand('')}>
-                  <X color="#666" size={14} />
+                  <Feather name="x" color="#666" size={14} />
                 </Pressable>
               </View>
             )}
@@ -330,7 +330,7 @@ export default function HomeScreen() {
               <View style={styles.activeFilterChip}>
                 <Text style={styles.activeFilterText}>باركود: {barcodeFilter}</Text>
                 <Pressable onPress={() => setBarcodeFilter('')}>
-                  <X color="#666" size={14} />
+                  <Feather name="x" color="#666" size={14} />
                 </Pressable>
               </View>
             )}
@@ -398,7 +398,7 @@ export default function HomeScreen() {
               ]}
               onPress={handleScrollToTop}
             >
-              <ChevronUp color="#FFFFFF" size={24} strokeWidth={3} />
+              <Feather name="chevron-up" color="#FFFFFF" size={24} />
             </Pressable>
           )}
         </>
@@ -418,7 +418,7 @@ export default function HomeScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>تصفية المنتجات</Text>
               <Pressable onPress={() => setShowFilters(false)}>
-                <X color="#1A1A1A" size={24} />
+                <Feather name="x" color="#1A1A1A" size={24} />
               </Pressable>
             </View>
 

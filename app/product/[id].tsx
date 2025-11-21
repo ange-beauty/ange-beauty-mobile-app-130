@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Heart } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
@@ -125,7 +125,7 @@ export default function ProductDetailScreen() {
               ]}
               onPress={() => router.back()}
             >
-              <ArrowLeft color="#1A1A1A" size={24} />
+              <Feather name="arrow-left" color="#1A1A1A" size={24} />
             </Pressable>
             <Pressable
               style={({ pressed }) => [
@@ -134,10 +134,10 @@ export default function ProductDetailScreen() {
               ]}
               onPress={() => toggleFavorite(product.id)}
             >
-              <Heart
+              <Feather
+                name="heart"
                 color={isFav ? '#FF69B4' : '#1A1A1A'}
                 size={24}
-                fill={isFav ? '#FF69B4' : 'transparent'}
               />
             </Pressable>
           </View>

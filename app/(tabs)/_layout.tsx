@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Heart, Home, ShoppingBag } from "lucide-react-native";
+import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useBasket } from "@/contexts/BasketContext";
@@ -9,7 +9,7 @@ function BasketTabIcon({ color, size }: { color: string; size: number }) {
 
   return (
     <View>
-      <ShoppingBag color={color} size={size} />
+      <Feather name="shopping-bag" color={color} size={size} />
       {totalItems > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{totalItems > 99 ? '99+' : totalItems}</Text>
@@ -46,14 +46,14 @@ export default function TabLayout() {
         options={{
           title: "اكتشف",
           headerShown: false,
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="favorites"
         options={{
           title: "المفضلات",
-          tabBarIcon: ({ color, size }) => <Heart color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="heart" color={color} size={size} />,
         }}
       />
       <Tabs.Screen

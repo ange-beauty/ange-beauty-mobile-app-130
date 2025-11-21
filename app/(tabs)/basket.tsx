@@ -1,5 +1,5 @@
 import { useQueries } from '@tanstack/react-query';
-import { Trash2, Plus, Minus, ShoppingBag, ChevronUp } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import React, { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import {
@@ -98,7 +98,7 @@ export default function BasketScreen() {
                 updateQuantity(item.id, item.quantity + 1);
               }}
             >
-              <Plus color="#1A1A1A" size={16} />
+              <Feather name="plus" color="#1A1A1A" size={16} />
             </Pressable>
 
             <Text style={styles.quantityText}>{toArabicNumerals(item.quantity)}</Text>
@@ -117,7 +117,7 @@ export default function BasketScreen() {
                 }
               }}
             >
-              <Minus color="#1A1A1A" size={16} />
+              <Feather name="minus" color="#1A1A1A" size={16} />
             </Pressable>
           </View>
         </View>
@@ -134,7 +134,7 @@ export default function BasketScreen() {
               removeFromBasket(item.id);
             }}
           >
-            <Trash2 color="#FF3B30" size={20} />
+            <Feather name="trash-2" color="#FF3B30" size={20} />
           </Pressable>
         </View>
       </Pressable>
@@ -162,7 +162,7 @@ export default function BasketScreen() {
           <Text style={styles.headerTitle}>السلة</Text>
         </View>
         <View style={styles.emptyContainer}>
-          <ShoppingBag color="#CCCCCC" size={80} strokeWidth={1.5} />
+          <Feather name="shopping-bag" color="#CCCCCC" size={80} />
           <Text style={styles.emptyTitle}>سلتك فارغة</Text>
           <Text style={styles.emptySubtitle}>ابدأ بإضافة المنتجات إلى السلة</Text>
         </View>
@@ -210,7 +210,7 @@ export default function BasketScreen() {
           ]}
           onPress={handleClearBasket}
         >
-          <Trash2 color="#FF3B30" size={20} />
+          <Feather name="trash-2" color="#FF3B30" size={20} />
           <Text style={styles.clearButtonText}>إفراغ السلة</Text>
         </Pressable>
       </View>
@@ -234,7 +234,7 @@ export default function BasketScreen() {
             ]}
             onPress={handleScrollToTop}
           >
-            <ChevronUp color="#FFFFFF" size={24} strokeWidth={3} />
+            <Feather name="chevron-up" color="#FFFFFF" size={24} />
           </Pressable>
         )}
       </>
