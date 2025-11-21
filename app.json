@@ -1,13 +1,12 @@
 {
   "expo": {
-    "name": "Beauty Product Showcase",
-    "slug": "beauty-product-showcase",
+    "name": "Angebeauty",
+    "slug": "ange-boutique-mobile-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "rork-app",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
