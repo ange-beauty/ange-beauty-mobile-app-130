@@ -18,11 +18,19 @@ Notifications.setNotificationHandler({
 export async function registerForPushNotifications(): Promise<string | null> {
   if (Platform.OS === 'web') {
     console.log('[Notifications] Push notifications are not supported on web');
+    await logTelemetry({
+      endpoint: 'registerForPushNotifications',
+      payload: { reason: 'unsupported_platform', platform: Platform.OS },
+    });
     return null;
   }
 
   if (!Device.isDevice) {
     console.log('[Notifications] Push notifications must use physical device');
+    await logTelemetry({
+      endpoint: 'registerForPushNotifications',
+      payload: { reason: 'simulator', platform: Platform.OS },
+    });
     return null;
   }
 
@@ -37,6 +45,10 @@ export async function registerForPushNotifications(): Promise<string | null> {
     
     if (finalStatus !== 'granted') {
       console.log('[Notifications] Permission not granted for push notifications');
+      await logTelemetry({
+        endpoint: 'registerForPushNotifications',
+        payload: { reason: 'permission_denied', platform: Platform.OS },
+      });
       return null;
     }
 
@@ -46,11 +58,25 @@ export async function registerForPushNotifications(): Promise<string | null> {
     const token = await Notifications.getExpoPushTokenAsync({
       projectId,
     });
-    
+
     console.log('[Notifications] Push token obtained:', token.data);
+    await logTelemetry({
+      endpoint: 'registerForPushNotifications',
+      payload: {
+        reason: 'success',
+        platform: Platform.OS,
+        projectId,
+        tokenSuffix: token.data.slice(-6),
+      },
+    });
     return token.data;
   } catch (error) {
     console.error('[Notifications] Error getting push token:', error);
+    await logTelemetry({
+      endpoint: 'registerForPushNotifications',
+      payload: { reason: 'error', platform: Platform.OS },
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
