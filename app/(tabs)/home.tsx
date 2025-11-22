@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -48,7 +48,6 @@ export default function HomeScreen() {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToBasket, getItemQuantity } = useBasket();
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedBrand, setSelectedBrand] = useState<string>(params.brandId || '');
   const [barcodeFilter, setBarcodeFilter] = useState('');
@@ -107,35 +106,6 @@ export default function HomeScreen() {
     return alphabet.filter(letter => brandsByLetter[letter] && brandsByLetter[letter].length > 0);
   }, [brandsByLetter, alphabet]);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery.trim());
-    }, 400);
-
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
-
-  useEffect(() => {
-    if (!selectedBrand || brands.length === 0) return;
-
-    const brand = brands.find(b => b?.id === selectedBrand);
-    if (!brand) return;
-
-    const nameToUse = brand.brand_name_en || brand.brand_name_ar;
-    if (!nameToUse) return;
-
-    const firstChar = nameToUse[0].toUpperCase();
-    const targetLetter = /[A-Z]/.test(firstChar)
-      ? firstChar
-      : /[0-9]/.test(firstChar)
-        ? '0-9'
-        : 'A';
-
-    if (availableLetters.includes(targetLetter) && targetLetter !== selectedLetter) {
-      setSelectedLetter(targetLetter);
-    }
-  }, [availableLetters, brands, selectedBrand, selectedLetter]);
-
   const {
     data,
     isLoading,
@@ -145,11 +115,11 @@ export default function HomeScreen() {
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ['products', debouncedSearchQuery, selectedCategory, selectedBrand, barcodeFilter],
+    queryKey: ['products', searchQuery, selectedCategory, selectedBrand, barcodeFilter],
     queryFn: ({ pageParam = 1 }) => fetchProducts({
       page: pageParam,
       limit: 20,
-      keyword: debouncedSearchQuery || undefined,
+      keyword: searchQuery || undefined,
       category: selectedCategory || undefined,
       brand: selectedBrand || undefined,
       barcode: barcodeFilter || undefined,
@@ -303,7 +273,7 @@ export default function HomeScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View style={styles.headerInline}>
           <View style={styles.brandLogoContainer}>
-            <Image
+            <Image 
               source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/rqerhironvgzmc9yhq77s' }}
               style={styles.logoImageSmall}
               resizeMode="contain"
@@ -319,17 +289,6 @@ export default function HomeScreen() {
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
-            {searchQuery.length > 0 && (
-              <Pressable
-                onPress={() => setSearchQuery('')}
-                style={({ pressed }) => [
-                  styles.searchClearButton,
-                  pressed && styles.buttonPressed,
-                ]}
-              >
-                <Feather name="x" color="#666" size={16} />
-              </Pressable>
-            )}
           </View>
           <Pressable
             style={({ pressed }) => [
@@ -388,17 +347,6 @@ export default function HomeScreen() {
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>فشل تحميل المنتجات</Text>
           <Text style={styles.errorText}>{(error as Error).message}</Text>
-          <View style={styles.errorActions}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.retryButton,
-                pressed && styles.buttonPressed,
-              ]}
-              onPress={() => refetch()}
-            >
-              <Text style={styles.retryButtonText}>إعادة المحاولة</Text>
-            </Pressable>
-          </View>
         </View>
       ) : (
         <>
@@ -431,24 +379,6 @@ export default function HomeScreen() {
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>لم يتم العثور على منتجات</Text>
-                {(selectedCategory || selectedBrand || barcodeFilter || debouncedSearchQuery) && (
-                  <View style={styles.emptyActions}>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.resetButton,
-                        pressed && styles.buttonPressed,
-                      ]}
-                      onPress={() => {
-                        setSelectedCategory('');
-                        setSelectedBrand('');
-                        setBarcodeFilter('');
-                        setSearchQuery('');
-                      }}
-                    >
-                      <Text style={styles.resetButtonText}>إعادة تعيين البحث</Text>
-                    </Pressable>
-                  </View>
-                )}
               </View>
             }
             ListFooterComponent={
@@ -736,12 +666,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1A1A1A',
   },
-  searchClearButton: {
-    height: '100%',
-    paddingHorizontal: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   activeFiltersContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -761,21 +685,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     fontWeight: '500' as const,
-  },
-  errorActions: {
-    marginTop: 12,
-  },
-  retryButton: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600' as const,
   },
   modalOverlay: {
     flex: 1,
@@ -836,20 +745,6 @@ const styles = StyleSheet.create({
   },
   filterOptionTextActive: {
     color: '#FFFFFF',
-  },
-  emptyActions: {
-    marginTop: 16,
-  },
-  resetButton: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-  },
-  resetButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600' as const,
   },
   barcodeInput: {
     backgroundColor: '#F5F5F5',
