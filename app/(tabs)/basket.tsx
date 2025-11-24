@@ -1,16 +1,19 @@
 import { useQueries } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Image,
+  Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,7 +28,18 @@ export default function BasketScreen() {
   const router = useRouter();
   const { basket, updateQuantity, removeFromBasket, totalItems, clearBasket } = useBasket();
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [name, setName] = useState('');
+  const [telephone, setTelephone] = useState('');
+  const [address, setAddress] = useState('');
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
   const listRef = useRef<FlatList>(null);
+
+  const captcha = useMemo(() => {
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    return { num1, num2, answer: num1 + num2 };
+  }, [showCheckoutModal]);
 
   const productQueries = useQueries({
     queries: basket.map(item => ({
@@ -196,6 +210,60 @@ export default function BasketScreen() {
     }
   };
 
+  const handleCheckout = () => {
+    setShowCheckoutModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowCheckoutModal(false);
+    setName('');
+    setTelephone('');
+    setAddress('');
+    setCaptchaAnswer('');
+  };
+
+  const handleSubmitOrder = () => {
+    if (!name.trim()) {
+      Alert.alert('خطأ', 'الرجاء إدخال الاسم');
+      return;
+    }
+    if (!telephone.trim()) {
+      Alert.alert('خطأ', 'الرجاء إدخال رقم الهاتف');
+      return;
+    }
+    if (!address.trim()) {
+      Alert.alert('خطأ', 'الرجاء إدخال العنوان');
+      return;
+    }
+    if (parseInt(captchaAnswer) !== captcha.answer) {
+      Alert.alert('خطأ', 'الإجابة غير صحيحة. حاول مرة أخرى');
+      setCaptchaAnswer('');
+      return;
+    }
+
+    console.log('Order submitted:', {
+      name,
+      telephone,
+      address,
+      items: basketProducts,
+      total: totalPrice,
+    });
+
+    Alert.alert(
+      'تم إرسال الطلب',
+      'شكراً لك! سنتواصل معك قريباً',
+      [
+        {
+          text: 'موافق',
+          onPress: () => {
+            handleCloseModal();
+            clearBasket();
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
@@ -249,10 +317,109 @@ export default function BasketScreen() {
             styles.checkoutButton,
             pressed && styles.buttonPressed,
           ]}
+          onPress={handleCheckout}
         >
           <Text style={styles.checkoutButtonText}>إتمام الطلب</Text>
         </Pressable>
       </View>
+
+      <Modal
+        visible={showCheckoutModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCloseModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>إتمام الطلب</Text>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.closeButton,
+                  pressed && styles.buttonPressed,
+                ]}
+                onPress={handleCloseModal}
+              >
+                <Feather name="x" size={24} color="#1A1A1A" />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              style={styles.modalContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.orderSummary}>
+                <Text style={styles.summaryLabel}>المجموع الكلي</Text>
+                <Text style={styles.summaryAmount}>{formatPrice(totalPrice)}</Text>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>الاسم الكامل *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="أدخل اسمك"
+                  placeholderTextColor="#999"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>رقم الهاتف *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={telephone}
+                  onChangeText={setTelephone}
+                  placeholder="أدخل رقم الهاتف"
+                  placeholderTextColor="#999"
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>العنوان *</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={address}
+                  onChangeText={setAddress}
+                  placeholder="أدخل عنوانك الكامل"
+                  placeholderTextColor="#999"
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>التحقق البشري *</Text>
+                <View style={styles.captchaContainer}>
+                  <Text style={styles.captchaQuestion}>
+                    {toArabicNumerals(captcha.num1)} + {toArabicNumerals(captcha.num2)} = ?
+                  </Text>
+                  <TextInput
+                    style={styles.captchaInput}
+                    value={captchaAnswer}
+                    onChangeText={setCaptchaAnswer}
+                    placeholder="الجواب"
+                    placeholderTextColor="#999"
+                    keyboardType="number-pad"
+                  />
+                </View>
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.submitButton,
+                  pressed && styles.buttonPressed,
+                ]}
+                onPress={handleSubmitOrder}
+              >
+                <Text style={styles.submitButtonText}>تأكيد الطلب</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -468,5 +635,127 @@ const styles = StyleSheet.create({
   buttonPressed: {
     opacity: 0.7,
     transform: [{ scale: 0.95 }],
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#1A1A1A',
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+  orderSummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  summaryLabel: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#666',
+  },
+  summaryAmount: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#1A1A1A',
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#F8F8F8',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#1A1A1A',
+    textAlign: 'right',
+  },
+  textArea: {
+    minHeight: 80,
+    paddingTop: 14,
+  },
+  captchaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  captchaQuestion: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#1A1A1A',
+    backgroundColor: '#F8F8F8',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    textAlign: 'center',
+  },
+  captchaInput: {
+    width: 100,
+    backgroundColor: '#F8F8F8',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#1A1A1A',
+    textAlign: 'center',
+  },
+  submitButton: {
+    backgroundColor: '#1A1A1A',
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  submitButtonText: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
   },
 });
