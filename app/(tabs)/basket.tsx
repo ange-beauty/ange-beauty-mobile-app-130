@@ -1,4 +1,4 @@
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useMutation } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'expo-router';
@@ -23,6 +23,8 @@ import { fetchProductById } from '@/services/api';
 import { Product } from '@/types/product';
 import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
 
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
+
 export default function BasketScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -40,6 +42,57 @@ export default function BasketScreen() {
     const num2 = Math.floor(Math.random() * 10) + 1;
     return { num1, num2, answer: num1 + num2 };
   }, [showCheckoutModal]);
+
+  const orderMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      console.log('[Order] Submitting order:', orderData);
+      
+      const response = await fetch(`${API_BASE_URL}?action=init-client-order`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      console.log('[Order] Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Order] Failed to submit order:', errorText);
+        throw new Error('فشل في إرسال الطلب');
+      }
+
+      const result = await response.json();
+      console.log('[Order] Order submitted successfully:', result);
+      return result;
+    },
+    onSuccess: (data) => {
+      console.log('[Order] Order success:', data);
+      Alert.alert(
+        'تم إرسال الطلب',
+        'شكراً لك! سنتواصل معك قريباً',
+        [
+          {
+            text: 'موافق',
+            onPress: () => {
+              handleCloseModal();
+              clearBasket();
+            },
+          },
+        ]
+      );
+    },
+    onError: (error: any) => {
+      console.error('[Order] Order error:', error);
+      Alert.alert(
+        'خطأ',
+        error.message || 'حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى',
+        [{ text: 'موافق' }]
+      );
+    },
+  });
 
   const productQueries = useQueries({
     queries: basket.map(item => ({
@@ -241,27 +294,30 @@ export default function BasketScreen() {
       return;
     }
 
-    console.log('Order submitted:', {
-      name,
-      telephone,
-      address,
-      items: basketProducts,
-      total: totalPrice,
-    });
+    const orderData = {
+      customer: {
+        name: name.trim(),
+        telephone: telephone.trim(),
+        address: address.trim(),
+      },
+      items: basketProducts.map(product => ({
+        productId: product.id,
+        productName: product.name,
+        brand: product.brand,
+        brandId: product.brandId,
+        quantity: product.quantity,
+        price: product.price,
+        total: product.price * product.quantity,
+        image: product.image,
+      })),
+      summary: {
+        totalItems: totalItems,
+        totalPrice: totalPrice,
+      },
+      timestamp: new Date().toISOString(),
+    };
 
-    Alert.alert(
-      'تم إرسال الطلب',
-      'شكراً لك! سنتواصل معك قريباً',
-      [
-        {
-          text: 'موافق',
-          onPress: () => {
-            handleCloseModal();
-            clearBasket();
-          },
-        },
-      ]
-    );
+    orderMutation.mutate(orderData);
   };
 
   return (
@@ -411,10 +467,16 @@ export default function BasketScreen() {
                 style={({ pressed }) => [
                   styles.submitButton,
                   pressed && styles.buttonPressed,
+                  orderMutation.isPending && styles.submitButtonDisabled,
                 ]}
                 onPress={handleSubmitOrder}
+                disabled={orderMutation.isPending}
               >
-                <Text style={styles.submitButtonText}>تأكيد الطلب</Text>
+                {orderMutation.isPending ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.submitButtonText}>تأكيد الطلب</Text>
+                )}
               </Pressable>
             </ScrollView>
           </View>
@@ -757,5 +819,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700' as const,
     color: '#FFFFFF',
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
   },
 });
