@@ -63,7 +63,7 @@ export default function HomeScreen() {
   const { addToBasket, getItemQuantity } = useBasket();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [selectedBrand, setSelectedBrand] = useState<string>(params.brandId || '');
+  const [selectedBrands, setSelectedBrands] = useState<string[]>(params.brandId ? [params.brandId] : []);
   const [barcodeFilter, setBarcodeFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState<string>('A');
@@ -95,7 +95,7 @@ export default function HomeScreen() {
   React.useEffect(() => {
     if (params.brandId) {
       console.log('[Home] Setting brandId from params:', params.brandId);
-      setSelectedBrand(params.brandId);
+      setSelectedBrands([params.brandId]);
       listRef.current?.scrollToOffset({ offset: 0, animated: false });
     }
   }, [params.brandId]);
@@ -129,13 +129,13 @@ export default function HomeScreen() {
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ['products', searchQuery, selectedCategory, selectedBrand, barcodeFilter],
+    queryKey: ['products', searchQuery, selectedCategory, selectedBrands, barcodeFilter],
     queryFn: ({ pageParam = 1 }) => fetchProducts({
       page: pageParam,
       limit: 20,
       keyword: searchQuery || undefined,
       category: selectedCategory || undefined,
-      brand: selectedBrand || undefined,
+      brand: selectedBrands.length > 0 ? selectedBrands.join(',') : undefined,
       barcode: barcodeFilter || undefined,
     }),
     getNextPageParam: (lastPage, allPages) => {
@@ -333,13 +333,13 @@ export default function HomeScreen() {
               onPress={handleFilterOpen}
             >
               <Feather name="sliders" color="#FFFFFF" size={18} />
-              {(selectedCategory || selectedBrand || barcodeFilter) && (
+              {(selectedCategory || selectedBrands.length > 0 || barcodeFilter) && (
                 <View style={styles.filterBadge} />
               )}
             </Pressable>
           </View>
 
-          {(selectedCategory || selectedBrand || barcodeFilter) && (
+          {(selectedCategory || selectedBrands.length > 0 || barcodeFilter) && (
             <View style={styles.activeFiltersContainer}>
               {selectedCategory && categories.length > 0 && (
                 <View style={styles.activeFilterChip}>
@@ -351,16 +351,20 @@ export default function HomeScreen() {
                   </Pressable>
                 </View>
               )}
-              {selectedBrand && brands.length > 0 && (
-                <View style={styles.activeFilterChip}>
-                  <Text style={styles.activeFilterText}>
-                    {brands.find(b => b && b.id === selectedBrand)?.brand_name_ar || 'العلامة'}
-                  </Text>
-                  <Pressable onPress={() => setSelectedBrand('')}>
-                    <Feather name="x" color="#666" size={14} />
-                  </Pressable>
-                </View>
-              )}
+              {selectedBrands.map(brandId => {
+                const brand = brands.find(b => b && b.id === brandId);
+                if (!brand) return null;
+                return (
+                  <View key={brandId} style={styles.activeFilterChip}>
+                    <Text style={styles.activeFilterText}>
+                      {brand.brand_name_ar || 'العلامة'}
+                    </Text>
+                    <Pressable onPress={() => setSelectedBrands(prev => prev.filter(id => id !== brandId))}>
+                      <Feather name="x" color="#666" size={14} />
+                    </Pressable>
+                  </View>
+                );
+              })}
               {barcodeFilter && (
                 <View style={styles.activeFilterChip}>
                   <Text style={styles.activeFilterText}>باركود: {barcodeFilter}</Text>
@@ -553,21 +557,30 @@ export default function HomeScreen() {
                   </ScrollView>
                 </View>
                 <View style={styles.brandsGrid}>
-                  {brandsByLetter[selectedLetter]?.map((brand) => (
-                    <Pressable
-                      key={brand.id}
-                      style={[
-                        styles.brandItem,
-                        selectedBrand === brand.id && styles.brandItemSelected,
-                      ]}
-                      onPress={() => setSelectedBrand(brand.id)}
-                    >
-                      <Text style={[
-                        styles.brandItemName,
-                        selectedBrand === brand.id && styles.brandItemNameSelected,
-                      ]}>{brand.brand_name_ar || brand.brand_name_en}</Text>
-                    </Pressable>
-                  ))}
+                  {brandsByLetter[selectedLetter]?.map((brand) => {
+                    const isSelected = selectedBrands.includes(brand.id);
+                    return (
+                      <Pressable
+                        key={brand.id}
+                        style={[
+                          styles.brandItem,
+                          isSelected && styles.brandItemSelected,
+                        ]}
+                        onPress={() => {
+                          if (isSelected) {
+                            setSelectedBrands(prev => prev.filter(id => id !== brand.id));
+                          } else {
+                            setSelectedBrands(prev => [...prev, brand.id]);
+                          }
+                        }}
+                      >
+                        <Text style={[
+                          styles.brandItemName,
+                          isSelected && styles.brandItemNameSelected,
+                        ]}>{brand.brand_name_ar || brand.brand_name_en}</Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
                 {(!brandsByLetter[selectedLetter] || brandsByLetter[selectedLetter].length === 0) && (
                   <View style={styles.emptyBrandsContainer}>
@@ -585,7 +598,7 @@ export default function HomeScreen() {
                 ]}
                 onPress={() => {
                   setSelectedCategory('');
-                  setSelectedBrand('');
+                  setSelectedBrands([]);
                   setBarcodeFilter('');
                 }}
               >
