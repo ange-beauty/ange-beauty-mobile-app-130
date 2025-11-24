@@ -172,11 +172,6 @@ export default function HomeScreen() {
     console.log('[Home] Support chat pressed');
   }, []);
 
-  const handleQuickSearchPress = useCallback(() => {
-    listRef.current?.scrollToOffset({ offset: 0, animated: true });
-    console.log('[Home] Quick search icon pressed');
-  }, []);
-
   const handleScrollToTop = useCallback(() => {
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
   }, []);
@@ -314,16 +309,10 @@ export default function HomeScreen() {
                   />
                 </View>
               </Pressable>
-              <Pressable
-                testID="home-quick-search-button"
-                style={({ pressed }) => [styles.headerIconButton, pressed && styles.buttonPressed]}
-                onPress={handleQuickSearchPress}
-              >
-                <Feather name="search" color={palette.accentSoft} size={20} />
-              </Pressable>
             </View>
             <View style={styles.headerLogoWrap}>
               <Image source={logoImage} style={styles.headerLogoImage} resizeMode="contain" />
+              <Text style={styles.brandNameText}>Ange beauty</Text>
             </View>
             <View style={styles.headerRightSpacer} />
           </View>
@@ -698,6 +687,14 @@ const styles = StyleSheet.create({
   },
   headerRightSpacer: {
     width: 52,
+  },
+  brandNameText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: palette.textPrimary,
+    marginTop: 6,
+    letterSpacing: 1,
+    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' }),
   },
   searchFieldRow: {
     flexDirection: 'row',
