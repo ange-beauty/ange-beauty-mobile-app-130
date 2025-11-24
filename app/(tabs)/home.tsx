@@ -56,6 +56,7 @@ export default function HomeScreen() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [numColumns, setNumColumns] = useState(NUM_COLUMNS);
   const [key, setKey] = useState('grid-' + NUM_COLUMNS);
+  const [sortOrder, setSortOrder] = useState<'none' | 'asc' | 'desc'>('none');
   const listRef = useRef<FlatList>(null);
 
   const { data: brandsData } = useQuery({
@@ -141,7 +142,19 @@ export default function HomeScreen() {
     }
   }, [data]);
 
+  const sortedProducts = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    const ordered = [...products];
+    if (sortOrder === 'asc') {
+      return ordered.sort((a, b) => a.price - b.price);
+    }
+    if (sortOrder === 'desc') {
+      return ordered.sort((a, b) => b.price - a.price);
+    }
+    return ordered;
+  }, [products, sortOrder]);
 
+  const sortIconName = sortOrder === 'desc' ? 'arrow-down' : 'arrow-up';
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -150,6 +163,28 @@ export default function HomeScreen() {
     await refetch();
     setRefreshing(false);
   }, [refetch]);
+
+  const handleFilterOpen = useCallback(() => {
+    console.log('[Home] Filter modal requested');
+    setShowFilters(true);
+  }, [setShowFilters]);
+
+  const handleSupportPress = useCallback(() => {
+    console.log('[Home] Support chat pressed');
+  }, []);
+
+  const handleQuickSearchPress = useCallback(() => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    console.log('[Home] Quick search icon pressed');
+  }, []);
+
+  const handleSortPress = useCallback(() => {
+    setSortOrder((prev) => {
+      const next = prev === 'none' ? 'asc' : prev === 'asc' ? 'desc' : 'none';
+      console.log('[Home] Sort order changed to', next);
+      return next;
+    });
+  }, []);
 
   const handleScrollToTop = useCallback(() => {
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -270,72 +305,135 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <View style={styles.headerInline}>
-          <View style={styles.brandLogoContainer}>
-            <Image 
-              source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/rqerhironvgzmc9yhq77s' }}
-              style={styles.logoImageSmall}
-              resizeMode="contain"
-            />
-            <Text style={styles.brandNameSmall}>انج بيوتي</Text>
+      <View style={styles.headerWrapper}>
+        <View style={[styles.headerCard, { paddingTop: insets.top + 18 }]}>
+          <View style={styles.headerTopRow}>
+            <View style={styles.headerLeftCluster}>
+              <Pressable
+                testID="home-chat-button"
+                style={({ pressed }) => [styles.chatBubbleButton, pressed && styles.buttonPressed]}
+                onPress={handleSupportPress}
+              >
+                <Feather name="message-circle" color="#A31557" size={20} />
+                <View style={styles.whatsappBadge}>
+                  <Image
+                    source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/1024px-WhatsApp.svg.png' }}
+                    style={styles.whatsappIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+              </Pressable>
+              <Pressable
+                testID="home-quick-search-button"
+                style={({ pressed }) => [styles.headerIconButton, pressed && styles.buttonPressed]}
+                onPress={handleQuickSearchPress}
+              >
+                <Feather name="search" color="#A31557" size={20} />
+              </Pressable>
+            </View>
+            <View style={styles.headerBrandBlock}>
+              <Text style={styles.brandTitleArabic}>انج بيوتي</Text>
+              <Text style={styles.brandSubtitleEnglish}>ANGE BEAUTY</Text>
+            </View>
+            <Pressable
+              testID="home-arrow-button"
+              style={({ pressed }) => [styles.headerIconButton, pressed && styles.buttonPressed]}
+              onPress={handleFilterOpen}
+            >
+              <Feather name="chevron-right" color="#A31557" size={22} />
+            </Pressable>
           </View>
-          <View style={styles.searchContainer}>
-            <Feather name="search" color="#999" size={20} style={styles.searchIcon} />
+
+          <View style={styles.searchFieldRow}>
+            <Feather name="search" size={18} color="#C67092" style={styles.searchFieldIcon} />
             <TextInput
-              style={styles.searchInput}
+              testID="home-search-input"
+              style={styles.searchFieldInput}
               placeholder="ابحث عن المنتجات..."
-              placeholderTextColor="#999"
+              placeholderTextColor="#B08A9D"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
+            <Pressable
+              testID="home-filter-button"
+              style={({ pressed }) => [styles.searchFilterButton, pressed && styles.buttonPressed]}
+              onPress={handleFilterOpen}
+            >
+              <Feather name="sliders" color="#FFFFFF" size={18} />
+              {(selectedCategory || selectedBrand || barcodeFilter) && (
+                <View style={styles.filterBadge} />
+              )}
+            </Pressable>
           </View>
-          <Pressable
-            style={({ pressed }) => [
-              styles.filterButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={() => setShowFilters(true)}
-          >
-            <Feather name="filter" color="#FFFFFF" size={20} />
-            {(selectedCategory || selectedBrand || barcodeFilter) && (
-              <View style={styles.filterBadge} />
-            )}
-          </Pressable>
-        </View>
 
-        {(selectedCategory || selectedBrand || barcodeFilter) && (
-          <View style={styles.activeFiltersContainer}>
-            {selectedCategory && categories.length > 0 && (
-              <View style={styles.activeFilterChip}>
-                <Text style={styles.activeFilterText}>
-                  {categories.find(c => c && c.id === selectedCategory)?.name_ar || 'الفئة'}
+          {(selectedCategory || selectedBrand || barcodeFilter) && (
+            <View style={styles.activeFiltersContainer}>
+              {selectedCategory && categories.length > 0 && (
+                <View style={styles.activeFilterChip}>
+                  <Text style={styles.activeFilterText}>
+                    {categories.find(c => c && c.id === selectedCategory)?.name_ar || 'الفئة'}
+                  </Text>
+                  <Pressable onPress={() => setSelectedCategory('')}>
+                    <Feather name="x" color="#666" size={14} />
+                  </Pressable>
+                </View>
+              )}
+              {selectedBrand && brands.length > 0 && (
+                <View style={styles.activeFilterChip}>
+                  <Text style={styles.activeFilterText}>
+                    {brands.find(b => b && b.id === selectedBrand)?.brand_name_ar || 'العلامة'}
+                  </Text>
+                  <Pressable onPress={() => setSelectedBrand('')}>
+                    <Feather name="x" color="#666" size={14} />
+                  </Pressable>
+                </View>
+              )}
+              {barcodeFilter && (
+                <View style={styles.activeFilterChip}>
+                  <Text style={styles.activeFilterText}>باركود: {barcodeFilter}</Text>
+                  <Pressable onPress={() => setBarcodeFilter('')}>
+                    <Feather name="x" color="#666" size={14} />
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          )}
+
+          <View style={styles.headerActionsRow}>
+            <Pressable
+              testID="home-sort-button"
+              style={({ pressed }) => [
+                styles.headerActionButton,
+                sortOrder !== 'none' && styles.headerActionButtonActive,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={handleSortPress}
+            >
+              <Feather
+                name={sortIconName}
+                color={sortOrder !== 'none' ? '#A31557' : '#B3A1AA'}
+                size={18}
+              />
+              <View style={styles.headerActionTextBlock}>
+                <Text style={styles.headerActionLabel}>الترتيب</Text>
+                <Text style={styles.headerActionMeta}>
+                  {sortOrder === 'asc' ? 'السعر تصاعدي' : sortOrder === 'desc' ? 'السعر تنازلي' : 'افتراضي'}
                 </Text>
-                <Pressable onPress={() => setSelectedCategory('')}>
-                  <Feather name="x" color="#666" size={14} />
-                </Pressable>
               </View>
-            )}
-            {selectedBrand && brands.length > 0 && (
-              <View style={styles.activeFilterChip}>
-                <Text style={styles.activeFilterText}>
-                  {brands.find(b => b && b.id === selectedBrand)?.brand_name_ar || 'العلامة'}
-                </Text>
-                <Pressable onPress={() => setSelectedBrand('')}>
-                  <Feather name="x" color="#666" size={14} />
-                </Pressable>
+            </Pressable>
+            <Pressable
+              testID="home-classification-button"
+              style={({ pressed }) => [styles.headerActionButton, pressed && styles.buttonPressed]}
+              onPress={handleFilterOpen}
+            >
+              <Feather name="sliders" color="#B3A1AA" size={18} />
+              <View style={styles.headerActionTextBlock}>
+                <Text style={styles.headerActionLabel}>التصنيف</Text>
+                <Text style={styles.headerActionMeta}>تصفية مخصصة</Text>
               </View>
-            )}
-            {barcodeFilter && (
-              <View style={styles.activeFilterChip}>
-                <Text style={styles.activeFilterText}>باركود: {barcodeFilter}</Text>
-                <Pressable onPress={() => setBarcodeFilter('')}>
-                  <Feather name="x" color="#666" size={14} />
-                </Pressable>
-              </View>
-            )}
+            </Pressable>
           </View>
-        )}
+        </View>
       </View>
 
       {isLoading ? (
@@ -353,7 +451,7 @@ export default function HomeScreen() {
           <FlatList
             ref={listRef}
             key={key}
-            data={products}
+            data={sortedProducts}
             renderItem={renderProduct}
             keyExtractor={(item) => item.id}
             numColumns={numColumns}
@@ -573,104 +671,169 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F7F1F5',
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  headerInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  brandLogoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  logoImageSmall: {
-    width: 32,
-    height: 32,
-  },
-  brandNameSmall: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: '#1A1A1A',
-  },
-  greeting: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500' as const,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700' as const,
-    color: '#1A1A1A',
-    marginTop: 4,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFF0F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+  headerWrapper: {
+    backgroundColor: '#F7F1F5',
     paddingHorizontal: 16,
-    height: 48,
-    borderWidth: 2,
-    borderColor: '#FF69B4',
-    shadowColor: '#FF69B4',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingBottom: 16,
   },
-  filterButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#1A1A1A',
+  headerCard: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    borderBottomLeftRadius: 48,
+    borderBottomRightRadius: 48,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    shadowColor: '#E6B2CC',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
+  headerLeftCluster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  chatBubbleButton: {
+    width: 56,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FDEEF4',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative' as const,
   },
+  whatsappBadge: {
+    position: 'absolute' as const,
+    bottom: -2,
+    right: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#25D366',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  whatsappIcon: {
+    width: 12,
+    height: 12,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#F3CFDF',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerBrandBlock: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  brandTitleArabic: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#A31557',
+    letterSpacing: 2,
+  },
+  brandSubtitleEnglish: {
+    fontSize: 12,
+    color: '#A31557',
+    letterSpacing: 6,
+    marginTop: 2,
+  },
+  searchFieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FCEAF2',
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: '#F4C6D9',
+    paddingLeft: 16,
+    paddingRight: 8,
+    height: 50,
+  },
+  searchFieldIcon: {
+    marginRight: 8,
+  },
+  searchFieldInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#5B2A41',
+  },
+  searchFilterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#A31557',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+    position: 'relative' as const,
+  },
   filterBadge: {
     position: 'absolute' as const,
-    top: 8,
-    right: 8,
+    top: 6,
+    right: 6,
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#FF3B30',
   },
-  searchIcon: {
-    marginRight: 8,
+  headerActionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 18,
   },
-  searchInput: {
+  headerActionButton: {
     flex: 1,
-    fontSize: 16,
-    color: '#1A1A1A',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#F1E1E9',
+    backgroundColor: '#F7F0F4',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerActionButtonActive: {
+    backgroundColor: '#FDEBF1',
+    borderColor: '#E7ADC6',
+  },
+  headerActionTextBlock: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  headerActionLabel: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#5B2A41',
+  },
+  headerActionMeta: {
+    fontSize: 12,
+    color: '#9A7386',
+    marginTop: 2,
   },
   activeFiltersContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 12,
+    marginTop: 12,
+    marginBottom: 4,
   },
   activeFilterChip: {
     flexDirection: 'row',
