@@ -39,7 +39,7 @@ const getNumColumns = () => {
 
 const NUM_COLUMNS = getNumColumns();
 
-const LOGO_URI = 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/rqerhironvgzmc9yhq77s';
+const logoImage = require('@/assets/images/icon.png');
 
 const palette = {
   background: '#E7ECE6',
@@ -323,17 +323,9 @@ export default function HomeScreen() {
               </Pressable>
             </View>
             <View style={styles.headerLogoWrap}>
-              <View style={styles.headerLogoBadge}>
-                <Image source={{ uri: LOGO_URI }} style={styles.headerLogo} resizeMode="contain" />
-              </View>
+              <Image source={logoImage} style={styles.headerLogoImage} resizeMode="contain" />
             </View>
-            <Pressable
-              testID="home-arrow-button"
-              style={({ pressed }) => [styles.headerIconButton, pressed && styles.buttonPressed]}
-              onPress={handleFilterOpen}
-            >
-              <Feather name="chevron-right" color={palette.accentSoft} size={22} />
-            </Pressable>
+            <View style={styles.headerRightSpacer} />
           </View>
 
           <View style={styles.searchFieldRow}>
@@ -700,24 +692,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerLogoBadge: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: palette.headerAccent,
-    borderWidth: 2,
-    borderColor: palette.accentSoft,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
+  headerLogoImage: {
+    width: 100,
+    height: 60,
   },
-  headerLogo: {
-    width: '68%',
-    height: '68%',
+  headerRightSpacer: {
+    width: 52,
   },
   searchFieldRow: {
     flexDirection: 'row',

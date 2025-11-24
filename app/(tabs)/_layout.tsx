@@ -46,14 +46,14 @@ export default function TabLayout() {
         options={{
           title: "اكتشف",
           headerShown: false,
-          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={28} />,
         }}
       />
       <Tabs.Screen
         name="favorites"
         options={{
           title: "المفضلات",
-          tabBarIcon: ({ color, size }) => <Feather name="heart" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="heart" color={color} size={28} />,
         }}
       />
       <Tabs.Screen
@@ -61,7 +61,7 @@ export default function TabLayout() {
         options={{
           title: "السلة",
           headerShown: false,
-          tabBarIcon: ({ color, size }) => <BasketTabIcon color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <BasketTabIcon color={color} size={28} />,
         }}
       />
     </Tabs>
