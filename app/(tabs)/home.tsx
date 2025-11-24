@@ -39,7 +39,21 @@ const getNumColumns = () => {
 
 const NUM_COLUMNS = getNumColumns();
 
+const LOGO_URI = 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/rqerhironvgzmc9yhq77s';
 
+const palette = {
+  background: '#E7ECE6',
+  headerCard: '#111F1A',
+  headerAccent: '#1C2A24',
+  accent: '#3F6B59',
+  accentSoft: '#AFC0B4',
+  inputBackground: '#F4F1E6',
+  stroke: '#D4D9CE',
+  textPrimary: '#0C140F',
+  textMuted: '#5D685F',
+  badge: '#D9A441',
+  danger: '#B9442B',
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -56,7 +70,6 @@ export default function HomeScreen() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [numColumns, setNumColumns] = useState(NUM_COLUMNS);
   const [key, setKey] = useState('grid-' + NUM_COLUMNS);
-  const [sortOrder, setSortOrder] = useState<'none' | 'asc' | 'desc'>('none');
   const listRef = useRef<FlatList>(null);
 
   const { data: brandsData } = useQuery({
@@ -142,20 +155,6 @@ export default function HomeScreen() {
     }
   }, [data]);
 
-  const sortedProducts = useMemo(() => {
-    if (!products || products.length === 0) return [];
-    const ordered = [...products];
-    if (sortOrder === 'asc') {
-      return ordered.sort((a, b) => a.price - b.price);
-    }
-    if (sortOrder === 'desc') {
-      return ordered.sort((a, b) => b.price - a.price);
-    }
-    return ordered;
-  }, [products, sortOrder]);
-
-  const sortIconName = sortOrder === 'desc' ? 'arrow-down' : 'arrow-up';
-
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -176,14 +175,6 @@ export default function HomeScreen() {
   const handleQuickSearchPress = useCallback(() => {
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
     console.log('[Home] Quick search icon pressed');
-  }, []);
-
-  const handleSortPress = useCallback(() => {
-    setSortOrder((prev) => {
-      const next = prev === 'none' ? 'asc' : prev === 'asc' ? 'desc' : 'none';
-      console.log('[Home] Sort order changed to', next);
-      return next;
-    });
   }, []);
 
   const handleScrollToTop = useCallback(() => {
@@ -270,7 +261,7 @@ export default function HomeScreen() {
             >
               <Feather
                 name="heart"
-                color={isItemFavorite ? '#FF69B4' : '#999'}
+                color={isItemFavorite ? palette.danger : palette.textMuted}
                 size={18}
               />
             </Pressable>
@@ -314,7 +305,7 @@ export default function HomeScreen() {
                 style={({ pressed }) => [styles.chatBubbleButton, pressed && styles.buttonPressed]}
                 onPress={handleSupportPress}
               >
-                <Feather name="message-circle" color="#A31557" size={20} />
+                <Feather name="message-circle" color={palette.accentSoft} size={20} />
                 <View style={styles.whatsappBadge}>
                   <Image
                     source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/1024px-WhatsApp.svg.png' }}
@@ -328,29 +319,30 @@ export default function HomeScreen() {
                 style={({ pressed }) => [styles.headerIconButton, pressed && styles.buttonPressed]}
                 onPress={handleQuickSearchPress}
               >
-                <Feather name="search" color="#A31557" size={20} />
+                <Feather name="search" color={palette.accentSoft} size={20} />
               </Pressable>
             </View>
-            <View style={styles.headerBrandBlock}>
-              <Text style={styles.brandTitleArabic}>انج بيوتي</Text>
-              <Text style={styles.brandSubtitleEnglish}>ANGE BEAUTY</Text>
+            <View style={styles.headerLogoWrap}>
+              <View style={styles.headerLogoBadge}>
+                <Image source={{ uri: LOGO_URI }} style={styles.headerLogo} resizeMode="contain" />
+              </View>
             </View>
             <Pressable
               testID="home-arrow-button"
               style={({ pressed }) => [styles.headerIconButton, pressed && styles.buttonPressed]}
               onPress={handleFilterOpen}
             >
-              <Feather name="chevron-right" color="#A31557" size={22} />
+              <Feather name="chevron-right" color={palette.accentSoft} size={22} />
             </Pressable>
           </View>
 
           <View style={styles.searchFieldRow}>
-            <Feather name="search" size={18} color="#C67092" style={styles.searchFieldIcon} />
+            <Feather name="search" size={18} color={palette.textMuted} style={styles.searchFieldIcon} />
             <TextInput
               testID="home-search-input"
               style={styles.searchFieldInput}
               placeholder="ابحث عن المنتجات..."
-              placeholderTextColor="#B08A9D"
+              placeholderTextColor={palette.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -401,32 +393,11 @@ export default function HomeScreen() {
 
           <View style={styles.headerActionsRow}>
             <Pressable
-              testID="home-sort-button"
-              style={({ pressed }) => [
-                styles.headerActionButton,
-                sortOrder !== 'none' && styles.headerActionButtonActive,
-                pressed && styles.buttonPressed,
-              ]}
-              onPress={handleSortPress}
-            >
-              <Feather
-                name={sortIconName}
-                color={sortOrder !== 'none' ? '#A31557' : '#B3A1AA'}
-                size={18}
-              />
-              <View style={styles.headerActionTextBlock}>
-                <Text style={styles.headerActionLabel}>الترتيب</Text>
-                <Text style={styles.headerActionMeta}>
-                  {sortOrder === 'asc' ? 'السعر تصاعدي' : sortOrder === 'desc' ? 'السعر تنازلي' : 'افتراضي'}
-                </Text>
-              </View>
-            </Pressable>
-            <Pressable
               testID="home-classification-button"
               style={({ pressed }) => [styles.headerActionButton, pressed && styles.buttonPressed]}
               onPress={handleFilterOpen}
             >
-              <Feather name="sliders" color="#B3A1AA" size={18} />
+              <Feather name="sliders" color="#F6F3E7" size={18} />
               <View style={styles.headerActionTextBlock}>
                 <Text style={styles.headerActionLabel}>التصنيف</Text>
                 <Text style={styles.headerActionMeta}>تصفية مخصصة</Text>
@@ -451,7 +422,7 @@ export default function HomeScreen() {
           <FlatList
             ref={listRef}
             key={key}
-            data={sortedProducts}
+            data={products}
             renderItem={renderProduct}
             keyExtractor={(item) => item.id}
             numColumns={numColumns}
@@ -671,32 +642,32 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F1F5',
+    backgroundColor: palette.background,
   },
   headerWrapper: {
-    backgroundColor: '#F7F1F5',
+    backgroundColor: palette.background,
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
   headerCard: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    borderBottomLeftRadius: 48,
-    borderBottomRightRadius: 48,
+    backgroundColor: palette.headerCard,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    borderBottomLeftRadius: 60,
+    borderBottomRightRadius: 60,
     paddingHorizontal: 20,
-    paddingBottom: 24,
-    shadowColor: '#E6B2CC',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 12,
+    paddingBottom: 28,
+    shadowColor: '#0B0F0D',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.35,
+    shadowRadius: 32,
+    elevation: 18,
   },
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    marginBottom: 22,
   },
   headerLeftCluster: {
     flexDirection: 'row',
@@ -707,9 +678,11 @@ const styles = StyleSheet.create({
     width: 56,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FDEEF4',
+    backgroundColor: palette.headerAccent,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: palette.accent,
     position: 'relative' as const,
   },
   whatsappBadge: {
@@ -723,48 +696,56 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#111',
   },
   whatsappIcon: {
     width: 12,
     height: 12,
   },
   headerIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderWidth: 1,
-    borderColor: '#F3CFDF',
-    backgroundColor: '#FFFFFF',
+    borderColor: palette.accent,
+    backgroundColor: palette.headerAccent,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerBrandBlock: {
+  headerLogoWrap: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  brandTitleArabic: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: '#A31557',
-    letterSpacing: 2,
+  headerLogoBadge: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: palette.headerAccent,
+    borderWidth: 2,
+    borderColor: palette.accentSoft,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  brandSubtitleEnglish: {
-    fontSize: 12,
-    color: '#A31557',
-    letterSpacing: 6,
-    marginTop: 2,
+  headerLogo: {
+    width: '68%',
+    height: '68%',
   },
   searchFieldRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FCEAF2',
-    borderRadius: 26,
+    backgroundColor: palette.inputBackground,
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: '#F4C6D9',
+    borderColor: palette.stroke,
     paddingLeft: 16,
     paddingRight: 8,
-    height: 50,
+    height: 54,
   },
   searchFieldIcon: {
     marginRight: 8,
@@ -772,13 +753,13 @@ const styles = StyleSheet.create({
   searchFieldInput: {
     flex: 1,
     fontSize: 15,
-    color: '#5B2A41',
+    color: palette.textPrimary,
   },
   searchFilterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#A31557',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: palette.accent,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
@@ -788,10 +769,10 @@ const styles = StyleSheet.create({
     position: 'absolute' as const,
     top: 6,
     right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FF3B30',
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: palette.badge,
   },
   headerActionsRow: {
     flexDirection: 'row',
@@ -802,17 +783,13 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#F1E1E9',
-    backgroundColor: '#F7F0F4',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    borderColor: palette.accent,
+    backgroundColor: palette.accent,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
-  headerActionButtonActive: {
-    backgroundColor: '#FDEBF1',
-    borderColor: '#E7ADC6',
+    gap: 12,
   },
   headerActionTextBlock: {
     flex: 1,
@@ -821,12 +798,12 @@ const styles = StyleSheet.create({
   headerActionLabel: {
     fontSize: 14,
     fontWeight: '700' as const,
-    color: '#5B2A41',
+    color: '#F6F3E7',
   },
   headerActionMeta: {
     fontSize: 12,
-    color: '#9A7386',
-    marginTop: 2,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 4,
   },
   activeFiltersContainer: {
     flexDirection: 'row',
@@ -841,12 +818,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#EFF1E8',
     gap: 6,
   },
   activeFilterText: {
     fontSize: 13,
-    color: '#666',
+    color: palette.textPrimary,
     fontWeight: '500' as const,
   },
   modalOverlay: {
