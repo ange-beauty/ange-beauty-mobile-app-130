@@ -391,19 +391,7 @@ export default function HomeScreen() {
             </View>
           )}
 
-          <View style={styles.headerActionsRow}>
-            <Pressable
-              testID="home-classification-button"
-              style={({ pressed }) => [styles.headerActionButton, pressed && styles.buttonPressed]}
-              onPress={handleFilterOpen}
-            >
-              <Feather name="sliders" color="#F6F3E7" size={18} />
-              <View style={styles.headerActionTextBlock}>
-                <Text style={styles.headerActionLabel}>التصنيف</Text>
-                <Text style={styles.headerActionMeta}>تصفية مخصصة</Text>
-              </View>
-            </Pressable>
-          </View>
+
         </View>
       </View>
 
@@ -774,37 +762,7 @@ const styles = StyleSheet.create({
     borderRadius: 4.5,
     backgroundColor: palette.badge,
   },
-  headerActionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 18,
-  },
-  headerActionButton: {
-    flex: 1,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: palette.accent,
-    backgroundColor: palette.accent,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  headerActionTextBlock: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  headerActionLabel: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: '#F6F3E7',
-  },
-  headerActionMeta: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 4,
-  },
+
   activeFiltersContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
