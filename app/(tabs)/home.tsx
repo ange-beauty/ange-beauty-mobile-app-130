@@ -635,6 +635,11 @@ const styles = StyleSheet.create({
   headerWrapper: {
     backgroundColor: '#FFFFFF',
     paddingBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   headerCard: {
     backgroundColor: '#FFFFFF',
