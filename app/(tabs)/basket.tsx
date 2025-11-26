@@ -102,14 +102,27 @@ export default function BasketScreen() {
     })),
   });
 
+  console.log('[Basket] basket:', basket);
+  console.log('[Basket] productQueries:', productQueries.map(q => ({ isLoading: q.isLoading, hasData: !!q.data, error: q.error })));
+
   const isLoading = productQueries.some(query => query.isLoading);
+  const hasErrors = productQueries.some(query => query.error);
   const productsData = productQueries.map(query => query.data);
 
+  console.log('[Basket] isLoading:', isLoading, 'hasErrors:', hasErrors);
+
   const basketProducts = React.useMemo(() => {
-    return basket.map((basketItem, index) => {
+    const products = basket.map((basketItem, index) => {
       const product = productsData[index];
-      return product ? { ...product, quantity: basketItem.quantity } : null;
-    }).filter(Boolean) as (Product & { quantity: number })[];
+      if (!product) {
+        console.log('[Basket] No product data for basket item:', basketItem.productId);
+        return null;
+      }
+      return { ...product, quantity: basketItem.quantity };
+    }).filter((p): p is (Product & { quantity: number }) => p !== null);
+    
+    console.log('[Basket] basketProducts:', products.length, 'items');
+    return products;
   }, [basket, productsData]);
 
   const totalPrice = React.useMemo(() => {

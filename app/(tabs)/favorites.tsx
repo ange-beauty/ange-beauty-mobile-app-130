@@ -39,7 +39,9 @@ export default function FavoritesScreen() {
   const [key, setKey] = useState('fav-grid-' + getNumColumns());
   const listRef = useRef<FlatList>(null);
 
-  const { data: productsData, isLoading } = useQuery({
+  console.log('[Favorites] favorites:', favorites);
+
+  const { data: productsData, isLoading, error } = useQuery({
     queryKey: ['favorite-products', favorites],
     queryFn: async () => {
       if (favorites.length === 0) return [];
@@ -49,6 +51,7 @@ export default function FavoritesScreen() {
       const promises = favorites.map(async (id) => {
         try {
           const product = await fetchProductById(id);
+          console.log('[Favorites] Fetched product:', id, ':', product?.name);
           return product;
         } catch (error) {
           console.error(`[Favorites] Error fetching product ${id}:`, error);
@@ -64,6 +67,8 @@ export default function FavoritesScreen() {
     },
     enabled: favorites.length > 0,
   });
+
+  console.log('[Favorites] productsData:', productsData?.length, 'items, isLoading:', isLoading, 'error:', error);
 
   const favoriteProducts = productsData || [];
 
