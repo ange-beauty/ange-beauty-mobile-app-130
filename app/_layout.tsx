@@ -1,7 +1,9 @@
 // template
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Feather } from "@expo/vector-icons";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { useFonts } from "expo-font";
 import React, { useEffect, useState, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { I18nManager, Platform, Animated, View, Image, StyleSheet, Dimensions, Text } from "react-native";
@@ -141,6 +143,7 @@ export default function RootLayout() {
   const [showSplash, setShowSplash] = useState(true);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(true);
   const [updateRequired, setUpdateRequired] = useState(false);
+  const [fontsLoaded] = useFonts(Feather.font);
 
   useEffect(() => {
     if (!I18nManager.isRTL) {
@@ -149,8 +152,10 @@ export default function RootLayout() {
         I18nManager.allowRTL(true);
       }
     }
-    SplashScreen.hideAsync();
-  }, []);
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
 
   useEffect(() => {
     async function checkUpdate() {
@@ -186,6 +191,20 @@ export default function RootLayout() {
     }
     setupPushNotifications();
   }, []);
+
+  if (!fontsLoaded) {
+    return (
+      <View style={splashStyles.container}>
+        <View style={splashStyles.logoContainer}>
+          <Image
+            source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/rqerhironvgzmc9yhq77s' }}
+            style={splashStyles.logo}
+            resizeMode="contain"
+          />
+        </View>
+      </View>
+    );
+  }
 
   if (showSplash) {
     return <CustomSplashScreen onFinish={() => setShowSplash(false)} />;
