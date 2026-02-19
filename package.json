@@ -1,11 +1,11 @@
 {
   "name": "expo-app",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
-    "start": "bunx rork start -p 2zlifppxsf94bsd8q9jiw --tunnel",
-    "start-web": "bunx rork start -p 2zlifppxsf94bsd8q9jiw --web --tunnel",
-    "start-web-dev": "DEBUG=expo* bunx rork start -p 2zlifppxsf94bsd8q9jiw --web --tunnel",
+    "start": "npx rork start -p 2zlifppxsf94bsd8q9jiw --tunnel",
+    "start-web": "npx rork start -p 2zlifppxsf94bsd8q9jiw --web --tunnel",
+    "start-web-dev": "DEBUG=expo* npx rork start -p 2zlifppxsf94bsd8q9jiw --web --tunnel",
     "lint": "expo lint"
   },
   "dependencies": {

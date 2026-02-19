@@ -1,6 +1,7 @@
 import { mapAPIProductToProduct, Product } from '@/types/product';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
+const API_BASE = API_BASE_URL.replace(/\/+$/, '');
 
 export interface Brand {
   id: string;
@@ -35,7 +36,6 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<F
   
   try {
     const queryParams = new URLSearchParams();
-    queryParams.append('action', 'fetch-product-deep');
     queryParams.append('page', page.toString());
     queryParams.append('limit', limit.toString());
     
@@ -44,7 +44,7 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<F
     if (brand) queryParams.append('brand', brand);
     if (barcode) queryParams.append('barcode', barcode);
     
-    const url = `${API_BASE_URL}?${queryParams.toString()}`;
+    const url = `${API_BASE}/api/v1/products?${queryParams.toString()}`;
     console.log(`[API] Fetching from URL:`, url);
     
     const response = await fetch(url, {
@@ -86,8 +86,20 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<F
     }
     
     const products = Array.isArray(result.data) ? result.data : [];
-    const hasMore = result.has_more === true;
-    const totalRows = typeof result.total_rows === 'number' ? result.total_rows : 0;
+    const totalRows =
+      typeof result.total_rows === 'number'
+        ? result.total_rows
+        : typeof result.totalRows === 'number'
+          ? result.totalRows
+          : typeof result.total === 'number'
+            ? result.total
+            : 0;
+    const hasMore =
+      result.has_more === true ||
+      result.hasMore === true ||
+      (typeof result.next_page === 'number' && result.next_page > page) ||
+      (typeof result.nextPage === 'number' && result.nextPage > page) ||
+      (totalRows > 0 ? page * limit < totalRows : products.length === limit);
     
     console.log(`[API] Successfully fetched ${products.length} products. Has more: ${hasMore}, Total: ${totalRows}`);
     
@@ -108,7 +120,7 @@ export async function fetchBrands(): Promise<Brand[]> {
   console.log(`[API] Fetching brands`);
   
   try {
-    const response = await fetch(`${API_BASE_URL}?action=fetch-brands`, {
+    const response = await fetch(`${API_BASE}/api/v1/brands`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -212,26 +224,60 @@ export async function checkAppUpdateStatus(appVersion: string): Promise<boolean>
   console.log(`[API] Checking app update status - version: ${appVersion}`);
   
   try {
-    const response = await fetch(`${API_BASE_URL}?action=must-update`, {
+    const endpoint = `${API_BASE}/api/v1/auth/client-version/validate`;
+    const payload = {
+      version: appVersion,
+    };
+
+    console.log('[API] Version check request:', {
+      endpoint,
+      method: 'POST',
+      payload,
+    });
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        version: appVersion,
-      }),
+      body: JSON.stringify(payload),
     });
     
     console.log(`[API] Update check response status:`, response.status);
-    
-    if (response && response.ok && response.status === 200) {
-      console.log(`[API] App is up to date`);
-      return true;
+
+    if (!response || !response.ok) {
+      let errorBody: any = null;
+      try {
+        errorBody = await response.json();
+      } catch {
+        errorBody = null;
+      }
+      console.log('[API] Version check non-OK response body:', errorBody);
+      console.log(`[API] App update required`);
+      return false;
     }
-    
-    console.log(`[API] App update required`);
-    return false;
+
+    let result: any = null;
+    try {
+      result = await response.json();
+    } catch {
+      result = null;
+    }
+    console.log('[API] Version check response body:', result);
+
+    // Support multiple backend response shapes while defaulting to "up to date" on successful validation.
+    if (result?.mustUpdate === true || result?.forceUpdate === true || result?.updateRequired === true) {
+      console.log(`[API] App update required`);
+      return false;
+    }
+    if (result?.isValid === false || result?.isSupported === false || result?.upToDate === false) {
+      console.log(`[API] App update required`);
+      return false;
+    }
+
+    console.log(`[API] App is up to date`);
+    return true;
   } catch (error) {
     console.error('[API] Error checking update status:', error);
     return false;
@@ -247,7 +293,7 @@ export async function fetchProductById(id: string): Promise<Product | null> {
   }
   
   try {
-    const response = await fetch(`${API_BASE_URL}?action=fetch-product-deep&product=${id}`, {
+    const response = await fetch(`${API_BASE}/api/v1/products?product=${encodeURIComponent(id)}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -275,7 +321,8 @@ export async function fetchProductById(id: string): Promise<Product | null> {
     
     console.log(`[API] Product details response:`, result);
     
-    if (!result || result.status !== 'success') {
+    const isSuccess = result?.success === true || result?.status === 'success';
+    if (!isSuccess) {
       console.error(`[API] Invalid response status for product ${id}`);
       return null;
     }
@@ -285,7 +332,11 @@ export async function fetchProductById(id: string): Promise<Product | null> {
       return null;
     }
     
-    const apiProduct = result.data;
+    const apiProduct = Array.isArray(result.data) ? result.data[0] : result.data;
+    if (!apiProduct) {
+      console.error(`[API] Empty product data array for ${id}`);
+      return null;
+    }
     const productName = apiProduct?.name_ar || apiProduct?.name_en || 'Unknown';
     console.log(`[API] Successfully fetched product: ${productName}`);
     
