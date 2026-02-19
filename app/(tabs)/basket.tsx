@@ -24,6 +24,7 @@ import { Product } from '@/types/product';
 import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
+const API_BASE = API_BASE_URL.replace(/\/+$/, '');
 
 export default function BasketScreen() {
   const insets = useSafeAreaInsets();
@@ -47,7 +48,7 @@ export default function BasketScreen() {
     mutationFn: async (orderData: any) => {
       console.log('[Order] Submitting order:', orderData);
       
-      const response = await fetch(`${API_BASE_URL}?action=init-client-order`, {
+      const response = await fetch(`${API_BASE}/api/v1/selling-orders/client-initialization`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',

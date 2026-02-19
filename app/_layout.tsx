@@ -6,7 +6,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import React, { useEffect, useState, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { I18nManager, Platform, Animated, View, Image, StyleSheet, Dimensions, Text } from "react-native";
+import { I18nManager, Platform, Animated, View, Image, StyleSheet, Dimensions, Text, Pressable, Linking } from "react-native";
 import Constants from 'expo-constants';
 
 import { FavoritesContext } from "@/contexts/FavoritesContext";
@@ -18,6 +18,7 @@ import { registerForPushNotifications, registerPushTokenWithServer } from "@/ser
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=app.ange.beauty.cosmetic';
 
 function RootLayoutNav() {
   return (
@@ -137,6 +138,19 @@ const updateStyles = StyleSheet.create({
     color: '#2D3436',
     textAlign: 'center',
   },
+  updateButton: {
+    marginTop: 24,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  updateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
 });
 
 export default function RootLayout() {
@@ -144,6 +158,14 @@ export default function RootLayout() {
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(true);
   const [updateRequired, setUpdateRequired] = useState(false);
   const [fontsLoaded] = useFonts(Feather.font);
+
+  const handleUpdatePress = async () => {
+    try {
+      await Linking.openURL(PLAY_STORE_URL);
+    } catch (error) {
+      console.error('[RootLayout] Failed to open Play Store URL:', error);
+    }
+  };
 
   useEffect(() => {
     if (!I18nManager.isRTL) {
@@ -223,6 +245,9 @@ export default function RootLayout() {
       <View style={updateStyles.container}>
         <View style={updateStyles.messageBox}>
           <Text style={updateStyles.messageText}>الرجاء تحديث البرنامج</Text>
+          <Pressable style={updateStyles.updateButton} onPress={handleUpdatePress}>
+            <Text style={updateStyles.updateButtonText}>تحديث الآن</Text>
+          </Pressable>
         </View>
       </View>
     );
