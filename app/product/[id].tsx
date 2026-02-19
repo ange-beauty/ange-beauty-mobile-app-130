@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Image,
   Platform,
@@ -18,8 +19,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
 import { useFavorites } from '@/contexts/FavoritesContext';
+
 import { useBasket } from '@/contexts/BasketContext';
+import { useSellingPoint } from '@/contexts/SellingPointContext';
 import { fetchProductById } from '@/services/api';
+import { getAvailableQuantityForSellingPoint } from '@/utils/availability';
 import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
 
 export default function ProductDetailScreen() {
@@ -28,6 +32,7 @@ export default function ProductDetailScreen() {
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToBasket, getItemQuantity } = useBasket();
+  const { selectedSellingPoint } = useSellingPoint();
   const [webViewHeight, setWebViewHeight] = useState(0);
 
   const { data: product, isLoading, error, refetch } = useQuery({
@@ -84,11 +89,19 @@ export default function ProductDetailScreen() {
       </View>
     );
   }
-
   const isFav = isFavorite(product.id);
   const quantity = getItemQuantity(product.id);
+  const selectedPointAvailable = getAvailableQuantityForSellingPoint(product, selectedSellingPoint?.id);
 
   const handleAddToBasket = () => {
+    if (!selectedSellingPoint?.id) {
+      Alert.alert('\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631', '\u064a\u0631\u062c\u0649 \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631 \u0623\u0648\u0644\u0627\u064b \u0642\u0628\u0644 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629', [{ text: '\u0627\u0641\u062a\u062d \u0627\u0644\u0645\u062a\u062c\u0631', onPress: () => router.push('/(tabs)/store') }, { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' }]);
+      return;
+    }
+    if (selectedPointAvailable !== null && quantity >= selectedPointAvailable) {
+      Alert.alert('تنبيه', 'لا يمكن إضافة كمية أكبر من المتوفر في نقطة البيع المختارة');
+      return;
+    }
     addToBasket(product.id, 1);
   };
 
@@ -107,16 +120,17 @@ export default function ProductDetailScreen() {
         }
       >
         <View style={styles.imageContainer}>
-          {product.image ? (
-            <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
-          ) : (
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop' }} 
-              style={styles.image} 
-              resizeMode="cover" 
-            />
-          )}
-          
+          <View style={styles.imageCard}>
+            {product.image ? (
+              <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
+            ) : (
+              <Image 
+                source={{ uri: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop' }} 
+                style={styles.image} 
+                resizeMode="cover" 
+              />
+            )}
+          </View>
           <View style={[styles.headerButtons, { top: insets.top + 8 }]}>
             <Pressable
               style={({ pressed }) => [
@@ -145,41 +159,53 @@ export default function ProductDetailScreen() {
 
         <Animated.View style={[styles.contentContainer, { transform: [{ scale: scaleAnim }] }]}>
           <View style={styles.content}>
-            {product.brand && (
-              <Pressable 
-                onPress={() => {
-                  if (product.brandId) {
-                    console.log('[ProductDetail] Navigating to home with brandId:', product.brandId);
-                    router.push(`/(tabs)/home?brandId=${product.brandId}`);
-                  }
-                }}
-                style={({ pressed }) => [
-                  styles.brandButton,
-                  pressed && styles.brandButtonPressed,
-                ]}
-              >
-                <Text style={styles.brandButtonText}>{product.brand}</Text>
-              </Pressable>
-            )}
-            <Text style={styles.productName}>{product.name || 'منتج بدون اسم'}</Text>
+            <View style={styles.metaRow}>
+              {product.category && (
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryText}>
+                    {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
+                  </Text>
+                </View>
+              )}
+              {product.brand && (
+                <Pressable 
+                  onPress={() => {
+                    if (product.brandId) {
+                      console.log('[ProductDetail] Navigating to home with brandId:', product.brandId);
+                      router.push(`/(tabs)/products?brandId=${product.brandId}`);
+                    }
+                  }}
+                  style={({ pressed }) => [
+                    styles.brandButton,
+                    pressed && styles.brandButtonPressed,
+                  ]}
+                >
+                  <Text style={styles.brandButtonText}>{product.brand}</Text>
+                </Pressable>
+              )}
+            </View>
+            <Text style={styles.productName}>{product.name || '\u0645\u0646\u062a\u062c \u0628\u062f\u0648\u0646 \u0627\u0633\u0645'}</Text>
 
-
-
-            {product.category && (
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>
-                  {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
+            <View style={styles.priceCard}>
+              <Text style={styles.priceLabel}>{'\u0627\u0644\u0633\u0639\u0631'}</Text>
+              <Text style={styles.price}>{formatPrice(product.price)}</Text>
+              {selectedSellingPoint && (
+                <Text
+                  style={[
+                    styles.availabilityText,
+                    selectedPointAvailable === null ? styles.availabilityWarning : styles.availabilityOk,
+                  ]}
+                >
+                  {selectedPointAvailable === null
+                    ? '\u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631 \u0641\u064a \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0627\u0644\u0645\u062e\u062a\u0627\u0631\u0629'
+                    : `\u0627\u0644\u0645\u062a\u0648\u0641\u0631: ${toArabicNumerals(selectedPointAvailable)}`}
                 </Text>
-              </View>
-            )}
-
-            <Text style={styles.price}>
-              {formatPrice(product.price)}
-            </Text>
+              )}
+            </View>
 
             {product.description && (
               <View style={styles.descriptionBox}>
-                <Text style={styles.descriptionTitle}>الوصف</Text>
+                <Text style={styles.descriptionTitle}>{'\u0627\u0644\u0648\u0635\u0641'}</Text>
                 <View style={styles.descriptionContent}>
                   <WebView
                     originWhitelist={['*']}
@@ -312,22 +338,38 @@ export default function ProductDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F4F6F1',
   },
   scrollView: {
     flex: 1,
   },
   imageContainer: {
     width: '100%',
-    aspectRatio: 1,
-    backgroundColor: '#FFFFFF',
+    aspectRatio: 0.9,
+    backgroundColor: '#EEF2EA',
     position: 'relative' as const,
+    paddingHorizontal: 20,
+    paddingTop: 28,
+    paddingBottom: 14,
     ...Platform.select({
       web: {
         maxWidth: 600,
         alignSelf: 'center',
       },
     }),
+  },
+  imageCard: {
+    flex: 1,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E7ECE4',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 4,
   },
   image: {
     width: '100%',
@@ -341,9 +383,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
@@ -351,31 +393,33 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
   },
   contentContainer: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    marginTop: -24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -18,
   },
   content: {
-    padding: 24,
+    paddingHorizontal: 22,
+    paddingTop: 20,
+    paddingBottom: 28,
+  },
+  metaRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 14,
   },
   brandButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#F0F0F0',
-    paddingHorizontal: 16,
+    backgroundColor: '#EFF3EA',
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 12,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: '#E1E7DB',
   },
   brandButtonPressed: {
     opacity: 0.7,
@@ -383,18 +427,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E5E5',
   },
   brandButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#1A1A1A',
     fontWeight: '700' as const,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.8,
+    textAlign: 'right',
   },
   productName: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700' as const,
     color: '#1A1A1A',
-    marginBottom: 16,
-    lineHeight: 36,
+    marginBottom: 12,
+    lineHeight: 34,
+    textAlign: 'right',
+    writingDirection: 'rtl' as const,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -421,23 +466,47 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   categoryBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#F0F0F0',
-    paddingHorizontal: 16,
+    backgroundColor: '#F3F4F1',
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 20,
+    borderRadius: 18,
   },
   categoryText: {
     fontSize: 12,
     fontWeight: '600' as const,
     color: '#666',
   },
+  priceCard: {
+    backgroundColor: '#F7F9F4',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E4EBDD',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 18,
+  },
+  priceLabel: {
+    fontSize: 12,
+    color: '#758070',
+    marginBottom: 4,
+    textAlign: 'right',
+  },
   price: {
-    fontSize: 36,
+    fontSize: 27,
     fontWeight: '700' as const,
-    color: '#1A1A1A',
-    marginBottom: 32,
+    color: '#111',
+    marginBottom: 4,
+    textAlign: 'right',
+  },
+  availabilityText: {
+    fontSize: 14,
+    textAlign: 'right',
+  },
+  availabilityOk: {
+    color: '#476B4E',
+  },
+  availabilityWarning: {
+    color: '#A35141',
   },
   section: {
     marginBottom: 32,
@@ -449,10 +518,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   descriptionBox: {
-    marginBottom: 32,
+    marginBottom: 28,
     backgroundColor: '#F8F9FA',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 18,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#E8EAED',
     shadowColor: '#000',
@@ -462,18 +531,18 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   descriptionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700' as const,
     color: '#1A1A1A',
-    marginBottom: 16,
+    marginBottom: 12,
     textAlign: 'right',
   },
   descriptionContent: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
-    borderLeftWidth: 3,
-    borderLeftColor: '#1A1A1A',
+    borderRightWidth: 3,
+    borderRightColor: '#1A1A1A',
   },
   webView: {
     backgroundColor: 'transparent',
@@ -500,8 +569,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingTop: 12,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
@@ -518,20 +587,24 @@ const styles = StyleSheet.create({
     }),
   },
   bottomBarLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#999',
     marginBottom: 4,
+    textAlign: 'right',
   },
   bottomBarPrice: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700' as const,
     color: '#1A1A1A',
+    textAlign: 'right',
   },
   addButton: {
     backgroundColor: '#1A1A1A',
-    paddingHorizontal: 48,
-    paddingVertical: 16,
-    borderRadius: 28,
+    minWidth: 190,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 15,
+    borderRadius: 20,
   },
   addButtonText: {
     fontSize: 16,
@@ -577,3 +650,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.95 }],
   },
 });
+
+
+
+

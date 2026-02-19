@@ -12,6 +12,13 @@ export interface Product {
   ingredients?: string[];
   rating: number;
   reviewCount: number;
+  totalAvailable?: number;
+  availabilityBySellingPoint?: {
+    sellingPointId: string;
+    nameAr?: string | null;
+    nameEn?: string | null;
+    totalAvailable: number;
+  }[];
 }
 
 export interface APIProduct {
@@ -52,6 +59,16 @@ export interface APIProduct {
   event_version?: string;
   aggregate_version?: number;
   event_by?: string;
+  total_available?: number | null;
+  availability_by_selling_point?: {
+    selling_point?: string | null;
+    name_ar?: string | null;
+    name_en?: string | null;
+    totalAvailable?: number | null;
+    stockes?: {
+      quantity?: number | null;
+    }[];
+  }[] | null;
 }
 
 export interface APIResponse {
@@ -125,5 +142,21 @@ export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
     ingredients: apiProduct.tags || [],
     rating: 4.5,
     reviewCount: 0,
+    totalAvailable: typeof apiProduct.total_available === 'number' ? apiProduct.total_available : undefined,
+    availabilityBySellingPoint: Array.isArray(apiProduct.availability_by_selling_point)
+      ? apiProduct.availability_by_selling_point
+          .filter((entry) => entry && entry.selling_point)
+          .map((entry) => ({
+            sellingPointId: entry.selling_point?.toString() || '',
+            nameAr: entry.name_ar ?? null,
+            nameEn: entry.name_en ?? null,
+            totalAvailable:
+              typeof entry.totalAvailable === 'number'
+                ? entry.totalAvailable
+                : Array.isArray(entry.stockes)
+                  ? entry.stockes.reduce((sum, stock) => sum + (typeof stock?.quantity === 'number' ? stock.quantity : 0), 0)
+                  : 0,
+          }))
+      : [],
   };
 }

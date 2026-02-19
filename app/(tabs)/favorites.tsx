@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
+  Alert,
   ActivityIndicator,
   Dimensions,
   FlatList,
@@ -13,9 +14,12 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
+import { useSellingPoint } from '@/contexts/SellingPointContext';
+import BrandedHeader from '@/components/BrandedHeader';
 import { fetchProductById } from '@/services/api';
 import { Product } from '@/types/product';
 import { formatPrice } from '@/utils/formatPrice';
@@ -31,9 +35,11 @@ const getNumColumns = () => {
 };
 
 export default function FavoritesScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { favorites, toggleFavorite } = useFavorites();
   const { addToBasket } = useBasket();
+  const { selectedSellingPoint } = useSellingPoint();
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [numColumns, setNumColumns] = useState(getNumColumns());
   const [key, setKey] = useState('fav-grid-' + getNumColumns());
@@ -74,6 +80,14 @@ export default function FavoritesScreen() {
 
   const handleAddToBasket = (productId: string, e: any) => {
     e.stopPropagation();
+    if (!selectedSellingPoint?.id) {
+      Alert.alert(
+        '\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631',
+        '\u064a\u0631\u062c\u0649 \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631 \u0623\u0648\u0644\u0627\u064b \u0642\u0628\u0644 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629',
+        [{ text: '\u0627\u0641\u062a\u062d \u0627\u0644\u0645\u062a\u062c\u0631', onPress: () => router.push('/(tabs)/store') }, { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' }]
+      );
+      return;
+    }
     addToBasket(productId, 1);
   };
 
@@ -161,6 +175,7 @@ export default function FavoritesScreen() {
 
   return (
     <View style={styles.container}>
+      <BrandedHeader topInset={insets.top} />
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1A1A1A" />

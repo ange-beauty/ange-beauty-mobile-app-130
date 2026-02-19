@@ -6,11 +6,13 @@ import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import React, { useEffect, useState, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { I18nManager, Platform, Animated, View, Image, StyleSheet, Dimensions, Text, Pressable, Linking } from "react-native";
+import { I18nManager, Platform, Animated, View, Image, StyleSheet, Dimensions, Text, TextInput, Pressable, Linking } from "react-native";
 import Constants from 'expo-constants';
 
 import { FavoritesContext } from "@/contexts/FavoritesContext";
 import { BasketContext } from "@/contexts/BasketContext";
+import { SellingPointContext } from "@/contexts/SellingPointContext";
+import { AuthContext } from "@/contexts/AuthContext";
 import { checkAppUpdateStatus } from "@/services/api";
 import { registerForPushNotifications, registerPushTokenWithServer } from "@/services/notifications";
 
@@ -158,6 +160,18 @@ export default function RootLayout() {
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(true);
   const [updateRequired, setUpdateRequired] = useState(false);
   const [fontsLoaded] = useFonts(Feather.font);
+  const globalFontFamily = Platform.select({
+    ios: 'SF Pro Text',
+    android: 'sans-serif',
+    default: 'sans-serif',
+  });
+  const AnyText = Text as any;
+  const AnyTextInput = TextInput as any;
+
+  if (AnyText.defaultProps == null) AnyText.defaultProps = {};
+  AnyText.defaultProps.style = [AnyText.defaultProps.style, { fontFamily: globalFontFamily }];
+  if (AnyTextInput.defaultProps == null) AnyTextInput.defaultProps = {};
+  AnyTextInput.defaultProps.style = [AnyTextInput.defaultProps.style, { fontFamily: globalFontFamily }];
 
   const handleUpdatePress = async () => {
     try {
@@ -255,13 +269,17 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <FavoritesContext>
-        <BasketContext>
-          <GestureHandlerRootView>
-            <RootLayoutNav />
-          </GestureHandlerRootView>
-        </BasketContext>
-      </FavoritesContext>
+      <SellingPointContext>
+        <AuthContext>
+          <FavoritesContext>
+            <BasketContext>
+              <GestureHandlerRootView>
+                <RootLayoutNav />
+              </GestureHandlerRootView>
+            </BasketContext>
+          </FavoritesContext>
+        </AuthContext>
+      </SellingPointContext>
     </QueryClientProvider>
   );
 }

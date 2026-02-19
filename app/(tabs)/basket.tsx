@@ -17,10 +17,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import BrandedHeader from '@/components/BrandedHeader';
 
 import { useBasket } from '@/contexts/BasketContext';
+import { useSellingPoint } from '@/contexts/SellingPointContext';
 import { fetchProductById } from '@/services/api';
 import { Product } from '@/types/product';
+import { getAvailableQuantityForSellingPoint } from '@/utils/availability';
 import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
@@ -30,12 +33,15 @@ export default function BasketScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { basket, updateQuantity, removeFromBasket, totalItems, clearBasket } = useBasket();
+  const { selectedSellingPoint } = useSellingPoint();
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [telephone, setTelephone] = useState('');
   const [address, setAddress] = useState('');
   const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const listRef = useRef<FlatList>(null);
 
   const captcha = useMemo(() => {
@@ -145,6 +151,7 @@ export default function BasketScreen() {
   const renderItem = ({ item }: { item: Product & { quantity: number } }) => {
     const price = typeof item.price === 'number' ? item.price : parseFloat(item.price as string || '0');
     const itemTotal = price * item.quantity;
+    const selectedPointAvailable = getAvailableQuantityForSellingPoint(item, selectedSellingPoint?.id);
 
     return (
       <Pressable 
@@ -176,6 +183,10 @@ export default function BasketScreen() {
               ]}
               onPress={(e) => {
                 e.stopPropagation();
+                if (selectedPointAvailable !== null && item.quantity >= selectedPointAvailable) {
+                  Alert.alert('تنبيه', 'لا يمكن إضافة كمية أكبر من المتوفر في نقطة البيع المختارة');
+                  return;
+                }
                 updateQuantity(item.id, item.quantity + 1);
               }}
             >
@@ -225,7 +236,8 @@ export default function BasketScreen() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <BrandedHeader topInset={insets.top} />
+        <View style={styles.header}>
           <Text style={styles.headerTitle}>السلة</Text>
         </View>
         <View style={styles.loadingContainer}>
@@ -236,10 +248,37 @@ export default function BasketScreen() {
     );
   }
 
+  if (!selectedSellingPoint?.id) {
+    return (
+      <View style={styles.container}>
+        <BrandedHeader topInset={insets.top} />
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{'\u0627\u0644\u0633\u0644\u0629'}</Text>
+        </View>
+        <View style={styles.missingStoreContainer}>
+          <Feather name="map-pin" color="#CCCCCC" size={80} />
+          <Text style={styles.missingStoreTitle}>
+            {'\u0644\u0625\u0643\u0645\u0627\u0644 \u0627\u0644\u0637\u0644\u0628 \u064a\u0631\u062c\u0649 \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631'}
+          </Text>
+          <Text style={styles.missingStoreSubtitle}>
+            {'\u0627\u062e\u062a\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0645\u0646 \u062a\u0628\u0648\u064a\u0628 \u0627\u0644\u0645\u062a\u062c\u0631 \u0641\u064a \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u0633\u0641\u0644\u064a'}
+          </Text>
+          <Pressable
+            style={({ pressed }) => [styles.openStoreButton, pressed && styles.buttonPressed]}
+            onPress={() => router.push('/(tabs)/store')}
+          >
+            <Text style={styles.openStoreButtonText}>{'\u0627\u0641\u062a\u062d \u0627\u0644\u0645\u062a\u062c\u0631'}</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   if (basket.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <BrandedHeader topInset={insets.top} />
+        <View style={styles.header}>
           <Text style={styles.headerTitle}>السلة</Text>
         </View>
         <View style={styles.emptyContainer}>
@@ -278,39 +317,75 @@ export default function BasketScreen() {
   };
 
   const handleCheckout = () => {
+    if (!selectedSellingPoint?.id) {
+      Alert.alert(
+        '\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631',
+        '\u064a\u0631\u062c\u0649 \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631 \u0623\u0648\u0644\u0627\u064b \u0642\u0628\u0644 \u0625\u062a\u0645\u0627\u0645 \u0627\u0644\u0637\u0644\u0628',
+        [{ text: '\u0627\u0641\u062a\u062d \u0627\u0644\u0645\u062a\u062c\u0631', onPress: () => router.push('/(tabs)/store') }, { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' }]
+      );
+      return;
+    }
     setShowCheckoutModal(true);
   };
 
   const handleCloseModal = () => {
     setShowCheckoutModal(false);
     setName('');
+    setEmail('');
     setTelephone('');
     setAddress('');
     setCaptchaAnswer('');
+    setFieldErrors({});
   };
 
   const handleSubmitOrder = () => {
+    const errors: Record<string, string> = {};
+
     if (!name.trim()) {
-      Alert.alert('خطأ', 'الرجاء إدخال الاسم');
-      return;
+      errors.name = '\u0627\u0644\u0627\u0633\u0645\u0020\u0645\u0637\u0644\u0648\u0628';
     }
     if (!telephone.trim()) {
-      Alert.alert('خطأ', 'الرجاء إدخال رقم الهاتف');
-      return;
+      errors.telephone = '\u0631\u0642\u0645\u0020\u0627\u0644\u0647\u0627\u062a\u0641\u0020\u0645\u0637\u0644\u0648\u0628';
+    }
+    if (!email.trim()) {
+      errors.email = '\u0627\u0644\u0628\u0631\u064a\u062f\u0020\u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a\u0020\u0645\u0637\u0644\u0648\u0628';
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email.trim() && !emailRegex.test(email.trim())) {
+      errors.email = '\u064a\u0631\u062c\u0649\u0020\u0625\u062f\u062e\u0627\u0644\u0020\u0628\u0631\u064a\u062f\u0020\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a\u0020\u0635\u062d\u064a\u062d';
     }
     if (!address.trim()) {
-      Alert.alert('خطأ', 'الرجاء إدخال العنوان');
-      return;
+      errors.address = '\u0627\u0644\u0639\u0646\u0648\u0627\u0646\u0020\u0645\u0637\u0644\u0648\u0628';
+    }
+    if (!selectedSellingPoint?.id) {
+      errors.sellingPoint = '\u0646\u0642\u0637\u0629\u0020\u0627\u0644\u0628\u064a\u0639\u0020\u0645\u0637\u0644\u0648\u0628\u0629';
     }
     if (parseInt(captchaAnswer) !== captcha.answer) {
-      Alert.alert('خطأ', 'الإجابة غير صحيحة. حاول مرة أخرى');
-      setCaptchaAnswer('');
+      errors.captchaAnswer = '\u0627\u0644\u0625\u062c\u0627\u0628\u0629\u0020\u063a\u064a\u0631\u0020\u0635\u062d\u064a\u062d\u0629';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
 
+    const unavailableItem = basketProducts.find((product) => {
+      const available = getAvailableQuantityForSellingPoint(product, selectedSellingPoint?.id);
+      return available !== null && product.quantity > available;
+    });
+    if (unavailableItem) {
+      Alert.alert('تنبيه', 'كمية أحد المنتجات في السلة أكبر من المتوفر في نقطة البيع المختارة');
+      return;
+    }
+
+    setFieldErrors({});
+
     const orderData = {
+      sellingPointId: selectedSellingPoint?.id,
       customer: {
         name: name.trim(),
+        email: email.trim(),
         telephone: telephone.trim(),
         address: address.trim(),
       },
@@ -336,7 +411,8 @@ export default function BasketScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      <BrandedHeader topInset={insets.top} />
+        <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>السلة</Text>
           <Text style={styles.itemCount}>{toArabicNumerals(totalItems)} منتج</Text>
@@ -424,40 +500,81 @@ export default function BasketScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>الاسم الكامل *</Text>
+                <Text style={styles.label}>{'\u0627\u0644\u0627\u0633\u0645\u0020\u0627\u0644\u0643\u0627\u0645\u0644\u0020\u002a'}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, fieldErrors.name ? styles.inputErrorBorder : null]}
                   value={name}
-                  onChangeText={setName}
-                  placeholder="أدخل اسمك"
+                  onChangeText={(value) => {
+                    setName(value);
+                    if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: '' }));
+                  }}
+                  placeholder="\u0623\u062f\u062e\u0644\u0020\u0627\u0633\u0645\u0643"
                   placeholderTextColor="#999"
                 />
+                {fieldErrors.name ? <Text style={styles.errorText}>{fieldErrors.name}</Text> : null}
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>رقم الهاتف *</Text>
+                <Text style={styles.label}>{'\u0631\u0642\u0645\u0020\u0627\u0644\u0647\u0627\u062a\u0641\u0020\u002a'}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, fieldErrors.telephone ? styles.inputErrorBorder : null]}
                   value={telephone}
-                  onChangeText={setTelephone}
-                  placeholder="أدخل رقم الهاتف"
+                  onChangeText={(value) => {
+                    setTelephone(value);
+                    if (fieldErrors.telephone) setFieldErrors((prev) => ({ ...prev, telephone: '' }));
+                  }}
+                  placeholder="\u0623\u062f\u062e\u0644\u0020\u0631\u0642\u0645\u0020\u0627\u0644\u0647\u0627\u062a\u0641"
                   placeholderTextColor="#999"
                   keyboardType="phone-pad"
                 />
+                {fieldErrors.telephone ? <Text style={styles.errorText}>{fieldErrors.telephone}</Text> : null}
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>{'\u0627\u0644\u0628\u0631\u064a\u062f\u0020\u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a\u0020\u002a'}</Text>
+                <TextInput
+                  style={[styles.input, fieldErrors.email ? styles.inputErrorBorder : null]}
+                  value={email}
+                  onChangeText={(value) => {
+                    setEmail(value);
+                    if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }));
+                  }}
+                  placeholder="\u0623\u062f\u062e\u0644\u0020\u0628\u0631\u064a\u062f\u0643\u0020\u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a"
+                  placeholderTextColor="#999"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                {fieldErrors.email ? <Text style={styles.errorText}>{fieldErrors.email}</Text> : null}
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>{'\u0646\u0642\u0637\u0629\u0020\u0627\u0644\u0628\u064a\u0639\u0020\u002a'}</Text>
+                <TextInput
+                  style={[styles.input, fieldErrors.sellingPoint ? styles.inputErrorBorder : null]}
+                  editable={false}
+                  value={selectedSellingPoint ? (selectedSellingPoint.name_ar || selectedSellingPoint.name_en || selectedSellingPoint.id) : ''}
+                  placeholder={'\u0627\u062e\u062a\u0631\u0020\u0646\u0642\u0637\u0629\u0020\u0627\u0644\u0628\u064a\u0639\u0020\u0645\u0646\u0020\u062a\u0628\u0648\u064a\u0628\u0020\u0627\u0644\u0645\u062a\u062c\u0631'}
+                  placeholderTextColor="#999"
+                />
+                {fieldErrors.sellingPoint ? <Text style={styles.errorText}>{fieldErrors.sellingPoint}</Text> : null}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>العنوان *</Text>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, fieldErrors.address ? styles.inputErrorBorder : null]}
                   value={address}
-                  onChangeText={setAddress}
+                  onChangeText={(value) => {
+                    setAddress(value);
+                    if (fieldErrors.address) setFieldErrors((prev) => ({ ...prev, address: '' }));
+                  }}
                   placeholder="أدخل عنوانك الكامل"
                   placeholderTextColor="#999"
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
                 />
+                {fieldErrors.address ? <Text style={styles.errorText}>{fieldErrors.address}</Text> : null}
               </View>
 
               <View style={styles.formGroup}>
@@ -467,14 +584,18 @@ export default function BasketScreen() {
                     {toArabicNumerals(captcha.num1)} + {toArabicNumerals(captcha.num2)} = ?
                   </Text>
                   <TextInput
-                    style={styles.captchaInput}
+                    style={[styles.captchaInput, fieldErrors.captchaAnswer ? styles.inputErrorBorder : null]}
                     value={captchaAnswer}
-                    onChangeText={setCaptchaAnswer}
+                    onChangeText={(value) => {
+                      setCaptchaAnswer(value);
+                      if (fieldErrors.captchaAnswer) setFieldErrors((prev) => ({ ...prev, captchaAnswer: '' }));
+                    }}
                     placeholder="الجواب"
                     placeholderTextColor="#999"
                     keyboardType="number-pad"
                   />
                 </View>
+                {fieldErrors.captchaAnswer ? <Text style={styles.errorText}>{fieldErrors.captchaAnswer}</Text> : null}
               </View>
 
               <Pressable
@@ -566,6 +687,39 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 8,
     textAlign: 'center',
+  },
+  missingStoreContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  missingStoreTitle: {
+    marginTop: 18,
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#1A1A1A',
+    textAlign: 'center' as const,
+  },
+  missingStoreSubtitle: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center' as const,
+  },
+  openStoreButton: {
+    marginTop: 18,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  openStoreButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700' as const,
   },
   listContainer: {
     padding: 16,
@@ -788,6 +942,67 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     textAlign: 'right',
   },
+  pickerInput: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pickerText: {
+    color: '#1A1A1A',
+    fontSize: 15,
+    flex: 1,
+    textAlign: 'right',
+  },
+  pickerPlaceholder: {
+    color: '#999',
+    fontSize: 15,
+    flex: 1,
+    textAlign: 'right',
+  },
+  pickerList: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    maxHeight: 180,
+  },
+  pickerScroll: {
+    maxHeight: 180,
+  },
+  pickerItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  pickerItemTitle: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#1A1A1A',
+    textAlign: 'right' as const,
+  },
+  pickerItemSubtitle: {
+    fontSize: 12,
+    color: '#777',
+    marginTop: 2,
+    textAlign: 'right' as const,
+  },
+  pickerEmptyText: {
+    padding: 12,
+    color: '#777',
+    textAlign: 'center' as const,
+  },
+  inputErrorBorder: {
+    borderColor: '#FF3B30',
+  },
+  errorText: {
+    marginTop: 6,
+    color: '#FF3B30',
+    fontSize: 12,
+    fontWeight: '500' as const,
+  },
   textArea: {
     minHeight: 80,
     paddingTop: 14,
@@ -838,3 +1053,5 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 });
+
+
