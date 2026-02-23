@@ -1,7 +1,7 @@
 // template
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import React, { useEffect, useState, useRef } from "react";
@@ -12,7 +12,7 @@ import Constants from 'expo-constants';
 import { FavoritesContext } from "@/contexts/FavoritesContext";
 import { BasketContext } from "@/contexts/BasketContext";
 import { SellingPointContext } from "@/contexts/SellingPointContext";
-import { AuthContext } from "@/contexts/AuthContext";
+import { AuthContext, useAuth } from "@/contexts/AuthContext";
 import { checkAppUpdateStatus } from "@/services/api";
 import { registerForPushNotifications, registerPushTokenWithServer } from "@/services/notifications";
 
@@ -28,6 +28,13 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
         name="product/[id]"
+        options={{
+          headerShown: false,
+          presentation: "card",
+        }}
+      />
+      <Stack.Screen
+        name="verify-email"
         options={{
           headerShown: false,
           presentation: "card",
@@ -155,6 +162,34 @@ const updateStyles = StyleSheet.create({
   },
 });
 
+const activationAlertStyles = StyleSheet.create({
+  container: {
+    backgroundColor: '#D53F3F',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  title: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    textAlign: 'right',
+    fontSize: 12,
+  },
+  link: {
+    marginTop: 4,
+    color: '#FFFFFF',
+    textDecorationLine: 'underline',
+    textAlign: 'right',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  shell: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+  },
+});
+
 export default function RootLayout() {
   const [showSplash, setShowSplash] = useState(true);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(true);
@@ -273,13 +308,38 @@ export default function RootLayout() {
         <AuthContext>
           <FavoritesContext>
             <BasketContext>
-              <GestureHandlerRootView>
-                <RootLayoutNav />
+              <GestureHandlerRootView style={activationAlertStyles.shell}>
+                <GlobalActivationAlert />
+                <View style={activationAlertStyles.content}>
+                  <RootLayoutNav />
+                </View>
               </GestureHandlerRootView>
             </BasketContext>
           </FavoritesContext>
         </AuthContext>
       </SellingPointContext>
     </QueryClientProvider>
+  );
+}
+
+function GlobalActivationAlert() {
+  const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
+
+  if (!isAuthenticated || !user || user.emailVerified) {
+    return null;
+  }
+
+  return (
+    <View style={activationAlertStyles.container}>
+      <Text style={activationAlertStyles.title}>
+        {'\u0627\u0644\u062d\u0633\u0627\u0628 \u063a\u064a\u0631 \u0645\u0641\u0639\u0644. \u064a\u062c\u0628 \u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0642\u0628\u0644 \u0625\u062a\u0645\u0627\u0645 \u0627\u0644\u0637\u0644\u0628.'}
+      </Text>
+      <Pressable onPress={() => router.push('/(tabs)/account')}>
+        <Text style={activationAlertStyles.link}>
+          {'\u0627\u0641\u062a\u062d \u062d\u0633\u0627\u0628\u064a'}
+        </Text>
+      </Pressable>
+    </View>
   );
 }

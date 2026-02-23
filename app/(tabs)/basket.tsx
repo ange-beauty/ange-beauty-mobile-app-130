@@ -1,4 +1,4 @@
-import { useQueries, useMutation } from '@tanstack/react-query';
+﻿import { useQueries, useMutation } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'expo-router';
@@ -21,6 +21,7 @@ import BrandedHeader from '@/components/BrandedHeader';
 
 import { useBasket } from '@/contexts/BasketContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { fetchProductById } from '@/services/api';
 import { Product } from '@/types/product';
 import { getAvailableQuantityForSellingPoint } from '@/utils/availability';
@@ -34,8 +35,10 @@ export default function BasketScreen() {
   const router = useRouter();
   const { basket, updateQuantity, removeFromBasket, totalItems, clearBasket } = useBasket();
   const { selectedSellingPoint } = useSellingPoint();
+  const { isAuthenticated, user } = useAuth();
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [isGuestCheckout, setIsGuestCheckout] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [telephone, setTelephone] = useState('');
@@ -68,7 +71,7 @@ export default function BasketScreen() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[Order] Failed to submit order:', errorText);
-        throw new Error('فشل في إرسال الطلب');
+        throw new Error('\u0641\u0634\u0644 \u0641\u064a \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628');
       }
 
       const result = await response.json();
@@ -78,11 +81,11 @@ export default function BasketScreen() {
     onSuccess: (data) => {
       console.log('[Order] Order success:', data);
       Alert.alert(
-        'تم إرسال الطلب',
-        'شكراً لك! سنتواصل معك قريباً',
+        '\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628',
+        '\u0634\u0643\u0631\u0627\u064b \u0644\u0643! \u0633\u0646\u062a\u0648\u0627\u0635\u0644 \u0645\u0639\u0643 \u0642\u0631\u064a\u0628\u0627\u064b',
         [
           {
-            text: 'موافق',
+            text: '\u0645\u0648\u0627\u0641\u0642',
             onPress: () => {
               handleCloseModal();
               clearBasket();
@@ -94,9 +97,9 @@ export default function BasketScreen() {
     onError: (error: any) => {
       console.error('[Order] Order error:', error);
       Alert.alert(
-        'خطأ',
-        error.message || 'حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى',
-        [{ text: 'موافق' }]
+        '\u062e\u0637\u0623',
+        error.message || '\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628. \u062d\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649',
+        [{ text: '\u0645\u0648\u0627\u0641\u0642' }]
       );
     },
   });
@@ -171,7 +174,7 @@ export default function BasketScreen() {
         </View>
 
         <View style={styles.productDetails}>
-          <Text style={styles.brandText}>{item.brand || 'غير محدد'}</Text>
+          <Text style={styles.brandText}>{item.brand || '\u063a\u064a\u0631 \u0645\u062d\u062f\u062f'}</Text>
           <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
           <Text style={styles.productPrice}>{formatPrice(price)}</Text>
 
@@ -184,7 +187,7 @@ export default function BasketScreen() {
               onPress={(e) => {
                 e.stopPropagation();
                 if (selectedPointAvailable !== null && item.quantity >= selectedPointAvailable) {
-                  Alert.alert('تنبيه', 'لا يمكن إضافة كمية أكبر من المتوفر في نقطة البيع المختارة');
+                  Alert.alert('\u062a\u0646\u0628\u064a\u0647', '\u0644\u0627 \u064a\u0645\u0643\u0646 \u0625\u0636\u0627\u0641\u0629 \u0643\u0645\u064a\u0629 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0627\u0644\u0645\u062a\u0648\u0641\u0631 \u0641\u064a \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0627\u0644\u0645\u062e\u062a\u0627\u0631\u0629');
                   return;
                 }
                 updateQuantity(item.id, item.quantity + 1);
@@ -238,11 +241,11 @@ export default function BasketScreen() {
       <View style={styles.container}>
         <BrandedHeader topInset={insets.top} />
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>السلة</Text>
+          <Text style={styles.headerTitle}>{'\u0627\u0644\u0633\u0644\u0629'}</Text>
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1A1A1A" />
-          <Text style={styles.loadingText}>جاري تحميل السلة...</Text>
+          <Text style={styles.loadingText}>{'\u062c\u0627\u0631\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0633\u0644\u0629...'}</Text>
         </View>
       </View>
     );
@@ -279,12 +282,12 @@ export default function BasketScreen() {
       <View style={styles.container}>
         <BrandedHeader topInset={insets.top} />
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>السلة</Text>
+          <Text style={styles.headerTitle}>{'\u0627\u0644\u0633\u0644\u0629'}</Text>
         </View>
         <View style={styles.emptyContainer}>
           <Feather name="shopping-bag" color="#CCCCCC" size={80} />
-          <Text style={styles.emptyTitle}>سلتك فارغة</Text>
-          <Text style={styles.emptySubtitle}>ابدأ بإضافة المنتجات إلى السلة</Text>
+          <Text style={styles.emptyTitle}>{'\u0633\u0644\u062a\u0643 \u0641\u0627\u0631\u063a\u0629'}</Text>
+          <Text style={styles.emptySubtitle}>{'\u0627\u0628\u062f\u0623 \u0628\u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629'}</Text>
         </View>
       </View>
     );
@@ -292,21 +295,21 @@ export default function BasketScreen() {
 
   const handleClearBasket = () => {
     if (Platform.OS === 'web') {
-      const confirmed = window.confirm('هل أنت متأكد من إفراغ السلة؟');
+      const confirmed = window.confirm('\u0647\u0644 \u0623\u0646\u062a \u0645\u062a\u0623\u0643\u062f \u0645\u0646 \u0625\u0641\u0631\u0627\u063a \u0627\u0644\u0633\u0644\u0629\u061f');
       if (confirmed) {
         clearBasket();
       }
     } else {
       Alert.alert(
-        'إفراغ السلة',
-        'اكيد افراغ السلة ؟',
+        '\u0625\u0641\u0631\u0627\u063a \u0627\u0644\u0633\u0644\u0629',
+        '\u0623\u0643\u064a\u062f \u0625\u0641\u0631\u0627\u063a \u0627\u0644\u0633\u0644\u0629\u061f',
         [
           {
-            text: 'إلغاء',
+            text: '\u0625\u0644\u063a\u0627\u0621',
             style: 'cancel',
           },
           {
-            text: 'إفراغ',
+            text: '\u0625\u0641\u0631\u0627\u063a',
             style: 'destructive',
             onPress: () => clearBasket(),
           },
@@ -317,6 +320,14 @@ export default function BasketScreen() {
   };
 
   const handleCheckout = () => {
+    if (!isAuthenticated) {
+      Alert.alert(
+        '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0645\u0637\u0644\u0648\u0628',
+        '\u064a\u0631\u062c\u0649 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0623\u0648\u0644\u0627\u064b \u0642\u0628\u0644 \u0625\u062a\u0645\u0627\u0645 \u0627\u0644\u0637\u0644\u0628',
+        [{ text: '\u0641\u062a\u062d \u062d\u0633\u0627\u0628\u064a', onPress: () => router.push('/(tabs)/account') }, { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' }]
+      );
+      return;
+    }
     if (!selectedSellingPoint?.id) {
       Alert.alert(
         '\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631',
@@ -325,11 +336,37 @@ export default function BasketScreen() {
       );
       return;
     }
+    if (!user?.emailVerified) {
+      Alert.alert(
+        '\u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u0628\u0631\u064a\u062f \u0645\u0637\u0644\u0648\u0628',
+        '\u064a\u062c\u0628 \u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0642\u0628\u0644 \u0625\u062a\u0645\u0627\u0645 \u0627\u0644\u0637\u0644\u0628',
+        [{ text: '\u0645\u0648\u0627\u0641\u0642' }]
+      );
+      return;
+    }
+    setIsGuestCheckout(false);
+    setName(user?.name || '');
+    setEmail(user?.email || '');
+    setTelephone(user?.phone || '');
+    setShowCheckoutModal(true);
+  };
+
+  const handleGuestCheckout = () => {
+    if (!selectedSellingPoint?.id) {
+      Alert.alert(
+        '\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631',
+        '\u064a\u0631\u062c\u0649 \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631 \u0623\u0648\u0644\u0627\u064b \u0642\u0628\u0644 \u0625\u062a\u0645\u0627\u0645 \u0627\u0644\u0637\u0644\u0628',
+        [{ text: '\u0627\u0641\u062a\u062d \u0627\u0644\u0645\u062a\u062c\u0631', onPress: () => router.push('/(tabs)/store') }, { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' }]
+      );
+      return;
+    }
+    setIsGuestCheckout(true);
     setShowCheckoutModal(true);
   };
 
   const handleCloseModal = () => {
     setShowCheckoutModal(false);
+    setIsGuestCheckout(false);
     setName('');
     setEmail('');
     setTelephone('');
@@ -339,6 +376,22 @@ export default function BasketScreen() {
   };
 
   const handleSubmitOrder = () => {
+    if (!isAuthenticated && !isGuestCheckout) {
+      Alert.alert(
+        '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0645\u0637\u0644\u0648\u0628',
+        '\u064a\u0631\u062c\u0649 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0623\u0648\u0644\u0627\u064b \u0642\u0628\u0644 \u0625\u062a\u0645\u0627\u0645 \u0627\u0644\u0637\u0644\u0628',
+        [{ text: '\u0641\u062a\u062d \u062d\u0633\u0627\u0628\u064a', onPress: () => router.push('/(tabs)/account') }, { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' }]
+      );
+      return;
+    }
+    if (isAuthenticated && !isGuestCheckout && !user?.emailVerified) {
+      Alert.alert(
+        '\u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u0628\u0631\u064a\u062f \u0645\u0637\u0644\u0648\u0628',
+        '\u064a\u062c\u0628 \u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0642\u0628\u0644 \u0625\u062a\u0645\u0627\u0645 \u0627\u0644\u0637\u0644\u0628',
+        [{ text: '\u0645\u0648\u0627\u0641\u0642' }]
+      );
+      return;
+    }
     const errors: Record<string, string> = {};
 
     if (!name.trim()) {
@@ -375,14 +428,14 @@ export default function BasketScreen() {
       return available !== null && product.quantity > available;
     });
     if (unavailableItem) {
-      Alert.alert('تنبيه', 'كمية أحد المنتجات في السلة أكبر من المتوفر في نقطة البيع المختارة');
+      Alert.alert('\u062a\u0646\u0628\u064a\u0647', '\u0643\u0645\u064a\u0629 \u0623\u062d\u062f \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0641\u064a \u0627\u0644\u0633\u0644\u0629 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0627\u0644\u0645\u062a\u0648\u0641\u0631 \u0641\u064a \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0627\u0644\u0645\u062e\u062a\u0627\u0631\u0629');
       return;
     }
 
     setFieldErrors({});
 
     const orderData = {
-      sellingPointId: selectedSellingPoint?.id,
+      selling_point: selectedSellingPoint?.id,
       customer: {
         name: name.trim(),
         email: email.trim(),
@@ -414,8 +467,8 @@ export default function BasketScreen() {
       <BrandedHeader topInset={insets.top} />
         <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>السلة</Text>
-          <Text style={styles.itemCount}>{toArabicNumerals(totalItems)} منتج</Text>
+          <Text style={styles.headerTitle}>{'\u0627\u0644\u0633\u0644\u0629'}</Text>
+          <Text style={styles.itemCount}>{toArabicNumerals(totalItems)} {'\u0645\u0646\u062a\u062c'}</Text>
         </View>
         <Pressable
           style={({ pressed }) => [
@@ -425,7 +478,7 @@ export default function BasketScreen() {
           onPress={handleClearBasket}
         >
           <Feather name="trash-2" color="#FF3B30" size={20} />
-          <Text style={styles.clearButtonText}>إفراغ السلة</Text>
+          <Text style={styles.clearButtonText}>{'\u0625\u0641\u0631\u0627\u063a \u0627\u0644\u0633\u0644\u0629'}</Text>
         </Pressable>
       </View>
 
@@ -454,19 +507,65 @@ export default function BasketScreen() {
       </>
 
       <View style={styles.footer}>
+        {!isAuthenticated ? (
+          <View style={styles.guestActionsContainer}>
+            <Text style={styles.loginRequiredText}>
+              {'\u064a\u0631\u062c\u0649 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0644\u062a\u062c\u0631\u0628\u0629 \u0623\u0641\u0636\u0644 \u060c \u0623\u0648 \u0623\u0631\u0633\u0644 \u0627\u0644\u0637\u0644\u0628 \u0643\u0632\u0627\u0626\u0631'}
+            </Text>
+            <View style={styles.guestButtonsRow}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.guestSecondaryButton,
+                  pressed && styles.buttonPressed,
+                ]}
+                onPress={() => router.push('/(tabs)/account')}
+              >
+                <Text style={styles.guestSecondaryButtonText}>
+                  {'\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644'}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.guestPrimaryButton,
+                  pressed && styles.buttonPressed,
+                ]}
+                onPress={handleGuestCheckout}
+              >
+                <Text style={styles.guestPrimaryButtonText}>
+                  {'\u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628 \u0643\u0632\u0627\u0626\u0631'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>المجموع</Text>
+          <Text style={styles.totalLabel}>{'\u0627\u0644\u0645\u062c\u0645\u0648\u0639'}</Text>
           <Text style={styles.totalAmount}>{formatPrice(totalPrice)}</Text>
         </View>
-        <Pressable
-          style={({ pressed }) => [
-            styles.checkoutButton,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={handleCheckout}
-        >
-          <Text style={styles.checkoutButtonText}>إتمام الطلب</Text>
-        </Pressable>
+        {isAuthenticated ? (
+          <>
+            {!user?.emailVerified ? (
+              <Text style={styles.emailVerificationWarningText}>
+                {'\u0628\u0631\u064a\u062f\u0643 \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u063a\u064a\u0631 \u0645\u0641\u0639\u0644. \u064a\u0631\u062c\u0649 \u062a\u0641\u0639\u064a\u0644\u0647 \u0642\u0628\u0644 \u0625\u062a\u0645\u0627\u0645 \u0627\u0644\u0637\u0644\u0628.'}
+              </Text>
+            ) : null}
+            <Pressable
+              style={({ pressed }) => [
+                styles.checkoutButton,
+                !user?.emailVerified && styles.checkoutButtonDisabled,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={handleCheckout}
+              disabled={!user?.emailVerified}
+            >
+              <Text style={styles.checkoutButtonText}>
+                {user?.emailVerified
+                  ? '\u0625\u062a\u0645\u0627\u0645 \u0627\u0644\u0637\u0644\u0628'
+                  : '\u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u0628\u0631\u064a\u062f \u0645\u0637\u0644\u0648\u0628'}
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
       </View>
 
       <Modal
@@ -478,7 +577,7 @@ export default function BasketScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>إتمام الطلب</Text>
+              <Text style={styles.modalTitle}>{'\u0625\u062a\u0645\u0627\u0645 \u0627\u0644\u0637\u0644\u0628'}</Text>
               <Pressable
                 style={({ pressed }) => [
                   styles.closeButton,
@@ -495,7 +594,7 @@ export default function BasketScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.orderSummary}>
-                <Text style={styles.summaryLabel}>المجموع الكلي</Text>
+                <Text style={styles.summaryLabel}>{'\u0627\u0644\u0645\u062c\u0645\u0648\u0639 \u0627\u0644\u0643\u0644\u064a'}</Text>
                 <Text style={styles.summaryAmount}>{formatPrice(totalPrice)}</Text>
               </View>
 
@@ -508,7 +607,7 @@ export default function BasketScreen() {
                     setName(value);
                     if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: '' }));
                   }}
-                  placeholder="\u0623\u062f\u062e\u0644\u0020\u0627\u0633\u0645\u0643"
+                  placeholder={'\u0623\u062f\u062e\u0644\u0020\u0627\u0633\u0645\u0643'}
                   placeholderTextColor="#999"
                 />
                 {fieldErrors.name ? <Text style={styles.errorText}>{fieldErrors.name}</Text> : null}
@@ -523,7 +622,7 @@ export default function BasketScreen() {
                     setTelephone(value);
                     if (fieldErrors.telephone) setFieldErrors((prev) => ({ ...prev, telephone: '' }));
                   }}
-                  placeholder="\u0623\u062f\u062e\u0644\u0020\u0631\u0642\u0645\u0020\u0627\u0644\u0647\u0627\u062a\u0641"
+                  placeholder={'\u0623\u062f\u062e\u0644\u0020\u0631\u0642\u0645\u0020\u0627\u0644\u0647\u0627\u062a\u0641'}
                   placeholderTextColor="#999"
                   keyboardType="phone-pad"
                 />
@@ -539,7 +638,7 @@ export default function BasketScreen() {
                     setEmail(value);
                     if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }));
                   }}
-                  placeholder="\u0623\u062f\u062e\u0644\u0020\u0628\u0631\u064a\u062f\u0643\u0020\u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a"
+                  placeholder={'\u0623\u062f\u062e\u0644\u0020\u0628\u0631\u064a\u062f\u0643\u0020\u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a'}
                   placeholderTextColor="#999"
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -560,7 +659,7 @@ export default function BasketScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>العنوان *</Text>
+                <Text style={styles.label}>{'\u0627\u0644\u0639\u0646\u0648\u0627\u0646 *'}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea, fieldErrors.address ? styles.inputErrorBorder : null]}
                   value={address}
@@ -568,7 +667,7 @@ export default function BasketScreen() {
                     setAddress(value);
                     if (fieldErrors.address) setFieldErrors((prev) => ({ ...prev, address: '' }));
                   }}
-                  placeholder="أدخل عنوانك الكامل"
+                  placeholder={'\u0623\u062f\u062e\u0644 \u0639\u0646\u0648\u0627\u0646\u0643 \u0627\u0644\u0643\u0627\u0645\u0644'}
                   placeholderTextColor="#999"
                   multiline
                   numberOfLines={3}
@@ -578,7 +677,7 @@ export default function BasketScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>التحقق البشري *</Text>
+                <Text style={styles.label}>{'\u0627\u0644\u062a\u062d\u0642\u0642 \u0627\u0644\u0628\u0634\u0631\u064a *'}</Text>
                 <View style={styles.captchaContainer}>
                   <Text style={styles.captchaQuestion}>
                     {toArabicNumerals(captcha.num1)} + {toArabicNumerals(captcha.num2)} = ?
@@ -590,7 +689,7 @@ export default function BasketScreen() {
                       setCaptchaAnswer(value);
                       if (fieldErrors.captchaAnswer) setFieldErrors((prev) => ({ ...prev, captchaAnswer: '' }));
                     }}
-                    placeholder="الجواب"
+                    placeholder={'\u0627\u0644\u062c\u0648\u0627\u0628'}
                     placeholderTextColor="#999"
                     keyboardType="number-pad"
                   />
@@ -610,7 +709,7 @@ export default function BasketScreen() {
                 {orderMutation.isPending ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.submitButtonText}>تأكيد الطلب</Text>
+                  <Text style={styles.submitButtonText}>{'\u062a\u0623\u0643\u064a\u062f \u0627\u0644\u0637\u0644\u0628'}</Text>
                 )}
               </Pressable>
             </ScrollView>
@@ -818,6 +917,47 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 24,
   },
+  loginRequiredText: {
+    textAlign: 'right',
+    color: '#B9442B',
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  guestActionsContainer: {
+    marginBottom: 12,
+  },
+  guestButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  guestPrimaryButton: {
+    flex: 1,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: '#1A1A1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestPrimaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700' as const,
+  },
+  guestSecondaryButton: {
+    flex: 1,
+    height: 46,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D7DED1',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestSecondaryButtonText: {
+    color: '#1A1A1A',
+    fontSize: 14,
+    fontWeight: '600' as const,
+  },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -841,10 +981,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  checkoutButtonDisabled: {
+    backgroundColor: '#8F8F8F',
+  },
   checkoutButtonText: {
     fontSize: 16,
     fontWeight: '700' as const,
     color: '#FFFFFF',
+  },
+  emailVerificationWarningText: {
+    textAlign: 'right',
+    color: '#B9442B',
+    fontSize: 13,
+    marginBottom: 10,
   },
   scrollToTopButton: {
     position: 'absolute' as const,
@@ -1053,5 +1202,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 });
+
+
 
 

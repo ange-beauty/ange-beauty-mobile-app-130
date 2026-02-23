@@ -6,7 +6,10 @@
     "start": "npx rork start -p 2zlifppxsf94bsd8q9jiw --tunnel",
     "start-web": "npx rork start -p 2zlifppxsf94bsd8q9jiw --web --tunnel",
     "start-web-dev": "DEBUG=expo* npx rork start -p 2zlifppxsf94bsd8q9jiw --web --tunnel",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "build:apk:prod": "powershell -ExecutionPolicy Bypass -File scripts/build-apk-prod.ps1"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

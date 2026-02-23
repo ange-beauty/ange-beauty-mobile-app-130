@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -34,6 +35,10 @@ export default function RegisterScreen() {
     if (!email.trim()) {
       errors.email =
         '\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0645\u0637\u0644\u0648\u0628';
+    }
+    if (!phone.trim()) {
+      errors.phone =
+        '\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062a\u0641 \u0645\u0637\u0644\u0648\u0628';
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (email.trim() && !emailRegex.test(email.trim())) {
@@ -72,6 +77,9 @@ export default function RegisterScreen() {
     if (!result.success) {
       setFieldErrors({ email: result.message });
       return;
+    }
+    if (result.message) {
+      Alert.alert('\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u062d\u0633\u0627\u0628', result.message);
     }
     router.replace('/(tabs)/account');
   };
@@ -115,14 +123,20 @@ export default function RegisterScreen() {
           />
           {fieldErrors.email ? <Text style={styles.errorText}>{fieldErrors.email}</Text> : null}
           <TextInput
-            style={styles.input}
+            style={[styles.input, fieldErrors.phone ? styles.inputErrorBorder : null]}
             value={phone}
-            onChangeText={setPhone}
-            placeholder={'\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062a\u0641 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a)'}
+            onChangeText={(value) => {
+              setPhone(value);
+              if (fieldErrors.phone) {
+                setFieldErrors((prev) => ({ ...prev, phone: '' }));
+              }
+            }}
+            placeholder={'\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062a\u0641'}
             placeholderTextColor="#9AA39A"
             keyboardType="phone-pad"
             textAlign="right"
           />
+          {fieldErrors.phone ? <Text style={styles.errorText}>{fieldErrors.phone}</Text> : null}
           <TextInput
             style={[styles.input, fieldErrors.password ? styles.inputErrorBorder : null]}
             value={password}

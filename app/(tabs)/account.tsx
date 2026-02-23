@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -17,11 +18,12 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, isLoading, isAuthenticated, login, logout } = useAuth();
+  const { user, isLoading, isAuthenticated, login, logout, resendEmailVerification } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
 
   const handleLogin = async () => {
     const errors: Record<string, string> = {};
@@ -54,6 +56,19 @@ export default function AccountScreen() {
     setIsSubmitting(false);
   };
 
+  const handleResendVerification = async () => {
+    setIsResendingVerification(true);
+    const result = await resendEmailVerification();
+    setIsResendingVerification(false);
+
+    Alert.alert(
+      result.success
+        ? '\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0631\u0633\u0627\u0644\u0629'
+        : '\u062e\u0637\u0623',
+      result.message
+    );
+  };
+
   return (
     <View style={styles.container}>
       <BrandedHeader topInset={insets.top} />
@@ -79,6 +94,32 @@ export default function AccountScreen() {
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>{'\u0627\u0644\u0647\u0627\u062a\u0641'}</Text>
                 <Text style={styles.infoValue}>{user.phone}</Text>
+              </View>
+            ) : null}
+            {!user.emailVerified ? (
+              <View style={styles.verificationCard}>
+                <Text style={styles.verificationTitle}>
+                  {'\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u063a\u064a\u0631 \u0645\u0641\u0639\u0644'}
+                </Text>
+                <Text style={styles.verificationSubtitle}>
+                  {'\u0644\u0627 \u064a\u0645\u0643\u0646 \u0625\u062a\u0645\u0627\u0645 \u0627\u0644\u0637\u0644\u0628 \u0642\u0628\u0644 \u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u0628\u0631\u064a\u062f.'}
+                </Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.verifyButton,
+                    pressed && styles.buttonPressed,
+                  ]}
+                  onPress={handleResendVerification}
+                  disabled={isResendingVerification}
+                >
+                  {isResendingVerification ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
+                    <Text style={styles.verifyButtonText}>
+                      {'\u0625\u0639\u0627\u062f\u0629 \u0625\u0631\u0633\u0627\u0644 \u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u062a\u0641\u0639\u064a\u0644'}
+                    </Text>
+                  )}
+                </Pressable>
               </View>
             ) : null}
 
@@ -249,6 +290,39 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     fontWeight: '600',
     textAlign: 'right',
+  },
+  verificationCard: {
+    marginTop: 2,
+    borderWidth: 1,
+    borderColor: '#F3D3A1',
+    backgroundColor: '#FFF9ED',
+    borderRadius: 12,
+    padding: 10,
+    gap: 6,
+  },
+  verificationTitle: {
+    color: '#B3541E',
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  verificationSubtitle: {
+    color: '#7C4A22',
+    fontSize: 13,
+    textAlign: 'right',
+  },
+  verifyButton: {
+    marginTop: 4,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#1A1A1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verifyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   logoutButton: {
     marginTop: 8,
