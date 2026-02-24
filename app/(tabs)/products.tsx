@@ -27,7 +27,10 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
 import BrandedHeader from '@/components/BrandedHeader';
+import FloralBackdrop from '@/components/FloralBackdrop';
+import { beautyTheme } from '@/constants/uiTheme';
 import { getAvailableQuantityForSellingPoint } from '@/utils/availability';
+import { getDisplayBrand } from '@/utils/brand';
 import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -44,15 +47,16 @@ const getNumColumns = () => {
 const NUM_COLUMNS = getNumColumns();
 
 const palette = {
-  background: '#E7ECE6',
-  headerCard: '#111F1A',
-  headerAccent: '#1C2A24',
-  accent: '#3F6B59',
-  accentSoft: '#AFC0B4',
-  inputBackground: '#F4F1E6',
-  stroke: '#D4D9CE',
-  textPrimary: '#0C140F',
-  textMuted: '#5D685F',
+  background: beautyTheme.colors.page,
+  headerCard: beautyTheme.colors.card,
+  headerAccent: beautyTheme.colors.accentDark,
+  accent: beautyTheme.colors.accent,
+  accentDark: beautyTheme.colors.accentDark,
+  accentSoft: '#E5CFD4',
+  inputBackground: '#FBF6F7',
+  stroke: beautyTheme.colors.border,
+  textPrimary: beautyTheme.colors.text,
+  textMuted: beautyTheme.colors.textMuted,
   badge: '#D9A441',
   danger: '#B9442B',
 };
@@ -237,6 +241,7 @@ export default function HomeScreen() {
     const isItemFavorite = isFavorite(item.id);
     const itemQuantity = getItemQuantity(item.id);
     const selectedPointAvailable = getAvailableQuantityForSellingPoint(item, selectedSellingPoint?.id);
+    const displayBrand = getDisplayBrand(item.brand);
 
     return (
       <View style={{ width: cardWidth, marginBottom: 16 }}>
@@ -274,14 +279,10 @@ export default function HomeScreen() {
             </Pressable>
           </View>
           <View style={styles.productInfo}>
-            <Text style={styles.brandText}>{item.brand}</Text>
+            {!!displayBrand && <Text style={styles.brandText}>{displayBrand}</Text>}
             <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
             <Text style={styles.price}>{formatPrice(item.price)}</Text>
-            {selectedSellingPoint && (
-              <Text style={styles.availabilityText}>
-                {selectedPointAvailable === null ? 'غير متوفر في نقطة البيع المختارة' : `المتوفر: ${toArabicNumerals(selectedPointAvailable)}`}
-              </Text>
-            )}
+            
           </View>
           <Pressable
             style={({ pressed }) => [
@@ -304,7 +305,7 @@ export default function HomeScreen() {
               addToBasket(item.id, 1);
             }}
           >
-            <Feather name="shopping-bag" color="#FFFFFF" size={16} />
+            <Feather name="shopping-bag" color={palette.accentDark} size={16} />
             {itemQuantity > 0 && (
               <View style={styles.basketCountBadge}>
                 <Text style={styles.basketCountText}>{toArabicNumerals(itemQuantity)}</Text>
@@ -319,12 +320,13 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      <FloralBackdrop subtle />
       <View style={styles.headerWrapper}>
         <View style={[styles.headerCard, { paddingTop: 0 }]}>
-          <BrandedHeader topInset={insets.top} />
+          <BrandedHeader topInset={insets.top} showBackButton={false} showSearch={false} />
 
           <View style={styles.searchFieldRow}>
-            <Feather name="search" size={18} color={palette.textMuted} style={styles.searchFieldIcon} />
+            <Feather name="search" size={18} color={palette.accentDark} style={styles.searchFieldIcon} />
             <TextInput
               testID="home-search-input"
               style={styles.searchFieldInput}
@@ -676,23 +678,14 @@ const styles = StyleSheet.create({
     backgroundColor: palette.background,
   },
   headerWrapper: {
-    backgroundColor: palette.background,
-    paddingHorizontal: 10,
-    paddingBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingBottom: 8,
   },
   headerCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    borderWidth: 1,
-    borderColor: '#E8ECE3',
+    paddingBottom: 10,
   },
   headerTopRow: {
     flexDirection: 'row',
@@ -767,12 +760,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row-reverse',
     alignItems: 'center',
     backgroundColor: palette.inputBackground,
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: palette.stroke,
     paddingLeft: 8,
     paddingRight: 12,
-    height: 52,
+    height: 54,
   },
   searchFieldIcon: {
     marginLeft: 8,
@@ -788,7 +781,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: palette.accent,
+    backgroundColor: '#C98B97',
+    borderWidth: 1,
+    borderColor: '#B37884',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -817,10 +812,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 14,
-    backgroundColor: '#F3F5EE',
+    borderRadius: 16,
+    backgroundColor: '#F7F0F2',
     borderWidth: 1,
-    borderColor: '#E4E9DD',
+    borderColor: '#EADDE0',
     gap: 6,
   },
   activeFilterText: {
@@ -1023,15 +1018,17 @@ const styles = StyleSheet.create({
   },
   productCard: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#FFFDFD',
+    borderRadius: 20,
     marginBottom: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    borderWidth: 1,
+    borderColor: '#EDE1E3',
+    shadowColor: '#7A5A62',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
     shadowRadius: 12,
-    elevation: 5,
+    elevation: 4,
   },
   productImageContainer: {
     width: '100%',
@@ -1065,16 +1062,16 @@ const styles = StyleSheet.create({
   },
   brandText: {
     fontSize: 11,
-    color: '#999',
+    color: palette.textMuted,
     fontWeight: '600' as const,
     textTransform: 'uppercase' as const,
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   productName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600' as const,
-    color: '#1A1A1A',
+    color: palette.textPrimary,
     marginBottom: 6,
     lineHeight: 18,
   },
@@ -1094,30 +1091,28 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   price: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700' as const,
-    color: '#1A1A1A',
+    color: palette.accentDark,
     marginBottom: 8,
-  },
-  availabilityText: {
-    fontSize: 12,
-    color: '#666',
   },
   addToBasketButtonHome: {
     position: 'absolute' as const,
     bottom: 8,
     right: 8,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#1A1A1A',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E9DDE0',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#7A5A62',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
   basketCountBadge: {
     position: 'absolute' as const,
@@ -1243,4 +1238,6 @@ const styles = StyleSheet.create({
     color: '#666',
   },
 });
+
+
 

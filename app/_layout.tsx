@@ -13,6 +13,8 @@ import { FavoritesContext } from "@/contexts/FavoritesContext";
 import { BasketContext } from "@/contexts/BasketContext";
 import { SellingPointContext } from "@/contexts/SellingPointContext";
 import { AuthContext, useAuth } from "@/contexts/AuthContext";
+import FloralBackdrop from "@/components/FloralBackdrop";
+import { beautyTheme } from "@/constants/uiTheme";
 import { checkAppUpdateStatus } from "@/services/api";
 import { registerForPushNotifications, registerPushTokenWithServer } from "@/services/notifications";
 
@@ -35,6 +37,13 @@ function RootLayoutNav() {
       />
       <Stack.Screen
         name="verify-email"
+        options={{
+          headerShown: false,
+          presentation: "card",
+        }}
+      />
+      <Stack.Screen
+        name="contact"
         options={{
           headerShown: false,
           presentation: "card",
@@ -76,20 +85,25 @@ function CustomSplashScreen({ onFinish }: { onFinish: () => void }) {
 
   return (
     <View style={splashStyles.container}>
+      <FloralBackdrop subtle />
       <Animated.View
         style={[
-          splashStyles.logoContainer,
+          splashStyles.card,
           {
             opacity: fadeAnim,
             transform: [{ scale: scaleAnim }],
           },
         ]}
       >
+        <View style={splashStyles.logoContainer}>
         <Image
           source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/rqerhironvgzmc9yhq77s' }}
           style={splashStyles.logo}
           resizeMode="contain"
         />
+        </View>
+        <Text style={splashStyles.brandTitle}>{'\u0623\u0646\u062c \u0628\u064a\u0648\u062a\u064a'}</Text>
+        <Text style={splashStyles.brandSubTitle}>{'\u062c\u0645\u0627\u0644\u0643 \u064a\u0628\u062f\u0623 \u0645\u0646 \u0647\u0646\u0627'}</Text>
       </Animated.View>
     </View>
   );
@@ -98,19 +112,52 @@ function CustomSplashScreen({ onFinish }: { onFinish: () => void }) {
 const splashStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F8F0',
+    backgroundColor: beautyTheme.colors.page,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderWidth: 1,
+    borderColor: '#EBDDE1',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    shadowColor: '#7A5A62',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 6,
   },
   logoContainer: {
-    width: Dimensions.get('window').width * 0.6,
-    height: Dimensions.get('window').width * 0.6,
+    width: Dimensions.get('window').width * 0.32,
+    height: Dimensions.get('window').width * 0.32,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logo: {
     width: '100%',
     height: '100%',
+  },
+  brandTitle: {
+    marginTop: 10,
+    color: beautyTheme.colors.accentDark,
+    fontSize: 36,
+    lineHeight: 42,
+    fontWeight: '700',
+    textAlign: 'center',
+    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' }),
+  },
+  brandSubTitle: {
+    marginTop: 6,
+    fontSize: 14,
+    color: '#7F6A6F',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 
@@ -184,14 +231,16 @@ const activationAlertStyles = StyleSheet.create({
   },
   shell: {
     flex: 1,
+    direction: 'rtl',
   },
   content: {
     flex: 1,
+    direction: 'rtl',
   },
 });
 
 export default function RootLayout() {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(Platform.OS !== 'web');
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(true);
   const [updateRequired, setUpdateRequired] = useState(false);
   const [fontsLoaded] = useFonts(Feather.font);
@@ -217,10 +266,11 @@ export default function RootLayout() {
   };
 
   useEffect(() => {
-    if (!I18nManager.isRTL) {
-      I18nManager.forceRTL(true);
-      if (Platform.OS !== 'web') {
-        I18nManager.allowRTL(true);
+    if (Platform.OS !== 'web') {
+      I18nManager.allowRTL(true);
+      I18nManager.swapLeftAndRightInRTL(true);
+      if (!I18nManager.isRTL) {
+        I18nManager.forceRTL(true);
       }
     }
     if (fontsLoaded) {

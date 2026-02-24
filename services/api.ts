@@ -1,4 +1,5 @@
 import { mapAPIProductToProduct, Product } from '@/types/product';
+import { withClientSourceHeader } from '@/services/requestHeaders';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 const API_BASE = API_BASE_URL.replace(/\/+$/, '');
@@ -22,6 +23,7 @@ export interface FetchProductsParams {
   category?: string;
   brand?: string;
   barcode?: string;
+  highlighted?: number | boolean;
 }
 
 export interface FetchProductsResponse {
@@ -31,28 +33,33 @@ export interface FetchProductsResponse {
 }
 
 export async function fetchProducts(params: FetchProductsParams = {}): Promise<FetchProductsResponse> {
-  const { page = 1, limit = 50, keyword, category, brand, barcode } = params;
+  const { page = 1, limit = 50, keyword, category, brand, barcode, highlighted } = params;
   console.log(`[API] Fetching products - params:`, params);
   
   try {
     const queryParams = new URLSearchParams();
     queryParams.append('page', page.toString());
     queryParams.append('limit', limit.toString());
+    queryParams.append('no_zero_price', 'true');
+    queryParams.append('products_with_brand', 'true');
     
     if (keyword) queryParams.append('keyword', keyword);
     if (category) queryParams.append('category', category);
     if (brand) queryParams.append('brand', brand);
     if (barcode) queryParams.append('barcode', barcode);
+    if (typeof highlighted !== 'undefined') {
+      queryParams.append('highlighted', highlighted ? '1' : '0');
+    }
     
     const url = `${API_BASE}/api/v1/products?${queryParams.toString()}`;
     console.log(`[API] Fetching from URL:`, url);
     
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
+      headers: withClientSourceHeader({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-      },
+      }),
     });
     
     if (!response) {
@@ -122,10 +129,10 @@ export async function fetchBrands(): Promise<Brand[]> {
   try {
     const response = await fetch(`${API_BASE}/api/v1/brands`, {
       method: 'GET',
-      headers: {
+      headers: withClientSourceHeader({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-      },
+      }),
     });
     
     if (!response) {
@@ -174,10 +181,10 @@ export async function fetchCategories(): Promise<Category[]> {
   try {
     const response = await fetch(`${API_BASE_URL}?action=fetch-categories`, {
       method: 'GET',
-      headers: {
+      headers: withClientSourceHeader({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-      },
+      }),
     });
     
     if (!response) {
@@ -237,10 +244,10 @@ export async function checkAppUpdateStatus(appVersion: string): Promise<boolean>
 
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
+      headers: withClientSourceHeader({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-      },
+      }),
       body: JSON.stringify(payload),
     });
     
@@ -295,10 +302,10 @@ export async function fetchProductById(id: string): Promise<Product | null> {
   try {
     const response = await fetch(`${API_BASE}/api/v1/products?product=${encodeURIComponent(id)}`, {
       method: 'GET',
-      headers: {
+      headers: withClientSourceHeader({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-      },
+      }),
     });
     
     if (!response) {

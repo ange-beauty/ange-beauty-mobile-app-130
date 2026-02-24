@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { withClientSourceHeader } from '@/services/requestHeaders';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 
@@ -91,10 +92,10 @@ async function logTelemetry(data: {
   try {
     await fetch(`${API_BASE_URL}?action=log`, {
       method: 'POST',
-      headers: {
+      headers: withClientSourceHeader({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-      },
+      }),
       body: JSON.stringify({
         timestamp: new Date().toISOString(),
         type: 'notification_token',
@@ -121,10 +122,10 @@ export async function registerPushTokenWithServer(pushToken: string): Promise<bo
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
+      headers: withClientSourceHeader({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-      },
+      }),
       body: JSON.stringify(payload),
     });
     

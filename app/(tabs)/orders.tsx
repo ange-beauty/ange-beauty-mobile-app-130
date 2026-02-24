@@ -3,13 +3,15 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BrandedHeader from '@/components/BrandedHeader';
+import FloralBackdrop from '@/components/FloralBackdrop';
 
 export default function OrdersScreen() {
   const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
-      <BrandedHeader topInset={insets.top} />
+      <FloralBackdrop subtle />
+      <BrandedHeader topInset={insets.top} showBackButton={false} />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>الطلبات</Text>
       </View>
@@ -31,14 +33,13 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    backgroundColor: 'transparent',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700' as const,
     color: '#1A1A1A',
+    textAlign: 'right' as const,
   },
   emptyContainer: {
     flex: 1,
@@ -59,4 +60,5 @@ const styles = StyleSheet.create({
     textAlign: 'center' as const,
   },
 });
+
 

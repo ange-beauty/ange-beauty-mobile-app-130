@@ -1,3 +1,5 @@
+import { withClientSourceHeader } from '@/services/requestHeaders';
+
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 const API_BASE = API_BASE_URL.replace(/\/+$/, '');
 
@@ -30,9 +32,9 @@ async function callRefresh(): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
       method: 'POST',
-      headers: {
+      headers: withClientSourceHeader({
         Accept: 'application/json',
-      },
+      }),
       credentials: 'include',
     });
     return response.ok;
@@ -59,10 +61,10 @@ export async function apiFetch<T = any>(
   const doRequest = () =>
     fetch(`${API_BASE}${path}`, {
       credentials: 'include',
-      headers: {
+      headers: withClientSourceHeader({
         Accept: 'application/json',
         ...headers,
-      },
+      } as Record<string, string>),
       ...rest,
     });
 

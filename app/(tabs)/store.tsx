@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSellingPoint } from '@/contexts/SellingPointContext';
 import BrandedHeader from '@/components/BrandedHeader';
+import FloralBackdrop from '@/components/FloralBackdrop';
 
 export default function StoreScreen() {
   const insets = useSafeAreaInsets();
@@ -12,7 +13,8 @@ export default function StoreScreen() {
 
   return (
     <View style={styles.container}>
-      <BrandedHeader topInset={insets.top} />
+      <FloralBackdrop subtle />
+      <BrandedHeader topInset={insets.top} showBackButton={false} />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{'\u0627\u0644\u0645\u062a\u062c\u0631'}</Text>
         <Text style={styles.headerSubtitle}>
@@ -79,9 +81,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EDEFEA',
+    backgroundColor: 'transparent',
   },
   headerTitle: {
     fontSize: 24,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sellingPointCard: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   },
   cardMain: {
     flex: 1,
-    marginRight: 10,
+    marginLeft: 10,
   },
   cardTitle: {
     fontSize: 16,
@@ -144,3 +144,4 @@ const styles = StyleSheet.create({
     textAlign: 'right' as const,
   },
 });
+

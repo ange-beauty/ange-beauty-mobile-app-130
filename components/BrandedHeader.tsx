@@ -1,17 +1,24 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { beautyTheme } from '@/constants/uiTheme';
 
 const logoImage = require('@/assets/images/icon.png');
-const whatsappIconUri = 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/1024px-WhatsApp.svg.png';
 
 type BrandedHeaderProps = {
   topInset?: number;
   showBackButton?: boolean;
+  showSearch?: boolean;
+  showContact?: boolean;
 };
 
-export default function BrandedHeader({ topInset = 0, showBackButton = true }: BrandedHeaderProps) {
+export default function BrandedHeader({
+  topInset = 0,
+  showBackButton = true,
+  showSearch = true,
+  showContact = true,
+}: BrandedHeaderProps) {
   const router = useRouter();
   const canGoBack = showBackButton && router.canGoBack();
 
@@ -31,15 +38,24 @@ export default function BrandedHeader({ topInset = 0, showBackButton = true }: B
       </View>
 
       <View style={styles.rightActions}>
-        <Pressable style={styles.chatBubbleButton}>
-          <Feather name="message-circle" color="#AFC0B4" size={20} />
-          <View style={styles.whatsappBadge}>
-            <Image source={{ uri: whatsappIconUri }} style={styles.whatsappIcon} resizeMode="contain" />
-          </View>
-        </Pressable>
-        <Pressable style={styles.iconButton} onPress={() => router.push('/(tabs)/products')}>
-          <Feather name="search" size={20} color="#1A1A1A" />
-        </Pressable>
+        <View style={styles.actionSlot}>
+          {showContact ? (
+            <Pressable style={styles.iconButton} onPress={() => router.push('/contact')}>
+              <Feather name="message-circle" size={20} color="#1A1A1A" />
+            </Pressable>
+          ) : (
+            <View style={styles.iconSpacerSmall} />
+          )}
+        </View>
+        <View style={styles.actionSlot}>
+          {showSearch ? (
+            <Pressable style={styles.iconButton} onPress={() => router.push('/(tabs)/products')}>
+              <Feather name="search" size={20} color="#1A1A1A" />
+            </Pressable>
+          ) : (
+            <View style={styles.iconSpacerSmall} />
+          )}
+        </View>
       </View>
     </View>
   );
@@ -47,22 +63,22 @@ export default function BrandedHeader({ topInset = 0, showBackButton = true }: B
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEF1E9',
   },
   iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F4F6F1',
+    backgroundColor: beautyTheme.colors.iconBg,
+    borderWidth: 1,
+    borderColor: beautyTheme.colors.border,
   },
   center: {
     alignItems: 'center',
@@ -70,50 +86,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rightActions: {
+    width: 92,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+  },
+  actionSlot: {
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logo: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
   },
   brandText: {
-    marginTop: 2,
-    fontSize: 18,
-    color: '#121212',
+    marginTop: 3,
+    fontSize: 30,
+    color: beautyTheme.colors.accentDark,
     fontWeight: '700',
+    lineHeight: 36,
+    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' }),
   },
   iconSpacer: {
     width: 88,
     height: 40,
   },
-  chatBubbleButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1C2A24',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#3F6B59',
-    position: 'relative' as const,
-  },
-  whatsappBadge: {
-    position: 'absolute' as const,
-    bottom: -3,
-    left: -3,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#25D366',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#111',
-  },
-  whatsappIcon: {
-    width: 10,
-    height: 10,
+  iconSpacerSmall: {
+    width: 42,
+    height: 42,
   },
 });

@@ -20,8 +20,10 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
 import BrandedHeader from '@/components/BrandedHeader';
+import FloralBackdrop from '@/components/FloralBackdrop';
 import { fetchProductById } from '@/services/api';
 import { Product } from '@/types/product';
+import { getDisplayBrand } from '@/utils/brand';
 import { formatPrice } from '@/utils/formatPrice';
 
 const getNumColumns = () => {
@@ -127,6 +129,9 @@ export default function FavoritesScreen() {
 
   const renderProduct = ({ item }: { item: Product }) => (
     <View style={{ width: cardWidth, marginBottom: 16 }}>
+      {(() => {
+        const displayBrand = getDisplayBrand(item.brand);
+        return (
       <Pressable
         style={styles.productCard}
         onPress={() => router.push(`/product/${item.id}`)}
@@ -155,7 +160,7 @@ export default function FavoritesScreen() {
           </Pressable>
         </View>
         <View style={styles.productInfo}>
-          <Text style={styles.brandText}>{item.brand}</Text>
+          {!!displayBrand && <Text style={styles.brandText}>{displayBrand}</Text>}
           <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
           <Text style={styles.price}>{formatPrice(item.price)}</Text>
           <Pressable 
@@ -170,12 +175,15 @@ export default function FavoritesScreen() {
           </Pressable>
         </View>
       </Pressable>
+        );
+      })()}
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <BrandedHeader topInset={insets.top} />
+      <FloralBackdrop subtle />
+      <BrandedHeader topInset={insets.top} showBackButton={false} />
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1A1A1A" />
@@ -409,3 +417,5 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.95 }],
   },
 });
+
+

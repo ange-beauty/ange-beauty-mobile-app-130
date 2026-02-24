@@ -86,7 +86,7 @@ export default function RegisterScreen() {
 
   return (
     <View style={styles.container}>
-      <BrandedHeader topInset={insets.top} />
+      <BrandedHeader topInset={insets.top} showBackButton={false} />
 
       <View style={styles.content}>
         <Text style={styles.title}>{'\u0625\u0646\u0634\u0627\u0621 \u062d\u0633\u0627\u0628 \u062c\u062f\u064a\u062f'}</Text>
@@ -246,3 +246,4 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
 });
+

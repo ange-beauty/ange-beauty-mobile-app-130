@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { withClientSourceHeader } from '@/services/requestHeaders';
 
 const SELECTED_SELLING_POINT_KEY = 'selected_selling_point';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
@@ -21,12 +22,16 @@ export const [SellingPointContext, useSellingPoint] = createContextHook(() => {
   const sellingPointsQuery = useQuery({
     queryKey: ['selling-points'],
     queryFn: async (): Promise<SellingPoint[]> => {
-      const response = await fetch(`${API_BASE}/api/v1/selling-points`, {
+      const query = new URLSearchParams({
+        is_active: 'true',
+        is_sales_enabled: 'true',
+      });
+      const response = await fetch(`${API_BASE}/api/v1/selling-points?${query.toString()}`, {
         method: 'GET',
-        headers: {
+        headers: withClientSourceHeader({
           Accept: 'application/json',
           'Content-Type': 'application/json',
-        },
+        }),
       });
 
       if (!response.ok) {

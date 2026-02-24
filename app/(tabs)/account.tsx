@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  ScrollView,
   Pressable,
   StyleSheet,
   Text,
@@ -13,12 +14,19 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BrandedHeader from '@/components/BrandedHeader';
+import FloralBackdrop from '@/components/FloralBackdrop';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBasket } from '@/contexts/BasketContext';
+import { useFavorites } from '@/contexts/FavoritesContext';
+import { useSellingPoint } from '@/contexts/SellingPointContext';
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, isLoading, isAuthenticated, login, logout, resendEmailVerification } = useAuth();
+  const { totalItems } = useBasket();
+  const { favorites } = useFavorites();
+  const { selectedSellingPoint } = useSellingPoint();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -69,35 +77,94 @@ export default function AccountScreen() {
     );
   };
 
+  const displayName = user?.name?.trim() || '\u0632\u0627\u0626\u0631';
+  const avatarText = displayName.charAt(0).toUpperCase();
+  const stats = [
+    {
+      key: 'favorites',
+      title: '\u0627\u0644\u0645\u0641\u0636\u0644\u0627\u062a',
+      value: favorites.length.toString(),
+      route: '/(tabs)/favorites',
+    },
+    {
+      key: 'basket',
+      title: '\u0627\u0644\u0633\u0644\u0629',
+      value: totalItems.toString(),
+      route: '/(tabs)/basket',
+    },
+    {
+      key: 'orders',
+      title: '\u0637\u0644\u0628\u0627\u062a\u064a',
+      value: '\u2014',
+      route: '/(tabs)/orders',
+    },
+  ];
+  const profileLinks = [
+    {
+      key: 'profile',
+      label: '\u0645\u0639\u0644\u0648\u0645\u0627\u062a\u064a \u0627\u0644\u0634\u062e\u0635\u064a\u0629',
+      icon: 'user',
+      route: null,
+      subtitle: isAuthenticated ? user?.email || '' : '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0644\u0639\u0631\u0636 \u0628\u064a\u0627\u0646\u0627\u062a\u0643',
+    },
+    {
+      key: 'store',
+      label: '\u0645\u062a\u062c\u0631\u064a \u0627\u0644\u0645\u0641\u0636\u0644',
+      icon: 'map-pin',
+      route: '/(tabs)/store',
+      subtitle: selectedSellingPoint?.name_ar || '\u0644\u0645 \u064a\u062a\u0645 \u0627\u062e\u062a\u064a\u0627\u0631 \u0645\u062a\u062c\u0631',
+    },
+    {
+      key: 'favorites',
+      label: '\u0627\u0644\u0645\u0641\u0636\u0644\u0627\u062a',
+      icon: 'heart',
+      route: '/(tabs)/favorites',
+      subtitle: '\u0645\u0634\u0627\u0647\u062f\u0629 \u0645\u0646\u062a\u062c\u0627\u062a\u0643 \u0627\u0644\u0645\u062d\u0641\u0648\u0638\u0629',
+    },
+    {
+      key: 'orders',
+      label: '\u0637\u0644\u0628\u0627\u062a\u064a',
+      icon: 'star',
+      route: '/(tabs)/orders',
+      subtitle: '\u0645\u062a\u0627\u0628\u0639\u0629 \u062d\u0627\u0644\u0629 \u0627\u0644\u0637\u0644\u0628\u0627\u062a',
+    },
+  ] as const;
+
   return (
     <View style={styles.container}>
-      <BrandedHeader topInset={insets.top} />
+      <FloralBackdrop subtle />
+      <BrandedHeader topInset={insets.top} showBackButton={false} />
 
-      <View style={styles.content}>
-        <Text style={styles.title}>{'\u062d\u0633\u0627\u0628\u064a'}</Text>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.heroCard}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarText}>{avatarText}</Text>
+          </View>
+          <Text style={styles.heroName}>
+            {isAuthenticated ? displayName : '\u062d\u0633\u0627\u0628\u064a'}
+          </Text>
+          <View style={styles.statsRow}>
+            {stats.map((item) => (
+              <Pressable
+                key={item.key}
+                style={({ pressed }) => [styles.statPill, pressed && styles.buttonPressed]}
+                onPress={() => router.push(item.route as any)}
+              >
+                <Text style={styles.statValue}>{item.value}</Text>
+                <Text style={styles.statTitle}>{item.title}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
 
         {isLoading ? (
           <View style={styles.centerState}>
             <ActivityIndicator size="small" color="#1A1A1A" />
           </View>
         ) : isAuthenticated && user ? (
-          <View style={styles.card}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>{'\u0627\u0644\u0627\u0633\u0645'}</Text>
-              <Text style={styles.infoValue}>{user.name}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>{'\u0627\u0644\u0628\u0631\u064a\u062f'}</Text>
-              <Text style={styles.infoValue}>{user.email}</Text>
-            </View>
-            {user.phone ? (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{'\u0627\u0644\u0647\u0627\u062a\u0641'}</Text>
-                <Text style={styles.infoValue}>{user.phone}</Text>
-              </View>
-            ) : null}
+          <View style={styles.loginCard}>
             {!user.emailVerified ? (
-              <View style={styles.verificationCard}>
+              <View style={styles.unverifiedCard}>
                 <Text style={styles.verificationTitle}>
                   {'\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u063a\u064a\u0631 \u0645\u0641\u0639\u0644'}
                 </Text>
@@ -122,7 +189,6 @@ export default function AccountScreen() {
                 </Pressable>
               </View>
             ) : null}
-
             <Pressable
               style={({ pressed }) => [styles.logoutButton, pressed && styles.buttonPressed]}
               onPress={logout}
@@ -132,7 +198,7 @@ export default function AccountScreen() {
             </Pressable>
           </View>
         ) : (
-          <View style={styles.card}>
+          <View style={styles.loginCard}>
             <Text style={styles.sectionTitle}>{'\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644'}</Text>
 
             <TextInput
@@ -191,7 +257,24 @@ export default function AccountScreen() {
             </Pressable>
           </View>
         )}
-      </View>
+
+        <View style={styles.menuSection}>
+          {profileLinks.map((item) => (
+            <Pressable
+              key={item.key}
+              style={({ pressed }) => [styles.menuRow, pressed && styles.buttonPressed]}
+              onPress={() => item.route && router.push(item.route as any)}
+            >
+              <Feather name="heart" size={18} color="#A76E78" />
+              <View style={styles.menuTextWrap}>
+                <Text style={styles.menuLabel}>{item.label}</Text>
+                {!!item.subtitle && <Text style={styles.menuSubtitle}>{item.subtitle}</Text>}
+              </View>
+              <Feather name={item.icon as any} size={19} color="#7F6A6F" />
+            </Pressable>
+          ))}
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -199,35 +282,90 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6F8F4',
+    backgroundColor: '#F9F3F4',
   },
   content: {
-    padding: 16,
+    flex: 1,
   },
-  title: {
-    fontSize: 24,
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 160,
+  },
+  heroCard: {
+    backgroundColor: '#FFF8FA',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#ECDDE0',
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  avatarCircle: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    backgroundColor: '#F1DFE3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  avatarText: {
+    fontSize: 30,
     fontWeight: '700',
-    color: '#121212',
-    textAlign: 'right',
-    marginBottom: 14,
+    color: '#7E4A53',
+  },
+  heroName: {
+    marginTop: 10,
+    fontSize: 32,
+    color: '#3C2B2E',
+    fontWeight: '700',
+    fontFamily: 'serif',
+    textAlign: 'center',
+  },
+  statsRow: {
+    marginTop: 14,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statPill: {
+    minWidth: 96,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8DCDD',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#7E4A53',
+  },
+  statTitle: {
+    marginTop: 3,
+    fontSize: 13,
+    color: '#6D5B5F',
+    fontWeight: '600',
   },
   centerState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 30,
+    paddingVertical: 20,
   },
-  card: {
+  loginCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5EAE1',
+    borderColor: '#E8DCDD',
     padding: 14,
     gap: 10,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111',
+    color: '#2F2527',
     textAlign: 'right',
     marginBottom: 4,
   },
@@ -235,10 +373,11 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8DD',
-    backgroundColor: '#FAFCF8',
+    borderColor: '#E8DCDD',
+    backgroundColor: '#FFF8FA',
     paddingHorizontal: 12,
-    color: '#1A1A1A',
+    color: '#2F2527',
+    textAlign: 'right',
   },
   inputErrorBorder: {
     borderColor: '#E53935',
@@ -251,7 +390,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     height: 46,
     borderRadius: 12,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#7E4A53',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
@@ -265,49 +404,31 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D7DED1',
+    borderColor: '#E4D2D6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryButtonText: {
-    color: '#1A1A1A',
+    color: '#4B383D',
     fontSize: 14,
     fontWeight: '600',
   },
-  infoRow: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEF1EA',
-    paddingBottom: 8,
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: '#6F776E',
-    textAlign: 'right',
-  },
-  infoValue: {
-    marginTop: 3,
-    fontSize: 15,
-    color: '#1A1A1A',
-    fontWeight: '600',
-    textAlign: 'right',
-  },
-  verificationCard: {
-    marginTop: 2,
+  unverifiedCard: {
     borderWidth: 1,
-    borderColor: '#F3D3A1',
-    backgroundColor: '#FFF9ED',
+    borderColor: '#F0C6CC',
+    backgroundColor: '#FFF2F4',
     borderRadius: 12,
     padding: 10,
     gap: 6,
   },
   verificationTitle: {
-    color: '#B3541E',
+    color: '#A3384A',
     fontSize: 14,
     fontWeight: '700',
     textAlign: 'right',
   },
   verificationSubtitle: {
-    color: '#7C4A22',
+    color: '#7F4D56',
     fontSize: 13,
     textAlign: 'right',
   },
@@ -315,7 +436,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     height: 40,
     borderRadius: 10,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#7E4A53',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -325,10 +446,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   logoutButton: {
-    marginTop: 8,
+    marginTop: 6,
     height: 46,
     borderRadius: 12,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#3B2A2E',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -339,7 +460,41 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+  menuSection: {
+    marginTop: 14,
+    gap: 10,
+  },
+  menuRow: {
+    minHeight: 64,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8DCDD',
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  menuTextWrap: {
+    flex: 1,
+    marginHorizontal: 10,
+    alignItems: 'flex-end',
+  },
+  menuLabel: {
+    fontSize: 18,
+    color: '#3A2A2E',
+    fontWeight: '700',
+    fontFamily: 'serif',
+    textAlign: 'right',
+  },
+  menuSubtitle: {
+    marginTop: 2,
+    fontSize: 12,
+    color: '#8E7A7F',
+    textAlign: 'right',
+  },
   buttonPressed: {
     opacity: 0.75,
   },
 });
+

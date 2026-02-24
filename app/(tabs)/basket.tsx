@@ -1,6 +1,6 @@
-﻿import { useQueries, useMutation } from '@tanstack/react-query';
+import { useQueries, useMutation } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import {
   ActivityIndicator,
@@ -18,13 +18,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BrandedHeader from '@/components/BrandedHeader';
+import FloralBackdrop from '@/components/FloralBackdrop';
 
 import { useBasket } from '@/contexts/BasketContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchProductById } from '@/services/api';
+import { withClientSourceHeader } from '@/services/requestHeaders';
 import { Product } from '@/types/product';
 import { getAvailableQuantityForSellingPoint } from '@/utils/availability';
+import { getDisplayBrand } from '@/utils/brand';
 import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
@@ -43,26 +46,20 @@ export default function BasketScreen() {
   const [email, setEmail] = useState('');
   const [telephone, setTelephone] = useState('');
   const [address, setAddress] = useState('');
-  const [captchaAnswer, setCaptchaAnswer] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const listRef = useRef<FlatList>(null);
-
-  const captcha = useMemo(() => {
-    const num1 = Math.floor(Math.random() * 10) + 1;
-    const num2 = Math.floor(Math.random() * 10) + 1;
-    return { num1, num2, answer: num1 + num2 };
-  }, [showCheckoutModal]);
 
   const orderMutation = useMutation({
     mutationFn: async (orderData: any) => {
       console.log('[Order] Submitting order:', orderData);
-      
-      const response = await fetch(`${API_BASE}/api/v1/selling-orders/client-initialization`, {
+
+      const path = '/api/v1/selling-orders/client-initialization';
+      const response = await fetch(`${API_BASE}${path}`, {
         method: 'POST',
-        headers: {
+        headers: withClientSourceHeader({
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-        },
+        }),
         body: JSON.stringify(orderData),
       });
 
@@ -155,6 +152,7 @@ export default function BasketScreen() {
     const price = typeof item.price === 'number' ? item.price : parseFloat(item.price as string || '0');
     const itemTotal = price * item.quantity;
     const selectedPointAvailable = getAvailableQuantityForSellingPoint(item, selectedSellingPoint?.id);
+    const displayBrand = getDisplayBrand(item.brand);
 
     return (
       <Pressable 
@@ -174,7 +172,7 @@ export default function BasketScreen() {
         </View>
 
         <View style={styles.productDetails}>
-          <Text style={styles.brandText}>{item.brand || '\u063a\u064a\u0631 \u0645\u062d\u062f\u062f'}</Text>
+          {!!displayBrand && <Text style={styles.brandText}>{displayBrand}</Text>}
           <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
           <Text style={styles.productPrice}>{formatPrice(price)}</Text>
 
@@ -239,7 +237,8 @@ export default function BasketScreen() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <BrandedHeader topInset={insets.top} />
+        <FloralBackdrop subtle />
+        <BrandedHeader topInset={insets.top} showBackButton={false} />
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{'\u0627\u0644\u0633\u0644\u0629'}</Text>
         </View>
@@ -254,12 +253,15 @@ export default function BasketScreen() {
   if (!selectedSellingPoint?.id) {
     return (
       <View style={styles.container}>
-        <BrandedHeader topInset={insets.top} />
+        <FloralBackdrop subtle />
+        <BrandedHeader topInset={insets.top} showBackButton={false} />
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{'\u0627\u0644\u0633\u0644\u0629'}</Text>
         </View>
         <View style={styles.missingStoreContainer}>
-          <Feather name="map-pin" color="#CCCCCC" size={80} />
+          <View style={styles.stateIconWrap}>
+            <Feather name="map-pin" color="#B78690" size={56} />
+          </View>
           <Text style={styles.missingStoreTitle}>
             {'\u0644\u0625\u0643\u0645\u0627\u0644 \u0627\u0644\u0637\u0644\u0628 \u064a\u0631\u062c\u0649 \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631'}
           </Text>
@@ -280,12 +282,15 @@ export default function BasketScreen() {
   if (basket.length === 0) {
     return (
       <View style={styles.container}>
-        <BrandedHeader topInset={insets.top} />
+        <FloralBackdrop subtle />
+        <BrandedHeader topInset={insets.top} showBackButton={false} />
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{'\u0627\u0644\u0633\u0644\u0629'}</Text>
         </View>
         <View style={styles.emptyContainer}>
-          <Feather name="shopping-bag" color="#CCCCCC" size={80} />
+          <View style={styles.stateIconWrap}>
+            <Feather name="shopping-bag" color="#B78690" size={56} />
+          </View>
           <Text style={styles.emptyTitle}>{'\u0633\u0644\u062a\u0643 \u0641\u0627\u0631\u063a\u0629'}</Text>
           <Text style={styles.emptySubtitle}>{'\u0627\u0628\u062f\u0623 \u0628\u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629'}</Text>
         </View>
@@ -371,7 +376,6 @@ export default function BasketScreen() {
     setEmail('');
     setTelephone('');
     setAddress('');
-    setCaptchaAnswer('');
     setFieldErrors({});
   };
 
@@ -413,9 +417,6 @@ export default function BasketScreen() {
     }
     if (!selectedSellingPoint?.id) {
       errors.sellingPoint = '\u0646\u0642\u0637\u0629\u0020\u0627\u0644\u0628\u064a\u0639\u0020\u0645\u0637\u0644\u0648\u0628\u0629';
-    }
-    if (parseInt(captchaAnswer) !== captcha.answer) {
-      errors.captchaAnswer = '\u0627\u0644\u0625\u062c\u0627\u0628\u0629\u0020\u063a\u064a\u0631\u0020\u0635\u062d\u064a\u062d\u0629';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -464,7 +465,8 @@ export default function BasketScreen() {
 
   return (
     <View style={styles.container}>
-      <BrandedHeader topInset={insets.top} />
+      <FloralBackdrop subtle />
+      <BrandedHeader topInset={insets.top} showBackButton={false} />
         <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>{'\u0627\u0644\u0633\u0644\u0629'}</Text>
@@ -506,7 +508,7 @@ export default function BasketScreen() {
         )}
       </>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 96 }]}>
         {!isAuthenticated ? (
           <View style={styles.guestActionsContainer}>
             <Text style={styles.loginRequiredText}>
@@ -676,27 +678,6 @@ export default function BasketScreen() {
                 {fieldErrors.address ? <Text style={styles.errorText}>{fieldErrors.address}</Text> : null}
               </View>
 
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>{'\u0627\u0644\u062a\u062d\u0642\u0642 \u0627\u0644\u0628\u0634\u0631\u064a *'}</Text>
-                <View style={styles.captchaContainer}>
-                  <Text style={styles.captchaQuestion}>
-                    {toArabicNumerals(captcha.num1)} + {toArabicNumerals(captcha.num2)} = ?
-                  </Text>
-                  <TextInput
-                    style={[styles.captchaInput, fieldErrors.captchaAnswer ? styles.inputErrorBorder : null]}
-                    value={captchaAnswer}
-                    onChangeText={(value) => {
-                      setCaptchaAnswer(value);
-                      if (fieldErrors.captchaAnswer) setFieldErrors((prev) => ({ ...prev, captchaAnswer: '' }));
-                    }}
-                    placeholder={'\u0627\u0644\u062c\u0648\u0627\u0628'}
-                    placeholderTextColor="#999"
-                    keyboardType="number-pad"
-                  />
-                </View>
-                {fieldErrors.captchaAnswer ? <Text style={styles.errorText}>{fieldErrors.captchaAnswer}</Text> : null}
-              </View>
-
               <Pressable
                 style={({ pressed }) => [
                   styles.submitButton,
@@ -731,9 +712,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    backgroundColor: 'transparent',
   },
   clearButton: {
     flexDirection: 'row',
@@ -793,6 +772,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
   },
+  stateIconWrap: {
+    width: 98,
+    height: 98,
+    borderRadius: 49,
+    backgroundColor: '#F7ECF0',
+    borderWidth: 1,
+    borderColor: '#E8DADF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   missingStoreTitle: {
     marginTop: 18,
     fontSize: 20,
@@ -808,7 +797,7 @@ const styles = StyleSheet.create({
   },
   openStoreButton: {
     marginTop: 18,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#7E4A53',
     borderRadius: 12,
     paddingHorizontal: 20,
     height: 46,
@@ -1156,34 +1145,6 @@ const styles = StyleSheet.create({
     minHeight: 80,
     paddingTop: 14,
   },
-  captchaContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  captchaQuestion: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: '#1A1A1A',
-    backgroundColor: '#F8F8F8',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    textAlign: 'center',
-  },
-  captchaInput: {
-    width: 100,
-    backgroundColor: '#F8F8F8',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: '#1A1A1A',
-    textAlign: 'center',
-  },
   submitButton: {
     backgroundColor: '#1A1A1A',
     height: 56,
@@ -1202,6 +1163,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 });
+
 
 
 
