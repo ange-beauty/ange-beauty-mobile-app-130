@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -29,6 +29,9 @@ export default function HomeScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const highlightWidth = Math.max(220, width - 32);
+  const highlightStep = highlightWidth + 12;
+  const highlightScrollRef = useRef<ScrollView>(null);
+  const [activeHighlightIndex, setActiveHighlightIndex] = useState(0);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['home-products'],
@@ -54,6 +57,29 @@ export default function HomeScreen() {
   const isHomeLoading = isLoading || isLoadingHighlights;
   const hasHomeError = !!error || !!highlightsError;
   const showHighlights = !highlightsError && highlightProducts.length > 0;
+
+  useEffect(() => {
+    setActiveHighlightIndex(0);
+    if (showHighlights) {
+      highlightScrollRef.current?.scrollTo({ x: 0, animated: false });
+    }
+  }, [showHighlights, highlightProducts.length]);
+
+  useEffect(() => {
+    if (!showHighlights || highlightProducts.length < 2) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setActiveHighlightIndex((prev) => {
+        const next = (prev + 1) % highlightProducts.length;
+        highlightScrollRef.current?.scrollTo({ x: next * highlightStep, animated: true });
+        return next;
+      });
+    }, 3500);
+
+    return () => clearInterval(timer);
+  }, [showHighlights, highlightProducts.length, highlightStep]);
 
   return (
     <View style={styles.container}>
@@ -100,12 +126,19 @@ export default function HomeScreen() {
               <>
                 <SectionTitle title={'\u0645\u0645\u064a\u0632\u0627\u062a \u0627\u0644\u064a\u0648\u0645'} />
                 <ScrollView
+                  ref={highlightScrollRef}
                   horizontal
                   pagingEnabled
-                  snapToInterval={highlightWidth + 12}
+                  snapToInterval={highlightStep}
                   decelerationRate="fast"
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.highlightsRow}
+                  onMomentumScrollEnd={(event) => {
+                    const offsetX = event.nativeEvent.contentOffset.x;
+                    const index = Math.round(offsetX / highlightStep);
+                    const boundedIndex = Math.min(Math.max(index, 0), highlightProducts.length - 1);
+                    setActiveHighlightIndex(boundedIndex);
+                  }}
                 >
                   {highlightProducts.map((item) => (
                     <Pressable
@@ -119,20 +152,33 @@ export default function HomeScreen() {
                         resizeMode="contain"
                       />
                       <LinearGradient
-                        colors={['rgba(0,0,0,0)', 'rgba(61,42,47,0.78)']}
+                        colors={['rgba(0,0,0,0)', 'rgba(34,22,25,0.92)']}
                         start={{ x: 0.5, y: 0 }}
                         end={{ x: 0.5, y: 1 }}
                         style={styles.highlightOverlay}
                       >
-                        <Text style={styles.highlightBrand}>{getDisplayBrand(item.brand)}</Text>
-                        <Text style={styles.highlightName} numberOfLines={2}>
-                          {item.name}
-                        </Text>
-                        <Text style={styles.highlightPrice}>{formatPrice(item.price)}</Text>
+                        <View style={styles.highlightTextSurface}>
+                          <Text style={styles.highlightBrand}>{getDisplayBrand(item.brand)}</Text>
+                          <Text style={styles.highlightName} numberOfLines={2}>
+                            {item.name}
+                          </Text>
+                          <Text style={styles.highlightPrice}>{formatPrice(item.price)}</Text>
+                        </View>
                       </LinearGradient>
                     </Pressable>
                   ))}
                 </ScrollView>
+                <View style={styles.highlightDotsRow}>
+                  {highlightProducts.map((item, index) => (
+                    <View
+                      key={`highlight-dot-${item.id}`}
+                      style={[
+                        styles.highlightDot,
+                        index === activeHighlightIndex && styles.highlightDotActive,
+                      ]}
+                    />
+                  ))}
+                </View>
               </>
             ) : null}
 
@@ -306,11 +352,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
+  highlightTextSurface: {
+    backgroundColor: 'rgba(20, 12, 14, 0.48)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   highlightBrand: {
-    color: '#F8E7EB',
+    color: '#FCEFF3',
     fontSize: 12,
     marginBottom: 3,
     textAlign: 'right',
+    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   highlightName: {
     color: '#FFFFFF',
@@ -318,13 +375,37 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: '700',
     textAlign: 'right',
+    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   highlightPrice: {
     marginTop: 4,
-    color: '#FFE6EC',
+    color: '#FFDDE5',
     fontSize: 15,
     fontWeight: '700',
     textAlign: 'right',
+    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  highlightDotsRow: {
+    marginTop: 8,
+    marginBottom: 2,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 7,
+  },
+  highlightDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: 'rgba(126, 74, 83, 0.28)',
+  },
+  highlightDotActive: {
+    width: 20,
+    backgroundColor: beautyTheme.colors.accentDark,
   },
   mostSellingRow: {
     gap: 12,
