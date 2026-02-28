@@ -115,7 +115,7 @@ export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
       const firstImage = imagesArray[0];
       if (firstImage) {
         const rootDir = 'angeapi';
-        imageUrl = `https://angebeauty.s3.eu-west-3.amazonaws.com/${rootDir}/cdn/images/${apiProduct.id}/thumbs/${firstImage}?t=${Date.now()}`;
+        imageUrl = `https://images.angebeauty.net/${rootDir}/cdn/images/${apiProduct.id}/thumbs/${firstImage}?t=${Date.now()}`;
       }
     }
   } catch (error) {

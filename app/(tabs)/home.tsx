@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -28,8 +29,16 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const highlightWidth = Math.max(220, width - 32);
+  const isWeb = Platform.OS === 'web';
+  const horizontalPadding = width >= 1200 ? 28 : width >= 768 ? 20 : 16;
+  const maxContentWidth = isWeb ? 1260 : width;
+  const contentWidth = Math.min(width, maxContentWidth);
+  const usableWidth = Math.max(220, contentWidth - horizontalPadding * 2);
+  const highlightWidth = Math.min(usableWidth, isWeb ? 980 : usableWidth);
+  const highlightHeight = highlightWidth * (isWeb && width >= 1024 ? 0.46 : 0.7);
+  const highlightSideInset = Math.max((usableWidth - highlightWidth) / 2, 0);
   const highlightStep = highlightWidth + 12;
+  const highlightStartOffset = highlightSideInset;
   const highlightScrollRef = useRef<ScrollView>(null);
   const [activeHighlightIndex, setActiveHighlightIndex] = useState(0);
 
@@ -61,9 +70,9 @@ export default function HomeScreen() {
   useEffect(() => {
     setActiveHighlightIndex(0);
     if (showHighlights) {
-      highlightScrollRef.current?.scrollTo({ x: 0, animated: false });
+      highlightScrollRef.current?.scrollTo({ x: highlightStartOffset, animated: false });
     }
-  }, [showHighlights, highlightProducts.length]);
+  }, [showHighlights, highlightProducts.length, highlightStartOffset]);
 
   useEffect(() => {
     if (!showHighlights || highlightProducts.length < 2) {
@@ -73,13 +82,13 @@ export default function HomeScreen() {
     const timer = setInterval(() => {
       setActiveHighlightIndex((prev) => {
         const next = (prev + 1) % highlightProducts.length;
-        highlightScrollRef.current?.scrollTo({ x: next * highlightStep, animated: true });
+        highlightScrollRef.current?.scrollTo({ x: highlightStartOffset + next * highlightStep, animated: true });
         return next;
       });
     }, 3500);
 
     return () => clearInterval(timer);
-  }, [showHighlights, highlightProducts.length, highlightStep]);
+  }, [showHighlights, highlightProducts.length, highlightStep, highlightStartOffset]);
 
   return (
     <View style={styles.container}>
@@ -88,7 +97,15 @@ export default function HomeScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingHorizontal: horizontalPadding,
+            maxWidth: maxContentWidth,
+            width: '100%',
+            alignSelf: 'center',
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -125,49 +142,81 @@ export default function HomeScreen() {
             {showHighlights ? (
               <>
                 <SectionTitle title={'\u0645\u0645\u064a\u0632\u0627\u062a \u0627\u0644\u064a\u0648\u0645'} />
-                <ScrollView
-                  ref={highlightScrollRef}
-                  horizontal
-                  pagingEnabled
-                  snapToInterval={highlightStep}
-                  decelerationRate="fast"
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.highlightsRow}
-                  onMomentumScrollEnd={(event) => {
-                    const offsetX = event.nativeEvent.contentOffset.x;
-                    const index = Math.round(offsetX / highlightStep);
-                    const boundedIndex = Math.min(Math.max(index, 0), highlightProducts.length - 1);
-                    setActiveHighlightIndex(boundedIndex);
-                  }}
-                >
-                  {highlightProducts.map((item) => (
-                    <Pressable
-                      key={item.id}
-                      style={[styles.highlightCard, { width: highlightWidth, height: highlightWidth * 0.7 }]}
-                      onPress={() => router.push(`/product/${item.id}`)}
-                    >
-                      <Image
-                        source={{ uri: item.image || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=800&fit=crop' }}
-                        style={styles.highlightImage}
-                        resizeMode="contain"
-                      />
-                      <LinearGradient
-                        colors={['rgba(0,0,0,0)', 'rgba(34,22,25,0.92)']}
-                        start={{ x: 0.5, y: 0 }}
-                        end={{ x: 0.5, y: 1 }}
-                        style={styles.highlightOverlay}
+                <View style={styles.highlightsWrap}>
+                  <ScrollView
+                    ref={highlightScrollRef}
+                    horizontal
+                    pagingEnabled={!isWeb}
+                    snapToInterval={highlightStep}
+                    decelerationRate="fast"
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={[styles.highlightsRow, { paddingHorizontal: highlightSideInset }]}
+                    onMomentumScrollEnd={(event) => {
+                      const offsetX = event.nativeEvent.contentOffset.x;
+                      const index = Math.round((offsetX - highlightStartOffset) / highlightStep);
+                      const boundedIndex = Math.min(Math.max(index, 0), highlightProducts.length - 1);
+                      setActiveHighlightIndex(boundedIndex);
+                    }}
+                  >
+                    {highlightProducts.map((item) => (
+                      <Pressable
+                        key={item.id}
+                        style={[styles.highlightCard, { width: highlightWidth, height: highlightHeight }]}
+                        onPress={() => router.push(`/product/${item.id}`)}
                       >
-                        <View style={styles.highlightTextSurface}>
-                          <Text style={styles.highlightBrand}>{getDisplayBrand(item.brand)}</Text>
-                          <Text style={styles.highlightName} numberOfLines={2}>
-                            {item.name}
-                          </Text>
-                          <Text style={styles.highlightPrice}>{formatPrice(item.price)}</Text>
-                        </View>
-                      </LinearGradient>
-                    </Pressable>
-                  ))}
-                </ScrollView>
+                        <Image
+                          source={{ uri: item.image || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=800&fit=crop' }}
+                          style={styles.highlightImage}
+                          resizeMode="contain"
+                        />
+                        <LinearGradient
+                          colors={['rgba(0,0,0,0)', 'rgba(34,22,25,0.92)']}
+                          start={{ x: 0.5, y: 0 }}
+                          end={{ x: 0.5, y: 1 }}
+                          style={styles.highlightOverlay}
+                        >
+                          <View style={styles.highlightTextSurface}>
+                            <Text style={styles.highlightBrand}>{getDisplayBrand(item.brand)}</Text>
+                            <Text style={styles.highlightName} numberOfLines={2}>
+                              {item.name}
+                            </Text>
+                            <Text style={styles.highlightPrice}>{formatPrice(item.price)}</Text>
+                          </View>
+                        </LinearGradient>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                  {isWeb && highlightProducts.length > 1 ? (
+                    <>
+                      <Pressable
+                        style={({ pressed }) => [styles.carouselArrow, styles.carouselArrowLeft, pressed && styles.buttonPressed]}
+                        onPress={() => {
+                          const prev = (activeHighlightIndex - 1 + highlightProducts.length) % highlightProducts.length;
+                          setActiveHighlightIndex(prev);
+                          highlightScrollRef.current?.scrollTo({
+                            x: highlightStartOffset + prev * highlightStep,
+                            animated: true,
+                          });
+                        }}
+                      >
+                        <Feather name="chevron-left" size={22} color="#3A252A" />
+                      </Pressable>
+                      <Pressable
+                        style={({ pressed }) => [styles.carouselArrow, styles.carouselArrowRight, pressed && styles.buttonPressed]}
+                        onPress={() => {
+                          const next = (activeHighlightIndex + 1) % highlightProducts.length;
+                          setActiveHighlightIndex(next);
+                          highlightScrollRef.current?.scrollTo({
+                            x: highlightStartOffset + next * highlightStep,
+                            animated: true,
+                          });
+                        }}
+                      >
+                        <Feather name="chevron-right" size={22} color="#3A252A" />
+                      </Pressable>
+                    </>
+                  ) : null}
+                </View>
                 <View style={styles.highlightDotsRow}>
                   {highlightProducts.map((item, index) => (
                     <View
@@ -332,6 +381,9 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 6,
   },
+  highlightsWrap: {
+    position: 'relative',
+  },
   highlightCard: {
     borderRadius: 24,
     overflow: 'hidden',
@@ -406,6 +458,25 @@ const styles = StyleSheet.create({
   highlightDotActive: {
     width: 20,
     backgroundColor: beautyTheme.colors.accentDark,
+  },
+  carouselArrow: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -24,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderWidth: 1,
+    borderColor: '#EADDE0',
+  },
+  carouselArrowLeft: {
+    left: 10,
+  },
+  carouselArrowRight: {
+    right: 10,
   },
   mostSellingRow: {
     gap: 12,
@@ -515,6 +586,9 @@ const styles = StyleSheet.create({
     color: beautyTheme.colors.accentDark,
     fontWeight: '700',
     textAlign: 'right',
+  },
+  buttonPressed: {
+    opacity: 0.78,
   },
 });
 

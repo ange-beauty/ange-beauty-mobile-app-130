@@ -7,11 +7,13 @@ import {
   Alert,
   Animated,
   Image,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,6 +34,13 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isWeb = Platform.OS === 'web';
+  const isWideWeb = isWeb && width >= 1100;
+  const horizontalPadding = width >= 1200 ? 28 : width >= 768 ? 20 : 16;
+  const maxContentWidth = isWeb ? 1200 : width;
+  const contentWidth = Math.min(width, maxContentWidth);
+  const heroWidth = isWideWeb ? Math.max(360, Math.min(500, contentWidth * 0.4)) : undefined;
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToBasket, getItemQuantity } = useBasket();
   const { selectedSellingPoint } = useSellingPoint();
@@ -122,7 +131,16 @@ export default function ProductDetailScreen() {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingHorizontal: horizontalPadding,
+            paddingBottom: isWeb ? 24 : 180,
+            maxWidth: maxContentWidth,
+            width: '100%',
+            alignSelf: 'center',
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -133,127 +151,148 @@ export default function ProductDetailScreen() {
           />
         }
       >
-        <Animated.View style={[styles.heroCard, { transform: [{ scale: scaleAnim }] }]}>
-          <View style={styles.imageWrap}>
-            {product.image ? (
-              <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
-            ) : (
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop' }}
-                style={styles.image}
-                resizeMode="cover"
-              />
-            )}
-          </View>
-          <Pressable
-            style={({ pressed }) => [styles.favoriteButton, pressed && styles.buttonPressed]}
-            onPress={() => toggleFavorite(product.id)}
+        <View style={[styles.detailsLayout, isWideWeb && styles.detailsLayoutWeb]}>
+          <Animated.View
+            style={[
+              styles.heroCard,
+              isWideWeb && styles.heroCardWeb,
+              heroWidth ? { width: heroWidth } : null,
+              { transform: [{ scale: scaleAnim }] },
+            ]}
           >
-            <Feather name="heart" size={20} color={isFav ? beautyTheme.colors.accentDark : '#8F7B7F'} />
-          </Pressable>
-        </Animated.View>
-
-        <Animated.View style={[styles.bodyCard, { transform: [{ scale: scaleAnim }] }]}>
-          <View style={styles.metaRow}>
-            {!!product.category && (
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{product.category}</Text>
-              </View>
-            )}
-            {!!displayBrand && (
-              <Pressable
-                onPress={() => product.brandId && router.push(`/(tabs)/products?brandId=${product.brandId}`)}
-                style={({ pressed }) => [styles.brandButton, pressed && styles.brandPressed]}
-              >
-                <Text style={styles.brandText}>{displayBrand}</Text>
-              </Pressable>
-            )}
-          </View>
-
-          <Text style={styles.productName}>{product.name || '\u0645\u0646\u062a\u062c \u0628\u062f\u0648\u0646 \u0627\u0633\u0645'}</Text>
-
-          <View style={styles.priceCard}>
-            <Text style={styles.priceLabel}>{'\u0627\u0644\u0633\u0639\u0631'}</Text>
-            <Text style={styles.priceValue}>{formatPrice(product.price)}</Text>
-            {selectedSellingPoint ? (
-              <Text style={[styles.availabilityText, selectedPointAvailable === null ? styles.notAvailable : styles.available]}>
-                {selectedPointAvailable === null
-                  ? '\u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631 \u0641\u064a \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0627\u0644\u0645\u062e\u062a\u0627\u0631\u0629'
-                  : `\u0627\u0644\u0645\u062a\u0648\u0641\u0631: ${toArabicNumerals(selectedPointAvailable)}`}
-              </Text>
-            ) : (
-              <Text style={styles.availabilityText}>{'\u0627\u062e\u062a\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0644\u0645\u0639\u0631\u0641\u0629 \u0627\u0644\u062a\u0648\u0641\u0631'}</Text>
-            )}
-          </View>
-
-          {!!product.description && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{'\u0627\u0644\u0648\u0635\u0641'}</Text>
-              <View style={styles.descriptionBox}>
-                <WebView
-                  originWhitelist={['*']}
-                  source={{
-                    html: `
-                      <!DOCTYPE html>
-                      <html>
-                        <head>
-                          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-                          <style>
-                            * { margin: 0; padding: 0; box-sizing: border-box; }
-                            body {
-                              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-                              font-size: 15px; line-height: 1.7; color: #3C2B2E;
-                              direction: rtl; text-align: right; background: transparent;
-                            }
-                            p { margin-bottom: 12px; }
-                            p:last-child { margin-bottom: 0; }
-                            h1,h2,h3,h4,h5,h6 { margin-bottom: 8px; color: #2F2527; }
-                            ul,ol { margin: 8px 0; padding-right: 20px; }
-                            li { margin-bottom: 4px; }
-                            img { max-width: 100%; border-radius: 8px; margin: 8px 0; }
-                          </style>
-                        </head>
-                        <body>${product.description}</body>
-                        <script>
-                          window.addEventListener('load', function() {
-                            window.ReactNativeWebView.postMessage(JSON.stringify({ height: document.body.scrollHeight }));
-                          });
-                        </script>
-                      </html>
-                    `,
-                  }}
-                  onMessage={(event) => {
-                    try {
-                      const data = JSON.parse(event.nativeEvent.data);
-                      if (data.height) setWebViewHeight(data.height);
-                    } catch {}
-                  }}
-                  style={[styles.webView, { height: webViewHeight || 200 }]}
-                  scrollEnabled={false}
-                  showsVerticalScrollIndicator={false}
-                  showsHorizontalScrollIndicator={false}
-                  bounces={false}
+            <View style={[styles.imageWrap, isWideWeb && styles.imageWrapWeb]}>
+              {product.image ? (
+                <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
+              ) : (
+                <Image
+                  source={{ uri: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop' }}
+                  style={styles.image}
+                  resizeMode="cover"
                 />
-              </View>
+              )}
             </View>
-          )}
+            <Pressable
+              style={({ pressed }) => [styles.favoriteButton, pressed && styles.buttonPressed]}
+              onPress={() => toggleFavorite(product.id)}
+            >
+              <Feather name="heart" size={20} color={isFav ? beautyTheme.colors.accentDark : '#8F7B7F'} />
+            </Pressable>
+          </Animated.View>
 
-          {!!product.ingredients?.length && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{'\u0627\u0644\u0645\u0643\u0648\u0646\u0627\u062a \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629'}</Text>
-              <View style={styles.chipsWrap}>
-                {product.ingredients.map((ingredient, index) => (
-                  <View key={index} style={styles.chip}>
-                    <Text style={styles.chipText}>{ingredient}</Text>
-                  </View>
-                ))}
-              </View>
+          <Animated.View style={[styles.bodyCard, isWideWeb && styles.bodyCardWeb, { transform: [{ scale: scaleAnim }] }]}>
+            <View style={styles.metaRow}>
+              {!!product.category && (
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryText}>{product.category}</Text>
+                </View>
+              )}
+              {!!displayBrand && (
+                <Pressable
+                  onPress={() => product.brandId && router.push(`/(tabs)/products?brandId=${product.brandId}`)}
+                  style={({ pressed }) => [styles.brandButton, pressed && styles.brandPressed]}
+                >
+                  <Text style={styles.brandText}>{displayBrand}</Text>
+                </Pressable>
+              )}
             </View>
-          )}
-        </Animated.View>
+
+            <Text style={[styles.productName, isWideWeb && styles.productNameWeb]}>{product.name || '\u0645\u0646\u062a\u062c \u0628\u062f\u0648\u0646 \u0627\u0633\u0645'}</Text>
+
+            <View style={styles.priceCard}>
+              <Text style={styles.priceLabel}>{'\u0627\u0644\u0633\u0639\u0631'}</Text>
+              <Text style={styles.priceValue}>{formatPrice(product.price)}</Text>
+              {selectedSellingPoint ? (
+                <Text style={[styles.availabilityText, selectedPointAvailable === null ? styles.notAvailable : styles.available]}>
+                  {selectedPointAvailable === null
+                    ? '\u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631 \u0641\u064a \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0627\u0644\u0645\u062e\u062a\u0627\u0631\u0629'
+                    : `\u0627\u0644\u0645\u062a\u0648\u0641\u0631: ${toArabicNumerals(selectedPointAvailable)}`}
+                </Text>
+              ) : (
+                <Text style={styles.availabilityText}>{'\u0627\u062e\u062a\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0644\u0645\u0639\u0631\u0641\u0629 \u0627\u0644\u062a\u0648\u0641\u0631'}</Text>
+              )}
+            </View>
+
+            {!!product.description && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{'\u0627\u0644\u0648\u0635\u0641'}</Text>
+                <View style={styles.descriptionBox}>
+                  <WebView
+                    originWhitelist={['*']}
+                    source={{
+                      html: `
+                        <!DOCTYPE html>
+                        <html>
+                          <head>
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                            <style>
+                              * { margin: 0; padding: 0; box-sizing: border-box; }
+                              body {
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+                                font-size: 15px; line-height: 1.7; color: #3C2B2E;
+                                direction: rtl; text-align: right; background: transparent;
+                              }
+                              p { margin-bottom: 12px; }
+                              p:last-child { margin-bottom: 0; }
+                              h1,h2,h3,h4,h5,h6 { margin-bottom: 8px; color: #2F2527; }
+                              ul,ol { margin: 8px 0; padding-right: 20px; }
+                              li { margin-bottom: 4px; }
+                              img { max-width: 100%; border-radius: 8px; margin: 8px 0; }
+                            </style>
+                          </head>
+                          <body>${product.description}</body>
+                          <script>
+                            window.addEventListener('load', function() {
+                              window.ReactNativeWebView.postMessage(JSON.stringify({ height: document.body.scrollHeight }));
+                            });
+                          </script>
+                        </html>
+                      `,
+                    }}
+                    onMessage={(event) => {
+                      try {
+                        const data = JSON.parse(event.nativeEvent.data);
+                        if (data.height) setWebViewHeight(data.height);
+                      } catch {}
+                    }}
+                    style={[styles.webView, { height: webViewHeight || 200 }]}
+                    scrollEnabled={false}
+                    showsVerticalScrollIndicator={false}
+                    showsHorizontalScrollIndicator={false}
+                    bounces={false}
+                  />
+                </View>
+              </View>
+            )}
+
+            {!!product.ingredients?.length && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{'\u0627\u0644\u0645\u0643\u0648\u0646\u0627\u062a \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629'}</Text>
+                <View style={styles.chipsWrap}>
+                  {product.ingredients.map((ingredient, index) => (
+                    <View key={index} style={styles.chip}>
+                      <Text style={styles.chipText}>{ingredient}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </Animated.View>
+        </View>
       </ScrollView>
 
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+      <View
+        style={[
+          styles.bottomBar,
+          isWeb && styles.bottomBarWeb,
+          {
+            paddingBottom: insets.bottom + 12,
+            marginHorizontal: isWeb ? horizontalPadding : 0,
+            maxWidth: isWeb ? maxContentWidth : undefined,
+            width: isWeb ? '100%' : undefined,
+            alignSelf: isWeb ? 'center' : undefined,
+          },
+        ]}
+      >
         <View>
           <Text style={styles.bottomLabel}>{'\u0627\u0644\u0633\u0639\u0631'}</Text>
           <Text style={styles.bottomPrice}>{formatPrice(product.price)}</Text>
@@ -281,6 +320,14 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingBottom: 180,
+  },
+  detailsLayout: {
+    width: '100%',
+  },
+  detailsLayoutWeb: {
+    flexDirection: 'row-reverse',
+    alignItems: 'flex-start',
+    gap: 16,
   },
   stateContainer: {
     flex: 1,
@@ -320,6 +367,11 @@ const styles = StyleSheet.create({
     padding: 12,
     position: 'relative',
   },
+  heroCardWeb: {
+    marginTop: 0,
+    position: 'sticky',
+    top: 12,
+  },
   imageWrap: {
     borderRadius: 18,
     overflow: 'hidden',
@@ -327,6 +379,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EFE4E6',
     aspectRatio: 1,
+  },
+  imageWrapWeb: {
+    aspectRatio: 0.95,
   },
   image: {
     width: '100%',
@@ -357,6 +412,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EADDE0',
     padding: 16,
+  },
+  bodyCardWeb: {
+    flex: 1,
+    marginTop: 0,
+    minHeight: 480,
   },
   metaRow: {
     flexDirection: 'row-reverse',
@@ -395,13 +455,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   productName: {
-    fontSize: 28,
-    lineHeight: 36,
+    fontSize: 22,
+    lineHeight: 30,
     fontWeight: '700',
+    fontFamily: 'Roboto',
     color: beautyTheme.colors.text,
     textAlign: 'right',
-    fontFamily: 'serif',
     marginBottom: 12,
+    letterSpacing: 0.1,
+  },
+  productNameWeb: {
+    fontSize: 21,
+    lineHeight: 29,
   },
   priceCard: {
     backgroundColor: '#FFF7F9',
@@ -486,6 +551,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  bottomBarWeb: {
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#EADDE0',
+    borderRadius: 18,
+    marginBottom: 12,
   },
   bottomLabel: {
     fontSize: 12,
