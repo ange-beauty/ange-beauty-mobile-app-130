@@ -2,7 +2,7 @@ name: Deploy on master merge
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
 
 jobs:
   deploy:
@@ -18,6 +18,6 @@ jobs:
             set -e
             cd /home/yasir/AngeApi.EventStore
             git fetch --all
-            git reset --hard origin/master
+            git reset --hard origin/main
             sudo docker compose up -d --build
             sudo docker image prune -f
