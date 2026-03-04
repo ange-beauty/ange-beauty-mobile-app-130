@@ -109,9 +109,9 @@ export const [AuthContext, useAuth] = createContextHook(() => {
   }, [resolveSession]);
 
   const login = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, turnstileToken?: string | null) => {
       try {
-        await authLogin({ email, password });
+        await authLogin({ email, password, security_token: turnstileToken || '' });
         if (DEBUG_AUTH) {
           console.log('[Auth] login success, fetching /me');
         }
@@ -144,6 +144,7 @@ export const [AuthContext, useAuth] = createContextHook(() => {
       phone?: string;
       consent_terms_accepted: boolean;
       consent_email_sms_opt_in: boolean;
+      security_token?: string | null;
     }) => {
       try {
         await authRegister({
@@ -153,6 +154,7 @@ export const [AuthContext, useAuth] = createContextHook(() => {
           password: payload.password,
           consent_terms_accepted: payload.consent_terms_accepted,
           consent_email_sms_opt_in: payload.consent_email_sms_opt_in,
+          security_token: payload.security_token || '',
         });
         return {
           success: true,

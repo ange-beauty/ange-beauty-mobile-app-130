@@ -3,6 +3,7 @@ import { apiFetch } from '@/services/httpClient';
 export type LoginPayload = {
   email: string;
   password: string;
+  security_token?: string | null;
 };
 
 export type RegisterPayload = {
@@ -12,6 +13,7 @@ export type RegisterPayload = {
   password: string;
   consent_terms_accepted: boolean;
   consent_email_sms_opt_in: boolean;
+  security_token?: string | null;
 };
 
 export async function login(payload: LoginPayload): Promise<any> {
@@ -23,6 +25,7 @@ export async function login(payload: LoginPayload): Promise<any> {
     body: JSON.stringify({
       email: payload.email.trim(),
       password: payload.password.trim(),
+      security_token: payload.security_token || '',
     }),
     skipRefreshRetry: true,
   });
@@ -41,6 +44,7 @@ export async function register(payload: RegisterPayload): Promise<any> {
       password: payload.password,
       consent_terms_accepted: payload.consent_terms_accepted,
       consent_email_sms_opt_in: payload.consent_email_sms_opt_in,
+      security_token: payload.security_token || '',
     }),
     skipRefreshRetry: true,
   });

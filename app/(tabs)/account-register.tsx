@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BrandedHeader from '@/components/BrandedHeader';
+import TurnstileWidget from '@/components/TurnstileWidget';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function RegisterScreen() {
@@ -29,6 +30,8 @@ export default function RegisterScreen() {
   const [acceptedCommunicationConsent, setAcceptedCommunicationConsent] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   const handleRegister = async () => {
     const errors: Record<string, string> = {};
@@ -71,6 +74,10 @@ export default function RegisterScreen() {
       errors.acceptedCommunicationConsent =
         '\u064a\u0631\u062c\u0649 \u062a\u0623\u0643\u064a\u062f \u0627\u0644\u0645\u0648\u0627\u0641\u0642\u0629 \u0639\u0644\u0649 \u0627\u0644\u062a\u0648\u0627\u0635\u0644 \u0639\u0628\u0631 \u0627\u0644\u0628\u0631\u064a\u062f \u0648\u0627\u0644\u0631\u0633\u0627\u0626\u0644 \u0644\u0623\u063a\u0631\u0627\u0636 \u0627\u0644\u062a\u062d\u0642\u0642 \u0648\u0627\u0644\u062a\u0623\u0643\u064a\u062f';
     }
+    if (!turnstileToken) {
+      errors.turnstile =
+        '\u064a\u0631\u062c\u0649 \u0625\u0643\u0645\u0627\u0644 \u0627\u0644\u062a\u062d\u0642\u0642 \u0623\u0648\u0644\u0627\u064b';
+    }
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -86,8 +93,11 @@ export default function RegisterScreen() {
       phone,
       consent_terms_accepted: acceptedTerms,
       consent_email_sms_opt_in: acceptedCommunicationConsent,
+      security_token: turnstileToken,
     });
     setIsSubmitting(false);
+    setTurnstileToken(null);
+    setTurnstileResetKey((prev) => prev + 1);
     if (!result.success) {
       setFieldErrors({ email: result.message });
       return;
@@ -233,6 +243,17 @@ export default function RegisterScreen() {
           {fieldErrors.acceptedCommunicationConsent ? (
             <Text style={styles.errorText}>{fieldErrors.acceptedCommunicationConsent}</Text>
           ) : null}
+          <TurnstileWidget
+            action="register"
+            resetKey={turnstileResetKey}
+            onTokenChange={(token) => {
+              setTurnstileToken(token);
+              if (token && fieldErrors.turnstile) {
+                setFieldErrors((prev) => ({ ...prev, turnstile: '' }));
+              }
+            }}
+          />
+          {fieldErrors.turnstile ? <Text style={styles.errorText}>{fieldErrors.turnstile}</Text> : null}
 
           <Pressable
             style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}

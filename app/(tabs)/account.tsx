@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
+import TurnstileWidget from '@/components/TurnstileWidget';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBasket } from '@/contexts/BasketContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
@@ -32,6 +33,8 @@ export default function AccountScreen() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   const handleLogin = async () => {
     const errors: Record<string, string> = {};
@@ -49,6 +52,10 @@ export default function AccountScreen() {
       errors.password =
         '\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0645\u0637\u0644\u0648\u0628\u0629';
     }
+    if (!turnstileToken) {
+      errors.turnstile =
+        '\u064a\u0631\u062c\u0649 \u0625\u0643\u0645\u0627\u0644 \u0627\u0644\u062a\u062d\u0642\u0642 \u0623\u0648\u0644\u0627\u064b';
+    }
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -57,7 +64,9 @@ export default function AccountScreen() {
 
     setIsSubmitting(true);
     setFieldErrors({});
-    const result = await login(email, password);
+    const result = await login(email, password, turnstileToken);
+    setTurnstileToken(null);
+    setTurnstileResetKey((prev) => prev + 1);
     if (!result.success) {
       setFieldErrors({ email: result.message });
     }
@@ -232,6 +241,17 @@ export default function AccountScreen() {
               textAlign="right"
             />
             {fieldErrors.password ? <Text style={styles.errorText}>{fieldErrors.password}</Text> : null}
+            <TurnstileWidget
+              action="login"
+              resetKey={turnstileResetKey}
+              onTokenChange={(token) => {
+                setTurnstileToken(token);
+                if (token && fieldErrors.turnstile) {
+                  setFieldErrors((prev) => ({ ...prev, turnstile: '' }));
+                }
+              }}
+            />
+            {fieldErrors.turnstile ? <Text style={styles.errorText}>{fieldErrors.turnstile}</Text> : null}
 
             <Pressable
               style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
