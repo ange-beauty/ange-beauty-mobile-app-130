@@ -10,6 +10,8 @@ export type RegisterPayload = {
   email: string;
   telephone: string;
   password: string;
+  consent_terms_accepted: boolean;
+  consent_email_sms_opt_in: boolean;
 };
 
 export async function login(payload: LoginPayload): Promise<any> {
@@ -37,6 +39,8 @@ export async function register(payload: RegisterPayload): Promise<any> {
       email: payload.email.trim(),
       telephone: payload.telephone.trim(),
       password: payload.password,
+      consent_terms_accepted: payload.consent_terms_accepted,
+      consent_email_sms_opt_in: payload.consent_email_sms_opt_in,
     }),
     skipRefreshRetry: true,
   });

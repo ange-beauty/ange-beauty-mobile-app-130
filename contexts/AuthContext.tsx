@@ -142,6 +142,8 @@ export const [AuthContext, useAuth] = createContextHook(() => {
       email: string;
       password: string;
       phone?: string;
+      consent_terms_accepted: boolean;
+      consent_email_sms_opt_in: boolean;
     }) => {
       try {
         await authRegister({
@@ -149,6 +151,8 @@ export const [AuthContext, useAuth] = createContextHook(() => {
           email: payload.email,
           telephone: payload.phone || '',
           password: payload.password,
+          consent_terms_accepted: payload.consent_terms_accepted,
+          consent_email_sms_opt_in: payload.consent_email_sms_opt_in,
         });
         return {
           success: true,

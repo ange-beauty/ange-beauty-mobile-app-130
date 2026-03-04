@@ -1,9 +1,11 @@
 import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -23,6 +25,8 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedCommunicationConsent, setAcceptedCommunicationConsent] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,6 +63,14 @@ export default function RegisterScreen() {
       errors.confirmPassword =
         '\u0643\u0644\u0645\u062a\u0627 \u0627\u0644\u0645\u0631\u0648\u0631 \u063a\u064a\u0631 \u0645\u062a\u0637\u0627\u0628\u0642\u062a\u064a\u0646';
     }
+    if (!acceptedTerms) {
+      errors.acceptedTerms =
+        '\u064a\u062c\u0628 \u0627\u0644\u0645\u0648\u0627\u0641\u0642\u0629 \u0639\u0644\u0649 \u0634\u0631\u0648\u0637 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645';
+    }
+    if (!acceptedCommunicationConsent) {
+      errors.acceptedCommunicationConsent =
+        '\u064a\u0631\u062c\u0649 \u062a\u0623\u0643\u064a\u062f \u0627\u0644\u0645\u0648\u0627\u0641\u0642\u0629 \u0639\u0644\u0649 \u0627\u0644\u062a\u0648\u0627\u0635\u0644 \u0639\u0628\u0631 \u0627\u0644\u0628\u0631\u064a\u062f \u0648\u0627\u0644\u0631\u0633\u0627\u0626\u0644 \u0644\u0623\u063a\u0631\u0627\u0636 \u0627\u0644\u062a\u062d\u0642\u0642 \u0648\u0627\u0644\u062a\u0623\u0643\u064a\u062f';
+    }
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -72,6 +84,8 @@ export default function RegisterScreen() {
       email,
       password,
       phone,
+      consent_terms_accepted: acceptedTerms,
+      consent_email_sms_opt_in: acceptedCommunicationConsent,
     });
     setIsSubmitting(false);
     if (!result.success) {
@@ -88,7 +102,12 @@ export default function RegisterScreen() {
     <View style={styles.container}>
       <BrandedHeader topInset={insets.top} showBackButton={false} />
 
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>{'\u0625\u0646\u0634\u0627\u0621 \u062d\u0633\u0627\u0628 \u062c\u062f\u064a\u062f'}</Text>
 
         <View style={styles.card}>
@@ -171,6 +190,51 @@ export default function RegisterScreen() {
           ) : null}
 
           <Pressable
+            style={styles.checkboxRow}
+            onPress={() => {
+              setAcceptedTerms((prev) => !prev);
+              if (fieldErrors.acceptedTerms) {
+                setFieldErrors((prev) => ({ ...prev, acceptedTerms: '' }));
+              }
+            }}
+          >
+            <View style={[styles.checkboxBox, acceptedTerms ? styles.checkboxBoxChecked : null]}>
+              {acceptedTerms ? <Feather name="check" size={14} color="#FFFFFF" /> : null}
+            </View>
+            <Text style={styles.checkboxText}>
+              {'\u0623\u0648\u0627\u0641\u0642 \u0639\u0644\u0649 \u0634\u0631\u0648\u0637 \u0648\u0623\u062d\u0643\u0627\u0645 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645'}
+            </Text>
+          </Pressable>
+          {fieldErrors.acceptedTerms ? <Text style={styles.errorText}>{fieldErrors.acceptedTerms}</Text> : null}
+
+          <Pressable
+            style={styles.checkboxRow}
+            onPress={() => {
+              setAcceptedCommunicationConsent((prev) => !prev);
+              if (fieldErrors.acceptedCommunicationConsent) {
+                setFieldErrors((prev) => ({ ...prev, acceptedCommunicationConsent: '' }));
+              }
+            }}
+          >
+            <View
+              style={[
+                styles.checkboxBox,
+                acceptedCommunicationConsent ? styles.checkboxBoxChecked : null,
+              ]}
+            >
+              {acceptedCommunicationConsent ? <Feather name="check" size={14} color="#FFFFFF" /> : null}
+            </View>
+            <Text style={styles.checkboxText}>
+              {
+                '\u0623\u0648\u0627\u0641\u0642 \u0639\u0644\u0649 \u0627\u0644\u062a\u0648\u0627\u0635\u0644 \u0639\u0628\u0631 \u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0648\u0627\u0644\u0631\u0633\u0627\u0626\u0644 \u0627\u0644\u0646\u0635\u064a\u0629 \u0644\u0623\u063a\u0631\u0627\u0636 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u062d\u0633\u0627\u0628 \u0648\u062a\u0623\u0643\u064a\u062f \u0627\u0644\u0637\u0644\u0628\u0627\u062a \u0648\u0627\u0644\u0627\u0645\u062a\u062b\u0627\u0644'
+              }
+            </Text>
+          </Pressable>
+          {fieldErrors.acceptedCommunicationConsent ? (
+            <Text style={styles.errorText}>{fieldErrors.acceptedCommunicationConsent}</Text>
+          ) : null}
+
+          <Pressable
             style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
             onPress={handleRegister}
             disabled={isSubmitting}
@@ -184,7 +248,7 @@ export default function RegisterScreen() {
             )}
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -193,6 +257,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F6F8F4',
+  },
+  scroll: {
+    flex: 1,
   },
   content: {
     padding: 16,
@@ -227,6 +294,34 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#B9442B',
     fontSize: 13,
+    textAlign: 'right',
+  },
+  checkboxRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 4,
+  },
+  checkboxBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#B7C3B0',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  checkboxBoxChecked: {
+    backgroundColor: '#1A1A1A',
+    borderColor: '#1A1A1A',
+  },
+  checkboxText: {
+    flex: 1,
+    color: '#2A2A2A',
+    fontSize: 13,
+    lineHeight: 20,
     textAlign: 'right',
   },
   primaryButton: {
