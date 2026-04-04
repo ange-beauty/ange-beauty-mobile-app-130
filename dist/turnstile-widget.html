@@ -1,0 +1,148 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Turnstile Widget</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        font-family: Arial, sans-serif;
+      }
+      body {
+        min-height: 72px;
+      }
+      #status {
+        border: 1px solid #e7c2c8;
+        border-radius: 8px;
+        background: #fff5f7;
+        color: #a33d52;
+        font-size: 12px;
+        line-height: 1.4;
+        padding: 8px 10px;
+        margin: 6px;
+        display: none;
+      }
+      #status.ok {
+        border-color: #cde7c6;
+        background: #f5fff3;
+        color: #2f7c2f;
+      }
+      #widget-wrap {
+        min-height: 72px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 2px 4px;
+      }
+      .cf-turnstile {
+        min-height: 65px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status"></div>
+    <div id="widget-wrap">
+      <div id="turnstile" class="cf-turnstile"></div>
+    </div>
+
+    <script>
+      (function () {
+        function setStatus(message, ok, visible) {
+          var el = document.getElementById('status');
+          if (!el) return;
+          el.textContent = message;
+          el.style.display = visible ? 'block' : 'none';
+          if (ok) {
+            el.classList.add('ok');
+          } else {
+            el.classList.remove('ok');
+          }
+        }
+
+        function post(message) {
+          var payload = JSON.stringify(message);
+          try {
+            if (
+              window.ReactNativeWebView &&
+              typeof window.ReactNativeWebView.postMessage === 'function'
+            ) {
+              window.ReactNativeWebView.postMessage(payload);
+            }
+          } catch (_) {}
+
+          try {
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage(payload, '*');
+            }
+          } catch (_) {}
+        }
+
+        var params = new URLSearchParams(window.location.search);
+        var sitekey = (params.get('sitekey') || '').trim();
+        var action = (params.get('action') || 'login').trim();
+
+        if (!sitekey) {
+          setStatus('Missing sitekey query parameter.', false, true);
+          post({ type: 'error', message: 'missing_sitekey' });
+          return;
+        }
+
+        var widget = document.getElementById('turnstile');
+        if (!widget) {
+          setStatus('Widget container not found.', false, true);
+          post({ type: 'error', message: 'missing_container' });
+          return;
+        }
+
+        window.onTurnstileSuccess = function (token) {
+          setStatus('', true, false);
+          post({ type: 'token', token: token || '' });
+        };
+
+        window.onTurnstileExpired = function () {
+          setStatus('Turnstile expired. Please retry.', false, true);
+          post({ type: 'expired' });
+        };
+
+        window.onTurnstileError = function (code) {
+          setStatus('Turnstile error: ' + (code || 'unknown_error'), false, true);
+          post({ type: 'error', message: code || 'turnstile_error' });
+        };
+
+        widget.setAttribute('data-sitekey', sitekey);
+        widget.setAttribute('data-action', action);
+        widget.setAttribute('data-callback', 'onTurnstileSuccess');
+        widget.setAttribute('data-expired-callback', 'onTurnstileExpired');
+        widget.setAttribute('data-error-callback', 'onTurnstileError');
+        widget.setAttribute('data-appearance', 'always');
+        widget.setAttribute('data-size', 'normal');
+
+        var existing = document.querySelector('script[data-turnstile-widget="1"]');
+        if (!existing) {
+          var script = document.createElement('script');
+          script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+          script.async = true;
+          script.defer = true;
+          script.setAttribute('data-turnstile-widget', '1');
+          script.onload = function () {
+            setStatus('', true, false);
+          };
+          script.onerror = function () {
+            setStatus('Failed to load Turnstile API script.', false, true);
+            post({ type: 'error', message: 'script_load_failed' });
+          };
+          document.head.appendChild(script);
+        } else {
+          setStatus('', true, false);
+        }
+      })();
+    </script>
+  </body>
+</html>
