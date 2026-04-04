@@ -26,6 +26,8 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedCommunicationConsent, setAcceptedCommunicationConsent] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -166,35 +168,55 @@ export default function RegisterScreen() {
             textAlign="right"
           />
           {fieldErrors.phone ? <Text style={styles.errorText}>{fieldErrors.phone}</Text> : null}
-          <TextInput
-            style={[styles.input, fieldErrors.password ? styles.inputErrorBorder : null]}
-            value={password}
-            onChangeText={(value) => {
-              setPassword(value);
-              if (fieldErrors.password) {
-                setFieldErrors((prev) => ({ ...prev, password: '' }));
-              }
-            }}
-            placeholder={'\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631'}
-            placeholderTextColor="#9AA39A"
-            secureTextEntry
-            textAlign="right"
-          />
+          <View style={[styles.passwordField, fieldErrors.password ? styles.inputErrorBorder : null]}>
+            <Pressable
+              style={styles.passwordToggle}
+              onPress={() => setShowPassword((prev) => !prev)}
+              hitSlop={8}
+            >
+              <Feather name={showPassword ? 'eye-off' : 'eye'} size={18} color="#6B6B6B" />
+            </Pressable>
+            <TextInput
+              style={styles.passwordInput}
+              value={password}
+              onChangeText={(value) => {
+                setPassword(value);
+                if (fieldErrors.password) {
+                  setFieldErrors((prev) => ({ ...prev, password: '' }));
+                }
+              }}
+              placeholder={'\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631'}
+              placeholderTextColor="#9AA39A"
+              secureTextEntry={!showPassword}
+              textAlign="right"
+            />
+          </View>
           {fieldErrors.password ? <Text style={styles.errorText}>{fieldErrors.password}</Text> : null}
-          <TextInput
-            style={[styles.input, fieldErrors.confirmPassword ? styles.inputErrorBorder : null]}
-            value={confirmPassword}
-            onChangeText={(value) => {
-              setConfirmPassword(value);
-              if (fieldErrors.confirmPassword) {
-                setFieldErrors((prev) => ({ ...prev, confirmPassword: '' }));
-              }
-            }}
-            placeholder={'\u062a\u0623\u0643\u064a\u062f \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631'}
-            placeholderTextColor="#9AA39A"
-            secureTextEntry
-            textAlign="right"
-          />
+          <View
+            style={[styles.passwordField, fieldErrors.confirmPassword ? styles.inputErrorBorder : null]}
+          >
+            <Pressable
+              style={styles.passwordToggle}
+              onPress={() => setShowConfirmPassword((prev) => !prev)}
+              hitSlop={8}
+            >
+              <Feather name={showConfirmPassword ? 'eye-off' : 'eye'} size={18} color="#6B6B6B" />
+            </Pressable>
+            <TextInput
+              style={styles.passwordInput}
+              value={confirmPassword}
+              onChangeText={(value) => {
+                setConfirmPassword(value);
+                if (fieldErrors.confirmPassword) {
+                  setFieldErrors((prev) => ({ ...prev, confirmPassword: '' }));
+                }
+              }}
+              placeholder={'\u062a\u0623\u0643\u064a\u062f \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631'}
+              placeholderTextColor="#9AA39A"
+              secureTextEntry={!showConfirmPassword}
+              textAlign="right"
+            />
+          </View>
           {fieldErrors.confirmPassword ? (
             <Text style={styles.errorText}>{fieldErrors.confirmPassword}</Text>
           ) : null}
@@ -308,6 +330,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFCF8',
     paddingHorizontal: 12,
     color: '#1A1A1A',
+  },
+  passwordField: {
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8DD',
+    backgroundColor: '#FAFCF8',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  passwordInput: {
+    flex: 1,
+    color: '#1A1A1A',
+    textAlign: 'right',
+  },
+  passwordToggle: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
   },
   inputErrorBorder: {
     borderColor: '#E53935',

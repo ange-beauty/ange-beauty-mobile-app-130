@@ -25,6 +25,7 @@ import { useSellingPoint } from '@/contexts/SellingPointContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchProductById } from '@/services/api';
 import { withClientSourceHeader } from '@/services/requestHeaders';
+import { debugFetch } from '@/services/httpDebug';
 import { Product } from '@/types/product';
 import { getAvailableQuantityForSellingPoint } from '@/utils/availability';
 import { getDisplayBrand } from '@/utils/brand';
@@ -54,42 +55,67 @@ export default function BasketScreen() {
       console.log('[Order] Submitting order:', orderData);
 
       const path = '/api/v1/selling-orders/client-initialization';
-      const response = await fetch(`${API_BASE}${path}`, {
+      const response = await debugFetch(`${API_BASE}${path}`, {
         method: 'POST',
         headers: withClientSourceHeader({
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         }),
         body: JSON.stringify(orderData),
-      });
+      }, 'Order');
 
       console.log('[Order] Response status:', response.status);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[Order] Failed to submit order:', errorText);
-        throw new Error('\u0641\u0634\u0644 \u0641\u064a \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628');
+        const rawError = await response.text();
+        let parsedError: any = null;
+        try {
+          parsedError = JSON.parse(rawError);
+        } catch {
+          parsedError = null;
+        }
+        console.error('[Order] Failed to submit order:', rawError);
+        throw new Error(
+          parsedError?.message ||
+            parsedError?.error ||
+            '\u0641\u0634\u0644 \u0641\u064a \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628'
+        );
       }
 
       const result = await response.json();
+      const isSuccess = result?.status === 'success' || result?.success === true;
+      if (!isSuccess) {
+        throw new Error(
+          result?.message ||
+            '\u062a\u0645 \u0631\u0641\u0636 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628. \u064a\u0631\u062c\u0649 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649'
+        );
+      }
       console.log('[Order] Order submitted successfully:', result);
       return result;
     },
     onSuccess: (data) => {
       console.log('[Order] Order success:', data);
-      Alert.alert(
-        '\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628',
-        '\u0634\u0643\u0631\u0627\u064b \u0644\u0643! \u0633\u0646\u062a\u0648\u0627\u0635\u0644 \u0645\u0639\u0643 \u0642\u0631\u064a\u0628\u0627\u064b',
-        [
-          {
-            text: '\u0645\u0648\u0627\u0641\u0642',
-            onPress: () => {
-              handleCloseModal();
-              clearBasket();
-            },
-          },
-        ]
-      );
+      const successTitle = '\u062a\u0645 \u0627\u0633\u062a\u0644\u0627\u0645 \u0637\u0644\u0628\u0643\u064a';
+      const successMessage =
+        data?.message ||
+        '\u062a\u0645 \u062a\u0623\u0643\u064a\u062f \u0637\u0644\u0628\u0643\u0650 \u0628\u0646\u062c\u0627\u062d\u060c \u0648\u0633\u0646\u062a\u0648\u0627\u0635\u0644 \u0645\u0639\u0643\u0650 \u0641\u064a \u0623\u0642\u0631\u0628 \u0648\u0642\u062a \u0645\u0645\u0643\u0646 \u0644\u062a\u0623\u0643\u064a\u062f \u0627\u0644\u0637\u0644\u0628 \u0639\u0644\u0649 \u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062a\u0641 \u0627\u0644\u0645\u0633\u062c\u0644 \u0641\u064a \u0627\u0644\u0637\u0644\u0628.';
+      // Success flow requested by business: close modal, clear basket, move to orders.
+      setShowCheckoutModal(false);
+      setIsGuestCheckout(false);
+      setName('');
+      setEmail('');
+      setTelephone('');
+      setAddress('');
+      setFieldErrors({});
+      clearBasket();
+      if (Platform.OS === 'web') {
+        window.alert(`${successTitle}\n\n${successMessage}`);
+        router.push('/(tabs)/orders');
+      } else {
+        Alert.alert(successTitle, successMessage, [
+          { text: '\u0645\u0648\u0627\u0641\u0642', onPress: () => router.push('/(tabs)/orders') },
+        ]);
+      }
     },
     onError: (error: any) => {
       console.error('[Order] Order error:', error);

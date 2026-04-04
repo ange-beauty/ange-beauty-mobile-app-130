@@ -195,6 +195,23 @@ export default function HomeScreen() {
     const offsetY = event.nativeEvent.contentOffset.y;
     setShowScrollTop(offsetY > 500);
   }, []);
+  const promptSelectSellingPoint = useCallback(() => {
+    const title =
+      '\u0627\u062e\u062a\u064a\u0627\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639';
+    const message =
+      '\u064a\u0631\u062c\u0649 \u0627\u062e\u062a\u064a\u0627\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0623\u0648\u0644\u0627\u064b \u0642\u0628\u0644 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629.';
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const shouldOpenStore = window.confirm(`${title}\n\n${message}`);
+      if (shouldOpenStore) {
+        router.push('/(tabs)/store');
+      }
+      return;
+    }
+    Alert.alert(title, message, [
+      { text: '\u0627\u0641\u062a\u062d \u0627\u0644\u0645\u062a\u062c\u0631', onPress: () => router.push('/(tabs)/store') },
+      { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' },
+    ]);
+  }, [router]);
 
   React.useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -223,6 +240,14 @@ export default function HomeScreen() {
 
   const renderProduct = ({ item }: { item: Product }) => {
     const scaleAnim = new Animated.Value(1);
+    const productImageSource =
+      item.image || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop';
+    const webImageStyle: React.CSSProperties = {
+      width: '100%',
+      height: '100%',
+      objectFit: item.image ? 'contain' : 'cover',
+      display: 'block',
+    };
 
     const handlePressIn = () => {
       Animated.spring(scaleAnim, {
@@ -252,11 +277,19 @@ export default function HomeScreen() {
         >
           <Animated.View style={[styles.productCard, { transform: [{ scale: scaleAnim }] }]}>
           <View style={styles.productImageContainer}>
-            {item.image ? (
+            {Platform.OS === 'web' ? (
+              <img
+                alt={item.name}
+                src={productImageSource}
+                loading="lazy"
+                style={webImageStyle}
+                draggable={false}
+              />
+            ) : item.image ? (
               <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="contain" />
             ) : (
               <Image 
-                source={{ uri: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop' }} 
+                source={{ uri: productImageSource }} 
                 style={styles.productImage} 
                 resizeMode="cover" 
               />
@@ -292,11 +325,7 @@ export default function HomeScreen() {
             onPress={(e) => {
               e.stopPropagation();
               if (!selectedSellingPoint?.id) {
-                Alert.alert(
-                  '\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631',
-                  '\u064a\u0631\u062c\u0649 \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631 \u0623\u0648\u0644\u0627\u064b \u0642\u0628\u0644 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629',
-                  [{ text: '\u0627\u0641\u062a\u062d \u0627\u0644\u0645\u062a\u062c\u0631', onPress: () => router.push('/(tabs)/store') }, { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' }]
-                );
+                promptSelectSellingPoint();
                 return;
               }
               if (selectedPointAvailable !== null && itemQuantity >= selectedPointAvailable) {

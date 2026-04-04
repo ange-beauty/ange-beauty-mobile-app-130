@@ -16,6 +16,19 @@ export type RegisterPayload = {
   security_token?: string | null;
 };
 
+export type UpdateProfilePayload = {
+  first_name: string;
+  last_name: string;
+  telephone: string;
+  address_line: string;
+  address_complement: string;
+  city: string;
+  provence: string;
+  zip_code: string;
+  country: string;
+  favorite_selling_point: string;
+};
+
 export async function login(payload: LoginPayload): Promise<any> {
   return apiFetch('/api/v1/auth/token', {
     method: 'POST',
@@ -52,6 +65,27 @@ export async function register(payload: RegisterPayload): Promise<any> {
 
 export async function me(): Promise<any> {
   return apiFetch('/api/v1/auth/me');
+}
+
+export async function updateMe(payload: UpdateProfilePayload): Promise<any> {
+  return apiFetch('/api/v1/auth/me', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      first_name: payload.first_name.trim(),
+      last_name: payload.last_name.trim(),
+      telephone: payload.telephone.trim(),
+      address_line: payload.address_line.trim(),
+      address_complement: payload.address_complement.trim(),
+      city: payload.city.trim(),
+      provence: payload.provence.trim(),
+      zip_code: payload.zip_code.trim(),
+      country: payload.country.trim(),
+      favorite_selling_point: payload.favorite_selling_point.trim(),
+    }),
+  });
 }
 
 export async function refresh(): Promise<any> {

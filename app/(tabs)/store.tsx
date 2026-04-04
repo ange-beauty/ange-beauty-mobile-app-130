@@ -6,10 +6,24 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
 import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function StoreScreen() {
   const insets = useSafeAreaInsets();
   const { sellingPoints, selectedSellingPoint, setSelectedSellingPointId, isLoadingSellingPoints } = useSellingPoint();
+  const { isAuthenticated, updateProfile } = useAuth();
+
+  const handleSelectSellingPoint = async (id: string) => {
+    await setSelectedSellingPointId(id);
+
+    if (!isAuthenticated) {
+      return;
+    }
+
+    await updateProfile({
+      favorite_selling_point: id,
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -34,7 +48,7 @@ export default function StoreScreen() {
               styles.sellingPointCard,
               !selectedSellingPoint && styles.sellingPointCardActive,
             ]}
-            onPress={() => setSelectedSellingPointId('')}
+            onPress={() => handleSelectSellingPoint('')}
           >
             <View style={styles.cardMain}>
               <Text style={[styles.cardTitle, !selectedSellingPoint && styles.cardTitleActive]}>
@@ -53,7 +67,7 @@ export default function StoreScreen() {
               <Pressable
                 key={point.id}
                 style={[styles.sellingPointCard, isSelected && styles.sellingPointCardActive]}
-                onPress={() => setSelectedSellingPointId(point.id)}
+                onPress={() => handleSelectSellingPoint(point.id)}
               >
                 <View style={styles.cardMain}>
                   <Text style={[styles.cardTitle, isSelected && styles.cardTitleActive]}>

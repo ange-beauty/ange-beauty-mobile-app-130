@@ -111,3 +111,11 @@ Follow these rules before changing code.
 - Add endpoints in `services/api.ts` or `services/auth.ts` (auth-related).
 - Keep auth-protected flows aligned with cookie-based backend contract.
 - Update this AGENTS.md when architecture or rules change.
+
+
+## Image Delivery Notes
+- Do not append `Date.now()` or other per-render cache-busting values to product image URLs.
+- Product list images must use stable URLs so browser and Cloudflare caching can work.
+- If cache invalidation is needed, use a stable product version marker such as `last_updated_at` or `aggregate_version`.
+- Product list/card images should use lazy loading (`loading="lazy"`) to avoid downloading off-screen images during infinite scroll.
+- Prefer thumbnail paths for list views; do not use full-size images where thumbs are available.

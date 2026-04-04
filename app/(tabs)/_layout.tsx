@@ -133,6 +133,18 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="account-login"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="account-profile"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

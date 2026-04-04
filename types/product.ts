@@ -115,7 +115,12 @@ export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
       const firstImage = imagesArray[0];
       if (firstImage) {
         const rootDir = 'angeapi';
-        imageUrl = `https://images.angebeauty.net/${rootDir}/cdn/images/${apiProduct.id}/thumbs/${firstImage}?t=${Date.now()}`;
+        const stableVersion =
+          typeof apiProduct.aggregate_version === 'number'
+            ? apiProduct.aggregate_version.toString()
+            : apiProduct.updated_at || undefined;
+        const versionQuery = stableVersion ? `?v=${encodeURIComponent(stableVersion)}` : '';
+        imageUrl = `https://images.angebeauty.net/${rootDir}/cdn/images/${apiProduct.id}/thumbs/${firstImage}${versionQuery}`;
       }
     }
   } catch (error) {

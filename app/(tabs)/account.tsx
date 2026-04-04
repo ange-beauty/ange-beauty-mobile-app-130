@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,14 +8,12 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
-import TurnstileWidget from '@/components/TurnstileWidget';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBasket } from '@/contexts/BasketContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
@@ -24,54 +22,11 @@ import { useSellingPoint } from '@/contexts/SellingPointContext';
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, isLoading, isAuthenticated, login, logout, resendEmailVerification } = useAuth();
+  const { user, isLoading, isAuthenticated, logout, resendEmailVerification } = useAuth();
   const { totalItems } = useBasket();
   const { favorites } = useFavorites();
   const { selectedSellingPoint } = useSellingPoint();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResendingVerification, setIsResendingVerification] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
-
-  const handleLogin = async () => {
-    const errors: Record<string, string> = {};
-
-    if (!email.trim()) {
-      errors.email =
-        '\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0645\u0637\u0644\u0648\u0628';
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (email.trim() && !emailRegex.test(email.trim())) {
-      errors.email =
-        '\u064a\u0631\u062c\u0649 \u0625\u062f\u062e\u0627\u0644 \u0628\u0631\u064a\u062f \u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0635\u062d\u064a\u062d';
-    }
-    if (!password.trim()) {
-      errors.password =
-        '\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0645\u0637\u0644\u0648\u0628\u0629';
-    }
-    if (!turnstileToken) {
-      errors.turnstile =
-        '\u064a\u0631\u062c\u0649 \u0625\u0643\u0645\u0627\u0644 \u0627\u0644\u062a\u062d\u0642\u0642 \u0623\u0648\u0644\u0627\u064b';
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setFieldErrors({});
-    const result = await login(email, password, turnstileToken);
-    setTurnstileToken(null);
-    setTurnstileResetKey((prev) => prev + 1);
-    if (!result.success) {
-      setFieldErrors({ email: result.message });
-    }
-    setIsSubmitting(false);
-  };
 
   const handleResendVerification = async () => {
     setIsResendingVerification(true);
@@ -113,8 +68,8 @@ export default function AccountScreen() {
       key: 'profile',
       label: '\u0645\u0639\u0644\u0648\u0645\u0627\u062a\u064a \u0627\u0644\u0634\u062e\u0635\u064a\u0629',
       icon: 'user',
-      route: null,
-      subtitle: isAuthenticated ? user?.email || '' : '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0644\u0639\u0631\u0636 \u0628\u064a\u0627\u0646\u0627\u062a\u0643',
+      route: isAuthenticated ? '/(tabs)/account-profile' : null,
+      subtitle: isAuthenticated ? user?.email || '' : '',
     },
     {
       key: 'store',
@@ -138,6 +93,34 @@ export default function AccountScreen() {
       subtitle: '\u0645\u062a\u0627\u0628\u0639\u0629 \u062d\u0627\u0644\u0629 \u0627\u0644\u0637\u0644\u0628\u0627\u062a',
     },
   ] as const;
+  const visibleProfileLinks = useMemo(
+    () =>
+      profileLinks.filter((item) => {
+        if (isAuthenticated) {
+          return true;
+        }
+
+        return !['profile', 'favorites', 'orders'].includes(item.key);
+      }),
+    [isAuthenticated]
+  );
+  const guestActions = useMemo(
+    () => [
+      {
+        key: 'login',
+        label: '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644',
+        onPress: () => router.push('/(tabs)/account-login'),
+        variant: 'primary' as const,
+      },
+      {
+        key: 'register',
+        label: '\u0625\u0646\u0634\u0627\u0621 \u062d\u0633\u0627\u0628 \u062c\u062f\u064a\u062f',
+        onPress: () => router.push('/(tabs)/account-register'),
+        variant: 'secondary' as const,
+      },
+    ],
+    [router]
+  );
 
   return (
     <View style={styles.container}>
@@ -145,26 +128,26 @@ export default function AccountScreen() {
       <BrandedHeader topInset={insets.top} showBackButton={false} />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-        <View style={styles.heroCard}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>{avatarText}</Text>
+        {isAuthenticated ? (
+          <View style={styles.heroCard}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>{avatarText}</Text>
+            </View>
+            <Text style={styles.heroName}>{displayName}</Text>
+            <View style={styles.statsRow}>
+              {stats.map((item) => (
+                <Pressable
+                  key={item.key}
+                  style={({ pressed }) => [styles.statPill, pressed && styles.buttonPressed]}
+                  onPress={() => router.push(item.route as any)}
+                >
+                  <Text style={styles.statValue}>{item.value}</Text>
+                  <Text style={styles.statTitle}>{item.title}</Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
-          <Text style={styles.heroName}>
-            {isAuthenticated ? displayName : '\u062d\u0633\u0627\u0628\u064a'}
-          </Text>
-          <View style={styles.statsRow}>
-            {stats.map((item) => (
-              <Pressable
-                key={item.key}
-                style={({ pressed }) => [styles.statPill, pressed && styles.buttonPressed]}
-                onPress={() => router.push(item.route as any)}
-              >
-                <Text style={styles.statValue}>{item.value}</Text>
-                <Text style={styles.statTitle}>{item.title}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+        ) : null}
 
         {isLoading ? (
           <View style={styles.centerState}>
@@ -208,78 +191,36 @@ export default function AccountScreen() {
           </View>
         ) : (
           <View style={styles.loginCard}>
-            <Text style={styles.sectionTitle}>{'\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644'}</Text>
+            <Text style={styles.sectionTitle}>{'\u0627\u0644\u062f\u062e\u0648\u0644 \u0625\u0644\u0649 \u062d\u0633\u0627\u0628\u0643'}</Text>
+            <Text style={styles.guestDescription}>
+              {'\u0627\u0646\u062a\u0642\u0644 \u0625\u0644\u0649 \u0634\u0627\u0634\u0629 \u0645\u062e\u0635\u0635\u0629 \u0644\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0623\u0648 \u0623\u0646\u0634\u0626 \u062d\u0633\u0627\u0628\u0627\u064b \u062c\u062f\u064a\u062f\u0627\u064b.'}
+            </Text>
 
-            <TextInput
-              style={[styles.input, fieldErrors.email ? styles.inputErrorBorder : null]}
-              value={email}
-              onChangeText={(value) => {
-                setEmail(value);
-                if (fieldErrors.email) {
-                  setFieldErrors((prev) => ({ ...prev, email: '' }));
-                }
-              }}
-              placeholder={'\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a'}
-              placeholderTextColor="#9AA39A"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              textAlign="right"
-            />
-            {fieldErrors.email ? <Text style={styles.errorText}>{fieldErrors.email}</Text> : null}
-            <TextInput
-              style={[styles.input, fieldErrors.password ? styles.inputErrorBorder : null]}
-              value={password}
-              onChangeText={(value) => {
-                setPassword(value);
-                if (fieldErrors.password) {
-                  setFieldErrors((prev) => ({ ...prev, password: '' }));
-                }
-              }}
-              placeholder={'\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631'}
-              placeholderTextColor="#9AA39A"
-              secureTextEntry
-              textAlign="right"
-            />
-            {fieldErrors.password ? <Text style={styles.errorText}>{fieldErrors.password}</Text> : null}
-            <TurnstileWidget
-              action="login"
-              resetKey={turnstileResetKey}
-              onTokenChange={(token) => {
-                setTurnstileToken(token);
-                if (token && fieldErrors.turnstile) {
-                  setFieldErrors((prev) => ({ ...prev, turnstile: '' }));
-                }
-              }}
-            />
-            {fieldErrors.turnstile ? <Text style={styles.errorText}>{fieldErrors.turnstile}</Text> : null}
-
-            <Pressable
-              style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
-              onPress={handleLogin}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator size="small" color="#FFF" />
-              ) : (
-                <Text style={styles.primaryButtonText}>
-                  {'\u062f\u062e\u0648\u0644'}
+            {guestActions.map((action) => (
+              <Pressable
+                key={action.key}
+                style={({ pressed }) => [
+                  action.variant === 'primary' ? styles.primaryButton : styles.secondaryButton,
+                  pressed && styles.buttonPressed,
+                ]}
+                onPress={action.onPress}
+              >
+                <Text
+                  style={
+                    action.variant === 'primary'
+                      ? styles.primaryButtonText
+                      : styles.secondaryButtonText
+                  }
+                >
+                  {action.label}
                 </Text>
-              )}
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
-              onPress={() => router.push('/(tabs)/account-register')}
-            >
-              <Text style={styles.secondaryButtonText}>
-                {'\u0625\u0646\u0634\u0627\u0621 \u062d\u0633\u0627\u0628 \u062c\u062f\u064a\u062f'}
-              </Text>
-            </Pressable>
+              </Pressable>
+            ))}
           </View>
         )}
 
         <View style={styles.menuSection}>
-          {profileLinks.map((item) => (
+          {visibleProfileLinks.map((item) => (
             <Pressable
               key={item.key}
               style={({ pressed }) => [styles.menuRow, pressed && styles.buttonPressed]}
@@ -389,22 +330,10 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginBottom: 4,
   },
-  input: {
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E8DCDD',
-    backgroundColor: '#FFF8FA',
-    paddingHorizontal: 12,
-    color: '#2F2527',
-    textAlign: 'right',
-  },
-  inputErrorBorder: {
-    borderColor: '#E53935',
-  },
-  errorText: {
-    color: '#B9442B',
-    fontSize: 13,
+  guestDescription: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#6D5B5F',
     textAlign: 'right',
   },
   primaryButton: {

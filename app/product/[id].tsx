@@ -101,17 +101,27 @@ export default function ProductDetailScreen() {
   const quantity = getItemQuantity(product.id);
   const selectedPointAvailable = getAvailableQuantityForSellingPoint(product, selectedSellingPoint?.id);
   const displayBrand = getDisplayBrand(product.brand);
+  const promptSelectSellingPoint = () => {
+    const title =
+      '\u0627\u062e\u062a\u064a\u0627\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639';
+    const message =
+      '\u064a\u0631\u062c\u0649 \u0627\u062e\u062a\u064a\u0627\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0623\u0648\u0644\u0627\u064b \u0642\u0628\u0644 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629.';
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const shouldOpenStore = window.confirm(`${title}\n\n${message}`);
+      if (shouldOpenStore) {
+        router.push('/(tabs)/store');
+      }
+      return;
+    }
+    Alert.alert(title, message, [
+      { text: '\u0627\u0641\u062a\u062d \u0627\u0644\u0645\u062a\u062c\u0631', onPress: () => router.push('/(tabs)/store') },
+      { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' },
+    ]);
+  };
 
   const handleAddToBasket = () => {
     if (!selectedSellingPoint?.id) {
-      Alert.alert(
-        '\u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631',
-        '\u064a\u0631\u062c\u0649 \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062a\u062c\u0631 \u0623\u0648\u0644\u0627\u064b \u0642\u0628\u0644 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629',
-        [
-          { text: '\u0627\u0641\u062a\u062d \u0627\u0644\u0645\u062a\u062c\u0631', onPress: () => router.push('/(tabs)/store') },
-          { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' },
-        ]
-      );
+      promptSelectSellingPoint();
       return;
     }
     if (selectedPointAvailable !== null && quantity >= selectedPointAvailable) {

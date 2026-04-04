@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { withClientSourceHeader } from '@/services/requestHeaders';
+import { debugFetch } from '@/services/httpDebug';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 
@@ -90,7 +91,7 @@ async function logTelemetry(data: {
   statusCode?: number;
 }): Promise<void> {
   try {
-    await fetch(`${API_BASE_URL}?action=log`, {
+    await debugFetch(`${API_BASE_URL}?action=log`, {
       method: 'POST',
       headers: withClientSourceHeader({
         'Accept': 'application/json',
@@ -101,7 +102,7 @@ async function logTelemetry(data: {
         type: 'notification_token',
         ...data,
       }),
-    });
+    }, 'Notifications');
   } catch (logError) {
     console.error('[Notifications] Failed to log telemetry:', logError);
   }
@@ -120,14 +121,14 @@ export async function registerPushTokenWithServer(pushToken: string): Promise<bo
   };
   
   try {
-    const response = await fetch(endpoint, {
+    const response = await debugFetch(endpoint, {
       method: 'POST',
       headers: withClientSourceHeader({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       }),
       body: JSON.stringify(payload),
-    });
+    }, 'Notifications');
     
     console.log('[Notifications] Registration response status:', response.status);
     

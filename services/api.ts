@@ -1,5 +1,6 @@
 import { mapAPIProductToProduct, Product } from '@/types/product';
 import { withClientSourceHeader } from '@/services/requestHeaders';
+import { debugFetch } from '@/services/httpDebug';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 const API_BASE = API_BASE_URL.replace(/\/+$/, '');
@@ -54,13 +55,13 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<F
     const url = `${API_BASE}/api/v1/products?${queryParams.toString()}`;
     console.log(`[API] Fetching from URL:`, url);
     
-    const response = await fetch(url, {
+    const response = await debugFetch(url, {
       method: 'GET',
       headers: withClientSourceHeader({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       }),
-    });
+    }, 'API');
     
     if (!response) {
       console.error(`[API] No response received`);
@@ -127,13 +128,13 @@ export async function fetchBrands(): Promise<Brand[]> {
   console.log(`[API] Fetching brands`);
   
   try {
-    const response = await fetch(`${API_BASE}/api/v1/brands`, {
+    const response = await debugFetch(`${API_BASE}/api/v1/brands`, {
       method: 'GET',
       headers: withClientSourceHeader({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       }),
-    });
+    }, 'API');
     
     if (!response) {
       console.error(`[API] No response received for brands`);
@@ -179,13 +180,13 @@ export async function fetchCategories(): Promise<Category[]> {
   console.log(`[API] Fetching categories`);
   
   try {
-    const response = await fetch(`${API_BASE_URL}?action=fetch-categories`, {
+    const response = await debugFetch(`${API_BASE_URL}?action=fetch-categories`, {
       method: 'GET',
       headers: withClientSourceHeader({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       }),
-    });
+    }, 'API');
     
     if (!response) {
       console.error(`[API] No response received for categories`);
@@ -227,7 +228,12 @@ export async function fetchCategories(): Promise<Category[]> {
   }
 }
 
-export async function checkAppUpdateStatus(appVersion: string): Promise<boolean> {
+export type AppUpdateCheckResult =
+  | { status: 'ok' }
+  | { status: 'update_required' }
+  | { status: 'network_error'; message: string };
+
+export async function checkAppUpdateStatus(appVersion: string): Promise<AppUpdateCheckResult> {
   console.log(`[API] Checking app update status - version: ${appVersion}`);
   
   try {
@@ -242,14 +248,14 @@ export async function checkAppUpdateStatus(appVersion: string): Promise<boolean>
       payload,
     });
 
-    const response = await fetch(endpoint, {
+    const response = await debugFetch(endpoint, {
       method: 'POST',
       headers: withClientSourceHeader({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       }),
       body: JSON.stringify(payload),
-    });
+    }, 'API');
     
     console.log(`[API] Update check response status:`, response.status);
 
@@ -261,8 +267,20 @@ export async function checkAppUpdateStatus(appVersion: string): Promise<boolean>
         errorBody = null;
       }
       console.log('[API] Version check non-OK response body:', errorBody);
+      if (response?.status === 503) {
+        return {
+          status: 'network_error',
+          message: '\u0627\u0644\u062e\u062f\u0645\u0629 \u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631\u0629 \u062d\u0627\u0644\u064a\u0627',
+        };
+      }
+      if (response?.status >= 500 || response?.status === 0 || !response) {
+        return {
+          status: 'network_error',
+          message: '\u062a\u0639\u0630\u0631 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0627\u0644\u062e\u0627\u062f\u0645',
+        };
+      }
       console.log(`[API] App update required`);
-      return false;
+      return { status: 'update_required' };
     }
 
     let result: any = null;
@@ -276,18 +294,21 @@ export async function checkAppUpdateStatus(appVersion: string): Promise<boolean>
     // Support multiple backend response shapes while defaulting to "up to date" on successful validation.
     if (result?.mustUpdate === true || result?.forceUpdate === true || result?.updateRequired === true) {
       console.log(`[API] App update required`);
-      return false;
+      return { status: 'update_required' };
     }
     if (result?.isValid === false || result?.isSupported === false || result?.upToDate === false) {
       console.log(`[API] App update required`);
-      return false;
+      return { status: 'update_required' };
     }
 
     console.log(`[API] App is up to date`);
-    return true;
+    return { status: 'ok' };
   } catch (error) {
     console.error('[API] Error checking update status:', error);
-    return false;
+    return {
+      status: 'network_error',
+      message: '\u062a\u0639\u0630\u0631 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0627\u0644\u062e\u0627\u062f\u0645',
+    };
   }
 }
 
@@ -300,13 +321,13 @@ export async function fetchProductById(id: string): Promise<Product | null> {
   }
   
   try {
-    const response = await fetch(`${API_BASE}/api/v1/products?product=${encodeURIComponent(id)}`, {
+    const response = await debugFetch(`${API_BASE}/api/v1/products?product=${encodeURIComponent(id)}`, {
       method: 'GET',
       headers: withClientSourceHeader({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       }),
-    });
+    }, 'API');
     
     if (!response) {
       console.error(`[API] No response received for product ${id}`);

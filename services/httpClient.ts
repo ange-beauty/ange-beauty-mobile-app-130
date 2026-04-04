@@ -1,4 +1,5 @@
 import { withClientSourceHeader } from '@/services/requestHeaders';
+import { debugFetch } from '@/services/httpDebug';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 const API_BASE = API_BASE_URL.replace(/\/+$/, '');
@@ -30,13 +31,13 @@ async function safeJsonParse(response: Response): Promise<any> {
 
 async function callRefresh(): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+    const response = await debugFetch(`${API_BASE}/api/v1/auth/refresh`, {
       method: 'POST',
       headers: withClientSourceHeader({
         Accept: 'application/json',
       }),
       credentials: 'include',
-    });
+    }, 'HTTP');
     return response.ok;
   } catch {
     return false;
@@ -59,14 +60,14 @@ export async function apiFetch<T = any>(
   const { skipRefreshRetry = false, headers, ...rest } = options;
 
   const doRequest = () =>
-    fetch(`${API_BASE}${path}`, {
+    debugFetch(`${API_BASE}${path}`, {
       credentials: 'include',
       headers: withClientSourceHeader({
         Accept: 'application/json',
         ...headers,
       } as Record<string, string>),
       ...rest,
-    });
+    }, 'HTTP');
 
   let response = await doRequest();
 

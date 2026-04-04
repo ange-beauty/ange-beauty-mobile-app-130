@@ -7,6 +7,8 @@ import {
   me as authMe,
   register as authRegister,
   sendEmailVerification as authSendEmailVerification,
+  updateMe as authUpdateMe,
+  type UpdateProfilePayload,
 } from '@/services/auth';
 import { ApiHttpError } from '@/services/httpClient';
 
@@ -16,7 +18,16 @@ export type AuthUser = {
   id: string;
   name: string;
   email: string;
+  firstName: string;
+  lastName: string;
   phone?: string;
+  addressLine: string;
+  addressComplement: string;
+  city: string;
+  provence: string;
+  zipCode: string;
+  country: string;
+  favoriteSellingPoint: string;
   emailVerified: boolean;
 };
 
@@ -63,7 +74,16 @@ function mapMeToAuthUser(payload: any): AuthUser | null {
     id: id || email,
     name,
     email,
+    firstName,
+    lastName,
     phone,
+    addressLine: (source.address_line || source.addressLine || '').toString().trim(),
+    addressComplement: (source.address_complement || source.addressComplement || '').toString().trim(),
+    city: (source.city || '').toString().trim(),
+    provence: (source.provence || source.province || '').toString().trim(),
+    zipCode: (source.zip_code || source.zipCode || '').toString().trim(),
+    country: (source.country || '').toString().trim(),
+    favoriteSellingPoint: (source.favorite_selling_point || source.favoriteSellingPoint || '').toString().trim(),
     emailVerified,
   };
 }
@@ -200,6 +220,52 @@ export const [AuthContext, useAuth] = createContextHook(() => {
     }
   }, []);
 
+  const updateProfile = useCallback(
+    async (updates: Partial<UpdateProfilePayload>) => {
+      if (!user) {
+        return {
+          success: false,
+          message:
+            '\u062a\u0639\u0630\u0631 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062d\u0633\u0627\u0628',
+        };
+      }
+
+      const payload: UpdateProfilePayload = {
+        first_name: updates.first_name ?? user.firstName ?? '',
+        last_name: updates.last_name ?? user.lastName ?? '',
+        telephone: updates.telephone ?? user.phone ?? '',
+        address_line: updates.address_line ?? user.addressLine ?? '',
+        address_complement: updates.address_complement ?? user.addressComplement ?? '',
+        city: updates.city ?? user.city ?? '',
+        provence: updates.provence ?? user.provence ?? '',
+        zip_code: updates.zip_code ?? user.zipCode ?? '',
+        country: updates.country ?? user.country ?? '',
+        favorite_selling_point: updates.favorite_selling_point ?? user.favoriteSellingPoint ?? '',
+      };
+
+      try {
+        await authUpdateMe(payload);
+        const profile = await resolveSession();
+        if (!profile) {
+          return {
+            success: false,
+            message:
+              '\u062a\u0639\u0630\u0631 \u062a\u062d\u062f\u064a\u062b \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062d\u0633\u0627\u0628',
+          };
+        }
+        return { success: true, message: '' };
+      } catch (error: any) {
+        const message =
+          error instanceof ApiHttpError
+            ? error.body?.message ||
+              '\u062a\u0639\u0630\u0631 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a'
+            : '\u062a\u0639\u0630\u0631 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0627\u0644\u062e\u0627\u062f\u0645';
+        return { success: false, message };
+      }
+    },
+    [resolveSession, user]
+  );
+
   return useMemo(
     () => ({
       user,
@@ -209,8 +275,9 @@ export const [AuthContext, useAuth] = createContextHook(() => {
       register,
       logout,
       resendEmailVerification,
+      updateProfile,
       refreshSession: resolveSession,
     }),
-    [user, isLoading, login, register, logout, resendEmailVerification, resolveSession]
+    [user, isLoading, login, register, logout, resendEmailVerification, updateProfile, resolveSession]
   );
 });
