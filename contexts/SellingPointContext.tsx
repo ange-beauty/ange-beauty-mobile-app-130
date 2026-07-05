@@ -1,11 +1,10 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { debugFetch } from '@/services/httpDebug';
 import { withClientSourceHeader } from '@/services/requestHeaders';
 
-const SELECTED_SELLING_POINT_KEY = 'selected_selling_point';
+const DEFAULT_SELLING_POINT_ID = '0fTUIooeOt-sp';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 const API_BASE = API_BASE_URL.replace(/\/+$/, '');
 
@@ -18,8 +17,6 @@ export interface SellingPoint {
 }
 
 export const [SellingPointContext, useSellingPoint] = createContextHook(() => {
-  const [selectedSellingPointId, setSelectedSellingPointId] = useState<string>('');
-
   const sellingPointsQuery = useQuery({
     queryKey: ['selling-points'],
     queryFn: async (): Promise<SellingPoint[]> => {
@@ -56,39 +53,31 @@ export const [SellingPointContext, useSellingPoint] = createContextHook(() => {
     },
   });
 
-  useEffect(() => {
-    (async () => {
-      const stored = await AsyncStorage.getItem(SELECTED_SELLING_POINT_KEY);
-      if (stored) {
-        setSelectedSellingPointId(stored);
-      }
-    })();
-  }, []);
-
-  const setSelectedSellingPointIdAndPersist = useCallback(async (id: string) => {
-    setSelectedSellingPointId(id);
-    if (id) {
-      await AsyncStorage.setItem(SELECTED_SELLING_POINT_KEY, id);
-    } else {
-      await AsyncStorage.removeItem(SELECTED_SELLING_POINT_KEY);
-    }
+  const setSelectedSellingPointIdAndPersist = useCallback(async (_id: string) => {
+    // Selling point is fixed by business rule.
   }, []);
 
   const sellingPoints = sellingPointsQuery.data || [];
-  const selectedSellingPoint = sellingPoints.find((p) => p.id === selectedSellingPointId) || null;
+  const selectedSellingPoint =
+    sellingPoints.find((p) => p.id === DEFAULT_SELLING_POINT_ID) || {
+      id: DEFAULT_SELLING_POINT_ID,
+      name_ar: null,
+      name_en: null,
+      city: null,
+      country: null,
+    };
 
   return useMemo(
     () => ({
       sellingPoints,
       selectedSellingPoint,
-      selectedSellingPointId,
+      selectedSellingPointId: DEFAULT_SELLING_POINT_ID,
       setSelectedSellingPointId: setSelectedSellingPointIdAndPersist,
       isLoadingSellingPoints: sellingPointsQuery.isLoading,
     }),
     [
       sellingPoints,
       selectedSellingPoint,
-      selectedSellingPointId,
       setSelectedSellingPointIdAndPersist,
       sellingPointsQuery.isLoading,
     ]

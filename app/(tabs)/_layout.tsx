@@ -102,10 +102,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="brands"
+        options={{
+          title: '\u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062a',
+          tabBarIcon: ({ color, size }) => <Feather name="tag" color={color} size={28} />,
+        }}
+      />
+      <Tabs.Screen
         name="store"
         options={{
-          title: '\u0627\u0644\u0645\u062a\u062c\u0631',
-          tabBarIcon: ({ color, size }) => <Feather name="map-pin" color={color} size={28} />,
+          href: null,
         }}
       />
       <Tabs.Screen

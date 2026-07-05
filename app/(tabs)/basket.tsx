@@ -19,6 +19,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
+import ProductPrice from '@/components/ProductPrice';
 
 import { useBasket } from '@/contexts/BasketContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
@@ -52,7 +53,6 @@ export default function BasketScreen() {
 
   const orderMutation = useMutation({
     mutationFn: async (orderData: any) => {
-      console.log('[Order] Submitting order:', orderData);
 
       const path = '/api/v1/selling-orders/client-initialization';
       const response = await debugFetch(`${API_BASE}${path}`, {
@@ -64,7 +64,6 @@ export default function BasketScreen() {
         body: JSON.stringify(orderData),
       }, 'Order');
 
-      console.log('[Order] Response status:', response.status);
 
       if (!response.ok) {
         const rawError = await response.text();
@@ -90,11 +89,9 @@ export default function BasketScreen() {
             '\u062a\u0645 \u0631\u0641\u0636 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628. \u064a\u0631\u062c\u0649 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649'
         );
       }
-      console.log('[Order] Order submitted successfully:', result);
       return result;
     },
     onSuccess: (data) => {
-      console.log('[Order] Order success:', data);
       const successTitle = '\u062a\u0645 \u0627\u0633\u062a\u0644\u0627\u0645 \u0637\u0644\u0628\u0643\u064a';
       const successMessage =
         data?.message ||
@@ -135,26 +132,21 @@ export default function BasketScreen() {
     })),
   });
 
-  console.log('[Basket] basket:', basket);
-  console.log('[Basket] productQueries:', productQueries.map(q => ({ isLoading: q.isLoading, hasData: !!q.data, error: q.error })));
 
   const isLoading = productQueries.some(query => query.isLoading);
   const hasErrors = productQueries.some(query => query.error);
   const productsData = productQueries.map(query => query.data);
 
-  console.log('[Basket] isLoading:', isLoading, 'hasErrors:', hasErrors);
 
   const basketProducts = React.useMemo(() => {
     const products = basket.map((basketItem, index) => {
       const product = productsData[index];
       if (!product) {
-        console.log('[Basket] No product data for basket item:', basketItem.productId);
         return null;
       }
       return { ...product, quantity: basketItem.quantity };
     }).filter((p): p is (Product & { quantity: number }) => p !== null);
     
-    console.log('[Basket] basketProducts:', products.length, 'items');
     return products;
   }, [basket, productsData]);
 
@@ -200,7 +192,7 @@ export default function BasketScreen() {
         <View style={styles.productDetails}>
           {!!displayBrand && <Text style={styles.brandText}>{displayBrand}</Text>}
           <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-          <Text style={styles.productPrice}>{formatPrice(price)}</Text>
+          <ProductPrice product={item} priceStyle={styles.productPrice} />
 
           <View style={styles.quantityControls}>
             <Pressable
@@ -974,7 +966,7 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
   },
   totalRow: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
@@ -983,11 +975,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
     color: '#666',
+    textAlign: 'right' as const,
+    writingDirection: 'rtl',
   },
   totalAmount: {
     fontSize: 24,
     fontWeight: '700' as const,
     color: '#1A1A1A',
+    textAlign: 'left' as const,
   },
   checkoutButton: {
     backgroundColor: '#1A1A1A',
@@ -1042,7 +1037,7 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
   },
   modalHeader: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -1068,7 +1063,7 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   orderSummary: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#F8F8F8',
@@ -1080,11 +1075,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
     color: '#666',
+    textAlign: 'right' as const,
+    writingDirection: 'rtl',
   },
   summaryAmount: {
     fontSize: 20,
     fontWeight: '700' as const,
     color: '#1A1A1A',
+    textAlign: 'left' as const,
   },
   formGroup: {
     marginBottom: 20,
@@ -1094,6 +1092,8 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#1A1A1A',
     marginBottom: 8,
+    textAlign: 'right' as const,
+    writingDirection: 'rtl',
   },
   input: {
     backgroundColor: '#F8F8F8',
@@ -1105,10 +1105,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#1A1A1A',
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   pickerInput: {
     minHeight: 52,
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -1166,6 +1167,8 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     fontSize: 12,
     fontWeight: '500' as const,
+    textAlign: 'right' as const,
+    writingDirection: 'rtl',
   },
   textArea: {
     minHeight: 80,

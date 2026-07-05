@@ -35,6 +35,7 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.ange.beauty.cosmetic";
+const appLogo = require("@/assets/images/icon.png");
 
 function RootLayoutNav() {
   return (
@@ -109,7 +110,7 @@ function CustomSplashScreen({ onFinish }: { onFinish: () => void }) {
       >
         <View style={splashStyles.logoContainer}>
           <Image
-            source={{ uri: "https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/rqerhironvgzmc9yhq77s" }}
+            source={appLogo}
             style={splashStyles.logo}
             resizeMode="contain"
           />
@@ -282,15 +283,12 @@ export default function RootLayout() {
 
   const runUpdateCheck = useCallback(async () => {
     if (Platform.OS === "web") {
-      console.log("[RootLayout] Skipping update check for web platform");
       setIsCheckingUpdate(false);
       return;
     }
 
     const appVersion = Constants.expoConfig?.version || "1.0.0";
-    console.log("[RootLayout] Checking for app updates... Current version:", appVersion);
     const result = await checkAppUpdateStatus(appVersion);
-    console.log("[RootLayout] Update check result:", result);
     setUpdateRequired(result.status === "update_required");
     setUpdateCheckError(result.status === "network_error" ? result.message : null);
     setIsCheckingUpdate(false);
@@ -316,15 +314,12 @@ export default function RootLayout() {
   useEffect(() => {
     async function setupPushNotifications() {
       if (Platform.OS === "web") {
-        console.log("[RootLayout] Skipping push notifications setup for web platform");
         return;
       }
 
-      console.log("[RootLayout] Setting up push notifications...");
       const pushToken = await registerForPushNotifications();
 
       if (pushToken) {
-        console.log("[RootLayout] Registering push token with server...");
         await registerPushTokenWithServer(pushToken);
       }
     }
@@ -336,7 +331,7 @@ export default function RootLayout() {
       <View style={splashStyles.container}>
         <View style={splashStyles.logoContainer}>
           <Image
-            source={{ uri: "https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/rqerhironvgzmc9yhq77s" }}
+            source={appLogo}
             style={splashStyles.logo}
             resizeMode="contain"
           />

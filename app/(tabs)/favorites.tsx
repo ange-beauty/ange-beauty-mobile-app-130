@@ -21,10 +21,10 @@ import { useBasket } from '@/contexts/BasketContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
 import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
+import ProductPrice from '@/components/ProductPrice';
 import { fetchProductById } from '@/services/api';
 import { Product } from '@/types/product';
 import { getDisplayBrand } from '@/utils/brand';
-import { formatPrice } from '@/utils/formatPrice';
 
 const getNumColumns = () => {
   const screenWidth = Dimensions.get('window').width;
@@ -64,19 +64,16 @@ export default function FavoritesScreen() {
     ]);
   }, [router]);
 
-  console.log('[Favorites] favorites:', favorites);
 
   const { data: productsData, isLoading, error } = useQuery({
     queryKey: ['favorite-products', favorites],
     queryFn: async () => {
       if (favorites.length === 0) return [];
       
-      console.log('[Favorites] Fetching', favorites.length, 'favorite products');
       
       const promises = favorites.map(async (id) => {
         try {
           const product = await fetchProductById(id);
-          console.log('[Favorites] Fetched product:', id, ':', product?.name);
           return product;
         } catch (error) {
           console.error(`[Favorites] Error fetching product ${id}:`, error);
@@ -87,13 +84,11 @@ export default function FavoritesScreen() {
       const results = await Promise.all(promises);
       const validProducts = results.filter((p): p is Product => p !== null);
       
-      console.log('[Favorites] Successfully fetched', validProducts.length, 'products');
       return validProducts;
     },
     enabled: favorites.length > 0,
   });
 
-  console.log('[Favorites] productsData:', productsData?.length, 'items, isLoading:', isLoading, 'error:', error);
 
   const favoriteProducts = productsData || [];
 
@@ -175,7 +170,7 @@ export default function FavoritesScreen() {
         <View style={styles.productInfo}>
           {!!displayBrand && <Text style={styles.brandText}>{displayBrand}</Text>}
           <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-          <Text style={styles.price}>{formatPrice(item.price)}</Text>
+          <ProductPrice product={item} priceStyle={styles.price} />
           <Pressable 
             style={({ pressed }) => [
               styles.addToBasketButton,

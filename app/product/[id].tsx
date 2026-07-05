@@ -21,6 +21,7 @@ import { WebView } from 'react-native-webview';
 
 import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
+import ProductPrice from '@/components/ProductPrice';
 import { beautyTheme } from '@/constants/uiTheme';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
@@ -28,7 +29,7 @@ import { useSellingPoint } from '@/contexts/SellingPointContext';
 import { fetchProductById } from '@/services/api';
 import { getAvailableQuantityForSellingPoint } from '@/utils/availability';
 import { getDisplayBrand } from '@/utils/brand';
-import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
+import { toArabicNumerals } from '@/utils/formatPrice';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -73,8 +74,8 @@ export default function ProductDetailScreen() {
     return (
       <View style={styles.container}>
         <FloralBackdrop subtle />
-        <BrandedHeader topInset={insets.top} showSearch={false} />
-        <View style={styles.stateContainer}>
+        <BrandedHeader topInset={insets.top} floating />
+        <View style={[styles.stateContainer, { paddingTop: insets.top + 70 }]}>
           <ActivityIndicator size="large" color={beautyTheme.colors.accentDark} />
           <Text style={styles.stateText}>{'\u062c\u0627\u0631\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u0646\u062a\u062c...'}</Text>
         </View>
@@ -86,8 +87,8 @@ export default function ProductDetailScreen() {
     return (
       <View style={styles.container}>
         <FloralBackdrop subtle />
-        <BrandedHeader topInset={insets.top} showSearch={false} />
-        <View style={styles.stateContainer}>
+        <BrandedHeader topInset={insets.top} floating />
+        <View style={[styles.stateContainer, { paddingTop: insets.top + 70 }]}>
           <Text style={styles.stateTitle}>{'\u0644\u0645 \u064a\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 \u0627\u0644\u0645\u0646\u062a\u062c'}</Text>
           <Pressable style={({ pressed }) => [styles.retryButton, pressed && styles.buttonPressed]} onPress={() => router.back()}>
             <Text style={styles.retryButtonText}>{'\u0639\u0648\u062f\u0629'}</Text>
@@ -137,7 +138,7 @@ export default function ProductDetailScreen() {
   return (
     <View style={styles.container}>
       <FloralBackdrop subtle />
-      <BrandedHeader topInset={insets.top} showSearch={false} />
+      <BrandedHeader topInset={insets.top} floating />
 
       <ScrollView
         style={styles.scrollView}
@@ -145,6 +146,7 @@ export default function ProductDetailScreen() {
           styles.scrollContent,
           {
             paddingHorizontal: horizontalPadding,
+            paddingTop: insets.top + 70,
             paddingBottom: isWeb ? 24 : 180,
             maxWidth: maxContentWidth,
             width: '100%',
@@ -210,7 +212,7 @@ export default function ProductDetailScreen() {
 
             <View style={styles.priceCard}>
               <Text style={styles.priceLabel}>{'\u0627\u0644\u0633\u0639\u0631'}</Text>
-              <Text style={styles.priceValue}>{formatPrice(product.price)}</Text>
+              <ProductPrice product={product} priceStyle={styles.priceValue} />
               {selectedSellingPoint ? (
                 <Text style={[styles.availabilityText, selectedPointAvailable === null ? styles.notAvailable : styles.available]}>
                   {selectedPointAvailable === null
@@ -305,7 +307,7 @@ export default function ProductDetailScreen() {
       >
         <View>
           <Text style={styles.bottomLabel}>{'\u0627\u0644\u0633\u0639\u0631'}</Text>
-          <Text style={styles.bottomPrice}>{formatPrice(product.price)}</Text>
+          <ProductPrice product={product} priceStyle={styles.bottomPrice} />
         </View>
         <Pressable style={({ pressed }) => [styles.addButton, pressed && styles.buttonPressed]} onPress={handleAddToBasket}>
           <Text style={styles.addText}>
@@ -491,6 +493,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: beautyTheme.colors.textMuted,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   priceValue: {
     marginTop: 3,
@@ -558,7 +561,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.95)',
     paddingHorizontal: 16,
     paddingTop: 10,
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -573,6 +576,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: beautyTheme.colors.textMuted,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   bottomPrice: {
     marginTop: 2,

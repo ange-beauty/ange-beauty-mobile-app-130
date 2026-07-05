@@ -17,14 +17,120 @@ export interface Category {
   name_en?: string;
 }
 
+export interface OfferTarget {
+  offer: string;
+  target_aggregate_type: string;
+  target_aggregate_id: string;
+  is_active: boolean;
+}
+
+export interface Offer {
+  id: string;
+  name: string;
+  description: string;
+  offerType: string;
+  offerValue: number;
+  startsAt: string;
+  endsAt: string;
+  isActive: boolean;
+  priority: number;
+  image: string;
+  targets: OfferTarget[];
+}
+
 export interface FetchProductsParams {
   page?: number;
   limit?: number;
   keyword?: string;
+  product?: string;
   category?: string;
   brand?: string;
   barcode?: string;
   highlighted?: number | boolean;
+}
+
+function buildOfferHeroImageUrl(apiOffer: any): string {
+  const heroImage = typeof apiOffer?.hero_image === 'string' ? apiOffer.hero_image.trim() : '';
+  if (!heroImage) return '';
+  if (/^https?:\/\//i.test(heroImage)) return heroImage;
+
+  const stableVersion =
+    typeof apiOffer.aggregate_version === 'number'
+      ? apiOffer.aggregate_version.toString()
+      : apiOffer.updated_at || undefined;
+  const versionQuery = stableVersion ? `?v=${encodeURIComponent(stableVersion)}` : '';
+
+  return `https://images.angebeauty.net/angeapi/cdn/images/${apiOffer.id}/${heroImage}${versionQuery}`;
+}
+
+function mapAPIOfferToOffer(apiOffer: any): Offer | null {
+  if (!apiOffer?.id) return null;
+
+  const rawValue =
+    typeof apiOffer.offer_value === 'number'
+      ? apiOffer.offer_value
+      : typeof apiOffer.offer_value === 'string'
+        ? parseFloat(apiOffer.offer_value)
+        : 0;
+
+  return {
+    id: apiOffer.id.toString(),
+    name: apiOffer.name_ar || apiOffer.name_en || '',
+    description: apiOffer.description_ar || apiOffer.description_en || '',
+    offerType: apiOffer.offer_type || '',
+    offerValue: Number.isFinite(rawValue) ? rawValue : 0,
+    startsAt: apiOffer.starts_at || '',
+    endsAt: apiOffer.ends_at || '',
+    isActive: apiOffer.is_active === true,
+    priority: typeof apiOffer.priority === 'number' ? apiOffer.priority : 0,
+    image: buildOfferHeroImageUrl(apiOffer),
+    targets: Array.isArray(apiOffer.targets) ? apiOffer.targets : [],
+  };
+}
+
+export async function fetchPublicOffers(): Promise<Offer[]> {
+
+  try {
+    const response = await debugFetch(`${API_BASE}/api/v1/offers/public`, {
+      method: 'GET',
+      headers: withClientSourceHeader({
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }),
+    }, 'API');
+
+    if (!response) {
+      console.error('[API] No response received for public offers');
+      return [];
+    }
+
+    if (!response.ok) {
+      console.error(`[API] Failed to fetch public offers - Status: ${response.status}`);
+      return [];
+    }
+
+    let result;
+    try {
+      result = await response.json();
+    } catch (jsonError) {
+      console.error('[API] Error parsing public offers JSON:', jsonError);
+      return [];
+    }
+
+    if (!result || result.success !== true) {
+      console.error('[API] Invalid public offers response status');
+      return [];
+    }
+
+    const offers = Array.isArray(result.data) ? result.data : [];
+    return offers
+      .map(mapAPIOfferToOffer)
+      .filter((offer: Offer | null): offer is Offer => !!offer && offer.isActive)
+      .sort((a: Offer, b: Offer) => a.priority - b.priority);
+  } catch (error) {
+    console.error('[API] Error fetching public offers:', error);
+    return [];
+  }
 }
 
 export interface FetchProductsResponse {
@@ -34,8 +140,7 @@ export interface FetchProductsResponse {
 }
 
 export async function fetchProducts(params: FetchProductsParams = {}): Promise<FetchProductsResponse> {
-  const { page = 1, limit = 50, keyword, category, brand, barcode, highlighted } = params;
-  console.log(`[API] Fetching products - params:`, params);
+  const { page = 1, limit = 50, keyword, product, category, brand, barcode, highlighted } = params;
   
   try {
     const queryParams = new URLSearchParams();
@@ -45,6 +150,7 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<F
     queryParams.append('products_with_brand', 'true');
     
     if (keyword) queryParams.append('keyword', keyword);
+    if (product) queryParams.append('product', product);
     if (category) queryParams.append('category', category);
     if (brand) queryParams.append('brand', brand);
     if (barcode) queryParams.append('barcode', barcode);
@@ -53,7 +159,6 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<F
     }
     
     const url = `${API_BASE}/api/v1/products?${queryParams.toString()}`;
-    console.log(`[API] Fetching from URL:`, url);
     
     const response = await debugFetch(url, {
       method: 'GET',
@@ -81,7 +186,6 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<F
       return { products: [], hasMore: false, totalRows: 0 };
     }
     
-    console.log(`[API] Successfully fetched products response:`, result);
     
     if (!result || result.success !== true) {
       console.error(`[API] Invalid response status`);
@@ -89,7 +193,6 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<F
     }
     
     if (!result.data) {
-      console.log(`[API] No data in response`);
       return { products: [], hasMore: false, totalRows: 0 };
     }
     
@@ -109,7 +212,6 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<F
       (typeof result.nextPage === 'number' && result.nextPage > page) ||
       (totalRows > 0 ? page * limit < totalRows : products.length === limit);
     
-    console.log(`[API] Successfully fetched ${products.length} products. Has more: ${hasMore}, Total: ${totalRows}`);
     
     const mappedProducts = products.map(mapAPIProductToProduct).filter((product: Product) => product && product.id);
     
@@ -125,7 +227,6 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<F
 }
 
 export async function fetchBrands(): Promise<Brand[]> {
-  console.log(`[API] Fetching brands`);
   
   try {
     const response = await debugFetch(`${API_BASE}/api/v1/brands`, {
@@ -154,7 +255,6 @@ export async function fetchBrands(): Promise<Brand[]> {
       return [];
     }
     
-    console.log(`[API] Brands response:`, result);
     
     if (!result || result.status !== 'success') {
       console.error(`[API] Invalid brands response status`);
@@ -162,12 +262,10 @@ export async function fetchBrands(): Promise<Brand[]> {
     }
     
     if (!result.data) {
-      console.log(`[API] No brands data in response`);
       return [];
     }
     
     const brands = Array.isArray(result.data) ? result.data : [];
-    console.log(`[API] Successfully fetched ${brands.length} brands`);
     
     return brands.filter((brand: any) => brand && brand.id && brand.brand_name_ar);
   } catch (error) {
@@ -177,7 +275,6 @@ export async function fetchBrands(): Promise<Brand[]> {
 }
 
 export async function fetchCategories(): Promise<Category[]> {
-  console.log(`[API] Fetching categories`);
   
   try {
     const response = await debugFetch(`${API_BASE_URL}?action=fetch-categories`, {
@@ -206,7 +303,6 @@ export async function fetchCategories(): Promise<Category[]> {
       return [];
     }
     
-    console.log(`[API] Categories response:`, result);
     
     if (!result || result.status !== 'success') {
       console.error(`[API] Invalid categories response status`);
@@ -214,12 +310,10 @@ export async function fetchCategories(): Promise<Category[]> {
     }
     
     if (!result.data) {
-      console.log(`[API] No categories data in response (empty array expected)`);
       return [];
     }
     
     const categories = Array.isArray(result.data) ? result.data : [];
-    console.log(`[API] Successfully fetched ${categories.length} categories`);
     
     return categories.filter((category: any) => category && category.id && category.name_ar);
   } catch (error) {
@@ -234,19 +328,11 @@ export type AppUpdateCheckResult =
   | { status: 'network_error'; message: string };
 
 export async function checkAppUpdateStatus(appVersion: string): Promise<AppUpdateCheckResult> {
-  console.log(`[API] Checking app update status - version: ${appVersion}`);
-  
   try {
     const endpoint = `${API_BASE}/api/v1/auth/client-version/validate`;
     const payload = {
       version: appVersion,
     };
-
-    console.log('[API] Version check request:', {
-      endpoint,
-      method: 'POST',
-      payload,
-    });
 
     const response = await debugFetch(endpoint, {
       method: 'POST',
@@ -256,17 +342,8 @@ export async function checkAppUpdateStatus(appVersion: string): Promise<AppUpdat
       }),
       body: JSON.stringify(payload),
     }, 'API');
-    
-    console.log(`[API] Update check response status:`, response.status);
 
     if (!response || !response.ok) {
-      let errorBody: any = null;
-      try {
-        errorBody = await response.json();
-      } catch {
-        errorBody = null;
-      }
-      console.log('[API] Version check non-OK response body:', errorBody);
       if (response?.status === 503) {
         return {
           status: 'network_error',
@@ -279,7 +356,6 @@ export async function checkAppUpdateStatus(appVersion: string): Promise<AppUpdat
           message: '\u062a\u0639\u0630\u0631 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0627\u0644\u062e\u0627\u062f\u0645',
         };
       }
-      console.log(`[API] App update required`);
       return { status: 'update_required' };
     }
 
@@ -289,19 +365,20 @@ export async function checkAppUpdateStatus(appVersion: string): Promise<AppUpdat
     } catch {
       result = null;
     }
-    console.log('[API] Version check response body:', result);
 
-    // Support multiple backend response shapes while defaulting to "up to date" on successful validation.
+    if (result?.success === true && result?.data === false) {
+      return { status: 'update_required' };
+    }
+    if (result?.success === true && result?.data === true) {
+      return { status: 'ok' };
+    }
     if (result?.mustUpdate === true || result?.forceUpdate === true || result?.updateRequired === true) {
-      console.log(`[API] App update required`);
       return { status: 'update_required' };
     }
     if (result?.isValid === false || result?.isSupported === false || result?.upToDate === false) {
-      console.log(`[API] App update required`);
       return { status: 'update_required' };
     }
 
-    console.log(`[API] App is up to date`);
     return { status: 'ok' };
   } catch (error) {
     console.error('[API] Error checking update status:', error);
@@ -313,7 +390,6 @@ export async function checkAppUpdateStatus(appVersion: string): Promise<AppUpdat
 }
 
 export async function fetchProductById(id: string): Promise<Product | null> {
-  console.log(`[API] Fetching product with id: ${id}`);
   
   if (!id) {
     console.error(`[API] Invalid product id`);
@@ -347,7 +423,6 @@ export async function fetchProductById(id: string): Promise<Product | null> {
       return null;
     }
     
-    console.log(`[API] Product details response:`, result);
     
     const isSuccess = result?.success === true || result?.status === 'success';
     if (!isSuccess) {
@@ -366,7 +441,6 @@ export async function fetchProductById(id: string): Promise<Product | null> {
       return null;
     }
     const productName = apiProduct?.name_ar || apiProduct?.name_en || 'Unknown';
-    console.log(`[API] Successfully fetched product: ${productName}`);
     
     const mappedProduct = mapAPIProductToProduct(apiProduct);
     

@@ -19,10 +19,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
+import ProductPrice from '@/components/ProductPrice';
 import { beautyTheme } from '@/constants/uiTheme';
-import { fetchProducts } from '@/services/api';
+import { fetchProducts, fetchPublicOffers, Offer } from '@/services/api';
 import { Product } from '@/types/product';
-import { formatPrice } from '@/utils/formatPrice';
 import { getDisplayBrand } from '@/utils/brand';
 
 export default function HomeScreen() {
@@ -47,53 +47,63 @@ export default function HomeScreen() {
     queryFn: () => fetchProducts({ page: 1, limit: 30 }),
   });
   const {
+    data: offersData,
+    isLoading: isLoadingOffers,
+    error: offersError,
+    refetch: refetchOffers,
+  } = useQuery({
+    queryKey: ['public-offers'],
+    queryFn: fetchPublicOffers,
+  });
+  const {
     data: highlightedData,
-    isLoading: isLoadingHighlights,
-    error: highlightsError,
-    refetch: refetchHighlights,
+    isLoading: isLoadingHighlighted,
+    error: highlightedError,
+    refetch: refetchHighlighted,
   } = useQuery({
     queryKey: ['home-highlighted-products'],
     queryFn: () => fetchProducts({ page: 1, limit: 10, highlighted: 1 }),
   });
 
   const products = useMemo(() => data?.products || [], [data?.products]);
-  const highlightProducts = useMemo(
-    () => (highlightedData?.products || []).slice(0, 6),
+  const offers = useMemo(() => (offersData || []).slice(0, 6), [offersData]);
+  const highlightedProducts = useMemo(
+    () => (highlightedData?.products || []).slice(0, 10),
     [highlightedData?.products]
   );
   const mostSellingProducts = useMemo(() => products.slice(6, 14), [products]);
-  const saleProducts = useMemo(() => products.slice(14, 20), [products]);
-  const isHomeLoading = isLoading || isLoadingHighlights;
-  const hasHomeError = !!error || !!highlightsError;
-  const showHighlights = !highlightsError && highlightProducts.length > 0;
+  const isHomeLoading = isLoading || isLoadingOffers || isLoadingHighlighted;
+  const hasHomeError = !!error;
+  const showHighlights = !offersError && offers.length > 0;
+  const showHighlightedProducts = !highlightedError && highlightedProducts.length > 0;
 
   useEffect(() => {
     setActiveHighlightIndex(0);
     if (showHighlights) {
       highlightScrollRef.current?.scrollTo({ x: highlightStartOffset, animated: false });
     }
-  }, [showHighlights, highlightProducts.length, highlightStartOffset]);
+  }, [showHighlights, offers.length, highlightStartOffset]);
 
   useEffect(() => {
-    if (!showHighlights || highlightProducts.length < 2) {
+    if (!showHighlights || offers.length < 2) {
       return;
     }
 
     const timer = setInterval(() => {
       setActiveHighlightIndex((prev) => {
-        const next = (prev + 1) % highlightProducts.length;
+        const next = (prev + 1) % offers.length;
         highlightScrollRef.current?.scrollTo({ x: highlightStartOffset + next * highlightStep, animated: true });
         return next;
       });
     }, 3500);
 
     return () => clearInterval(timer);
-  }, [showHighlights, highlightProducts.length, highlightStep, highlightStartOffset]);
+  }, [showHighlights, offers.length, highlightStep, highlightStartOffset]);
 
   return (
     <View style={styles.container}>
       <FloralBackdrop subtle />
-      <BrandedHeader topInset={insets.top} showBackButton={false} />
+      <BrandedHeader topInset={insets.top} showBackButton={false} floating />
 
       <ScrollView
         style={styles.scroll}
@@ -101,6 +111,7 @@ export default function HomeScreen() {
           styles.content,
           {
             paddingHorizontal: horizontalPadding,
+            paddingTop: insets.top + 70,
             maxWidth: maxContentWidth,
             width: '100%',
             alignSelf: 'center',
@@ -109,10 +120,11 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isLoading || isLoadingHighlights}
+            refreshing={isLoading || isLoadingOffers || isLoadingHighlighted}
             onRefresh={() => {
               refetch();
-              refetchHighlights();
+              refetchOffers();
+              refetchHighlighted();
             }}
             tintColor={beautyTheme.colors.accentDark}
             colors={[beautyTheme.colors.accentDark]}
@@ -131,7 +143,8 @@ export default function HomeScreen() {
               style={styles.retryButton}
               onPress={() => {
                 refetch();
-                refetchHighlights();
+                refetchOffers();
+                refetchHighlighted();
               }}
             >
               <Text style={styles.retryButtonText}>{'\u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629'}</Text>
@@ -154,20 +167,20 @@ export default function HomeScreen() {
                     onMomentumScrollEnd={(event) => {
                       const offsetX = event.nativeEvent.contentOffset.x;
                       const index = Math.round((offsetX - highlightStartOffset) / highlightStep);
-                      const boundedIndex = Math.min(Math.max(index, 0), highlightProducts.length - 1);
+                      const boundedIndex = Math.min(Math.max(index, 0), offers.length - 1);
                       setActiveHighlightIndex(boundedIndex);
                     }}
                   >
-                    {highlightProducts.map((item) => (
+                    {offers.map((item) => (
                       <Pressable
                         key={item.id}
                         style={[styles.highlightCard, { width: highlightWidth, height: highlightHeight }]}
-                        onPress={() => router.push(`/product/${item.id}`)}
+                        onPress={() => router.push(getOfferHref(item))}
                       >
                         <Image
                           source={{ uri: item.image || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=800&fit=crop' }}
                           style={styles.highlightImage}
-                          resizeMode="contain"
+                          resizeMode={item.image ? 'cover' : 'contain'}
                         />
                         <LinearGradient
                           colors={['rgba(0,0,0,0)', 'rgba(34,22,25,0.92)']}
@@ -176,22 +189,26 @@ export default function HomeScreen() {
                           style={styles.highlightOverlay}
                         >
                           <View style={styles.highlightTextSurface}>
-                            <Text style={styles.highlightBrand}>{getDisplayBrand(item.brand)}</Text>
+                            <Text style={styles.highlightBrand}>{formatOfferValue(item)}</Text>
                             <Text style={styles.highlightName} numberOfLines={2}>
                               {item.name}
                             </Text>
-                            <Text style={styles.highlightPrice}>{formatPrice(item.price)}</Text>
+                            {!!item.description && (
+                              <Text style={styles.highlightPrice} numberOfLines={2}>
+                                {item.description}
+                              </Text>
+                            )}
                           </View>
                         </LinearGradient>
                       </Pressable>
                     ))}
                   </ScrollView>
-                  {isWeb && highlightProducts.length > 1 ? (
+                  {isWeb && offers.length > 1 ? (
                     <>
                       <Pressable
                         style={({ pressed }) => [styles.carouselArrow, styles.carouselArrowLeft, pressed && styles.buttonPressed]}
                         onPress={() => {
-                          const prev = (activeHighlightIndex - 1 + highlightProducts.length) % highlightProducts.length;
+                          const prev = (activeHighlightIndex - 1 + offers.length) % offers.length;
                           setActiveHighlightIndex(prev);
                           highlightScrollRef.current?.scrollTo({
                             x: highlightStartOffset + prev * highlightStep,
@@ -204,7 +221,7 @@ export default function HomeScreen() {
                       <Pressable
                         style={({ pressed }) => [styles.carouselArrow, styles.carouselArrowRight, pressed && styles.buttonPressed]}
                         onPress={() => {
-                          const next = (activeHighlightIndex + 1) % highlightProducts.length;
+                          const next = (activeHighlightIndex + 1) % offers.length;
                           setActiveHighlightIndex(next);
                           highlightScrollRef.current?.scrollTo({
                             x: highlightStartOffset + next * highlightStep,
@@ -218,7 +235,7 @@ export default function HomeScreen() {
                   ) : null}
                 </View>
                 <View style={styles.highlightDotsRow}>
-                  {highlightProducts.map((item, index) => (
+                  {offers.map((item, index) => (
                     <View
                       key={`highlight-dot-${item.id}`}
                       style={[
@@ -228,6 +245,25 @@ export default function HomeScreen() {
                     />
                   ))}
                 </View>
+              </>
+            ) : null}
+
+            {showHighlightedProducts ? (
+              <>
+                <SectionTitle title={'\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0627\u0644\u0645\u0645\u064a\u0632\u0629'} />
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.mostSellingRow}
+                >
+                  {highlightedProducts.map((item) => (
+                    <ProductMiniCard
+                      key={item.id}
+                      item={item}
+                      onPress={() => router.push(`/product/${item.id}`)}
+                    />
+                  ))}
+                </ScrollView>
               </>
             ) : null}
 
@@ -245,40 +281,45 @@ export default function HomeScreen() {
                 />
               ))}
             </ScrollView>
-
-            <SectionTitle title={'\u0627\u0644\u0639\u0631\u0648\u0636 \u0648\u0627\u0644\u062a\u062e\u0641\u064a\u0636\u0627\u062a'} />
-            <View style={styles.promoColumn}>
-              <PromoCard
-                title={'\u0639\u0631\u0636 \u0627\u0644\u0623\u0633\u0628\u0648\u0639'}
-                subtitle={'\u062e\u0635\u0645 \u0645\u062d\u062f\u0648\u062f \u0639\u0644\u0649 \u0645\u062c\u0645\u0648\u0639\u0629 \u0645\u0646\u062a\u062e\u0628\u0629'}
-                cta={'\u062a\u0633\u0648\u0642 \u0627\u0644\u0622\u0646'}
-                onPress={() => router.push('/(tabs)/products')}
-              />
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.salesRow}
-              >
-                {saleProducts.map((item) => (
-                  <Pressable key={item.id} style={styles.saleCard} onPress={() => router.push(`/product/${item.id}`)}>
-                    <Image
-                      source={{ uri: item.image || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500&h=500&fit=crop' }}
-                      style={styles.saleImage}
-                      resizeMode="cover"
-                    />
-                    <Text style={styles.saleName} numberOfLines={2}>
-                      {item.name}
-                    </Text>
-                    <Text style={styles.salePrice}>{formatPrice(item.price)}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
           </>
         )}
       </ScrollView>
     </View>
   );
+}
+
+function getOfferHref(offer: Offer) {
+  const productTarget = offer.targets.find(
+    (target) => target?.is_active && target.target_aggregate_type?.toLowerCase() === 'product' && target.target_aggregate_id
+  );
+
+  if (productTarget) {
+    return {
+      pathname: '/(tabs)/products',
+      params: { product: productTarget.target_aggregate_id },
+    } as const;
+  }
+
+  const brandTarget = offer.targets.find(
+    (target) => target?.is_active && target.target_aggregate_type?.toLowerCase() === 'brand' && target.target_aggregate_id
+  );
+
+  if (brandTarget) {
+    return {
+      pathname: '/(tabs)/products',
+      params: { brandId: brandTarget.target_aggregate_id },
+    } as const;
+  }
+
+  return '/(tabs)/products' as const;
+}
+
+function formatOfferValue(offer: Offer) {
+  if (offer.offerType === 'percentage_discount' && offer.offerValue > 0) {
+    return `\u062e\u0635\u0645 ${offer.offerValue.toLocaleString('ar-IQ')}%`;
+  }
+
+  return '\u0639\u0631\u0636 \u062e\u0627\u0635';
 }
 
 function SectionTitle({ title }: { title: string }) {
@@ -303,31 +344,8 @@ function ProductMiniCard({ item, onPress }: { item: Product; onPress: () => void
       <Text style={styles.miniName} numberOfLines={2}>
         {item.name}
       </Text>
-      <Text style={styles.miniPrice}>{formatPrice(item.price)}</Text>
+      <ProductPrice product={item} priceStyle={styles.miniPrice} />
     </Pressable>
-  );
-}
-
-function PromoCard({
-  title,
-  subtitle,
-  cta,
-  onPress,
-}: {
-  title: string;
-  subtitle: string;
-  cta: string;
-  onPress: () => void;
-}) {
-  return (
-    <LinearGradient colors={['#E6A9B4', '#C9818E']} style={styles.promoCard}>
-      <Text style={styles.promoTitle}>{title}</Text>
-      <Text style={styles.promoSubtitle}>{subtitle}</Text>
-      <Pressable style={styles.promoButton} onPress={onPress}>
-        <Text style={styles.promoButtonText}>{cta}</Text>
-        <Feather name="arrow-left" size={16} color={beautyTheme.colors.accentDark} />
-      </Pressable>
-    </LinearGradient>
   );
 }
 
@@ -517,79 +535,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'right',
   },
-  promoColumn: {
-    gap: 12,
-  },
-  promoCard: {
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  promoTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '700',
-    textAlign: 'right',
-    fontFamily: 'serif',
-  },
-  promoSubtitle: {
-    marginTop: 5,
-    color: '#FFF3F6',
-    fontSize: 13,
-    textAlign: 'right',
-  },
-  promoButton: {
-    marginTop: 12,
-    alignSelf: 'flex-end',
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  promoButtonText: {
-    color: beautyTheme.colors.accentDark,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  salesRow: {
-    gap: 10,
-    paddingBottom: 8,
-  },
-  saleCard: {
-    width: 130,
-    borderRadius: 14,
-    backgroundColor: '#FFFDFD',
-    borderWidth: 1,
-    borderColor: '#EADDE0',
-    padding: 8,
-  },
-  saleImage: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: 10,
-    marginBottom: 6,
-    backgroundColor: '#F8F0F3',
-  },
-  saleName: {
-    fontSize: 12,
-    lineHeight: 16,
-    color: beautyTheme.colors.text,
-    fontWeight: '600',
-    textAlign: 'right',
-  },
-  salePrice: {
-    marginTop: 4,
-    fontSize: 13,
-    color: beautyTheme.colors.accentDark,
-    fontWeight: '700',
-    textAlign: 'right',
-  },
   buttonPressed: {
     opacity: 0.78,
   },
 });
-
-

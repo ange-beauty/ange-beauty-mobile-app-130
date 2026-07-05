@@ -26,12 +26,12 @@ import { Product } from '@/types/product';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
-import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
+import ProductPrice from '@/components/ProductPrice';
 import { beautyTheme } from '@/constants/uiTheme';
 import { getAvailableQuantityForSellingPoint } from '@/utils/availability';
 import { getDisplayBrand } from '@/utils/brand';
-import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
+import { toArabicNumerals } from '@/utils/formatPrice';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -63,7 +63,7 @@ const palette = {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ brandId?: string }>();
+  const params = useLocalSearchParams<{ brandId?: string; openBrands?: string; product?: string }>();
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToBasket, getItemQuantity } = useBasket();
@@ -72,13 +72,13 @@ export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedBrands, setSelectedBrands] = useState<string[]>(params.brandId ? [params.brandId] : []);
   const [barcodeFilter, setBarcodeFilter] = useState('');
-  const [showOnlySelectedSellingPoint, setShowOnlySelectedSellingPoint] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState<string>('A');
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [numColumns, setNumColumns] = useState(NUM_COLUMNS);
   const [key, setKey] = useState('grid-' + NUM_COLUMNS);
   const listRef = useRef<FlatList>(null);
+  const productFilter = typeof params.product === 'string' ? params.product : '';
 
   const { data: brandsData } = useQuery({
     queryKey: ['brands'],
@@ -102,11 +102,22 @@ export default function HomeScreen() {
 
   React.useEffect(() => {
     if (params.brandId) {
-      console.log('[Home] Setting brandId from params:', params.brandId);
       setSelectedBrands([params.brandId]);
       listRef.current?.scrollToOffset({ offset: 0, animated: false });
     }
   }, [params.brandId]);
+
+  React.useEffect(() => {
+    if (params.openBrands === '1') {
+      setShowFilters(true);
+    }
+  }, [params.openBrands]);
+
+  React.useEffect(() => {
+    if (productFilter) {
+      listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    }
+  }, [productFilter]);
 
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0-9'.split('');
   
@@ -137,11 +148,12 @@ export default function HomeScreen() {
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ['products', searchQuery, selectedCategory, selectedBrands, barcodeFilter],
+    queryKey: ['products', searchQuery, productFilter, selectedCategory, selectedBrands, barcodeFilter],
     queryFn: ({ pageParam = 1 }) => fetchProducts({
       page: pageParam,
       limit: 20,
       keyword: searchQuery || undefined,
+      product: productFilter || undefined,
       category: selectedCategory || undefined,
       brand: selectedBrands.length > 0 ? selectedBrands.join(',') : undefined,
       barcode: barcodeFilter || undefined,
@@ -163,16 +175,7 @@ export default function HomeScreen() {
     }
   }, [data]);
 
-  const displayedProducts = useMemo(() => {
-    if (!showOnlySelectedSellingPoint || !selectedSellingPoint?.id) {
-      return products;
-    }
-
-    return products.filter((product) => {
-      const availableQty = getAvailableQuantityForSellingPoint(product, selectedSellingPoint.id);
-      return availableQty !== null && availableQty > 0;
-    });
-  }, [products, showOnlySelectedSellingPoint, selectedSellingPoint?.id]);
+  const displayedProducts = products;
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -183,7 +186,6 @@ export default function HomeScreen() {
   }, [refetch]);
 
   const handleFilterOpen = useCallback(() => {
-    console.log('[Home] Filter modal requested');
     setShowFilters(true);
   }, [setShowFilters]);
 
@@ -314,7 +316,7 @@ export default function HomeScreen() {
           <View style={styles.productInfo}>
             {!!displayBrand && <Text style={styles.brandText}>{displayBrand}</Text>}
             <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-            <Text style={styles.price}>{formatPrice(item.price)}</Text>
+            <ProductPrice product={item} priceStyle={styles.price} />
             
           </View>
           <Pressable
@@ -351,37 +353,53 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <FloralBackdrop subtle />
       <View style={styles.headerWrapper}>
-        <View style={[styles.headerCard, { paddingTop: 0 }]}>
-          <BrandedHeader topInset={insets.top} showBackButton={false} showSearch={false} />
+        <View style={[styles.headerCard, { paddingTop: insets.top + 10 }]}>
+          <View style={styles.productHeaderRow}>
+            <Pressable style={styles.headerCircleButton} onPress={() => router.push('/(tabs)/account')}>
+              <Feather name="bell" size={19} color="#2F2527" />
+            </Pressable>
 
-          <View style={styles.searchFieldRow}>
-            <Feather name="search" size={18} color={palette.accentDark} style={styles.searchFieldIcon} />
-            <TextInput
-              testID="home-search-input"
-              style={styles.searchFieldInput}
-              placeholder={'\u0627\u0628\u062d\u062b \u0639\u0646 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a...'}
-              placeholderTextColor={palette.textMuted}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            <Pressable
-              testID="home-filter-button"
-              style={({ pressed }) => [styles.searchFilterButton, pressed && styles.buttonPressed]}
-              onPress={handleFilterOpen}
-            >
-              <Feather name="sliders" color="#FFFFFF" size={18} />
-              {(selectedSellingPoint || selectedCategory || selectedBrands.length > 0 || barcodeFilter || showOnlySelectedSellingPoint) && (
-                <View style={styles.filterBadge} />
-              )}
+            <View style={styles.searchFieldRow}>
+              <Feather name="search" size={21} color={palette.accentDark} style={styles.searchFieldIcon} />
+              <TextInput
+                testID="home-search-input"
+                style={styles.searchFieldInput}
+                placeholder={'\u0627\u0628\u062d\u062b \u0639\u0646 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a...'}
+                placeholderTextColor={palette.textMuted}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              <Pressable
+                testID="home-filter-button"
+                style={({ pressed }) => [styles.searchFilterButton, pressed && styles.buttonPressed]}
+                onPress={handleFilterOpen}
+              >
+                <Feather name="sliders" color={palette.accentDark} size={20} />
+                {(productFilter || selectedCategory || selectedBrands.length > 0 || barcodeFilter) && (
+                  <View style={styles.filterBadge} />
+                )}
+              </Pressable>
+            </View>
+
+            <Pressable style={styles.headerCircleButton} onPress={() => router.push('/contact')}>
+              <Feather name="message-circle" size={20} color="#2F2527" />
             </Pressable>
           </View>
 
-          {(selectedSellingPoint || selectedCategory || selectedBrands.length > 0 || barcodeFilter || showOnlySelectedSellingPoint) && (
+          {(productFilter || selectedCategory || selectedBrands.length > 0 || barcodeFilter) && (
             <View style={styles.activeFiltersContainer}>
+              {productFilter && (
+                <View style={styles.activeFilterChip}>
+                  <Text style={styles.activeFilterText}>{'\u0639\u0631\u0636 \u0645\u0646\u062a\u062c'}</Text>
+                  <Pressable onPress={() => router.setParams({ product: '' })}>
+                    <Feather name="x" color="#666" size={14} />
+                  </Pressable>
+                </View>
+              )}
               {selectedCategory && categories.length > 0 && (
                 <View style={styles.activeFilterChip}>
                   <Text style={styles.activeFilterText}>
-                    {categories.find(c => c && c.id === selectedCategory)?.name_ar || 'الفئة'}
+                    {categories.find(c => c && c.id === selectedCategory)?.name_ar || '\u0627\u0644\u0641\u0626\u0629'}
                   </Text>
                   <Pressable onPress={() => setSelectedCategory('')}>
                     <Feather name="x" color="#666" size={14} />
@@ -394,7 +412,7 @@ export default function HomeScreen() {
                 return (
                   <View key={brandId} style={styles.activeFilterChip}>
                     <Text style={styles.activeFilterText}>
-                      {brand.brand_name_ar || 'العلامة'}
+                      {brand.brand_name_ar || '\u0627\u0644\u0639\u0644\u0627\u0645\u0629'}
                     </Text>
                     <Pressable onPress={() => setSelectedBrands(prev => prev.filter(id => id !== brandId))}>
                       <Feather name="x" color="#666" size={14} />
@@ -404,18 +422,8 @@ export default function HomeScreen() {
               })}
               {barcodeFilter && (
                 <View style={styles.activeFilterChip}>
-                  <Text style={styles.activeFilterText}>باركود: {barcodeFilter}</Text>
+                  <Text style={styles.activeFilterText}>{'\u0628\u0627\u0631\u0643\u0648\u062f'}: {barcodeFilter}</Text>
                   <Pressable onPress={() => setBarcodeFilter('')}>
-                    <Feather name="x" color="#666" size={14} />
-                  </Pressable>
-                </View>
-              )}
-              {showOnlySelectedSellingPoint && (
-                <View style={styles.activeFilterChip}>
-                  <Text style={styles.activeFilterText}>
-                    {'\u0627\u0644\u0645\u062a\u0627\u062d \u0641\u0642\u0637 \u0641\u064a \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639'}
-                  </Text>
-                  <Pressable onPress={() => setShowOnlySelectedSellingPoint(false)}>
                     <Feather name="x" color="#666" size={14} />
                   </Pressable>
                 </View>
@@ -506,7 +514,7 @@ export default function HomeScreen() {
         >
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>تصفية المنتجات</Text>
+              <Text style={styles.modalTitle}>{'\u062a\u0635\u0641\u064a\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a'}</Text>
               <Pressable onPress={() => setShowFilters(false)}>
                 <Feather name="x" color="#1A1A1A" size={24} />
               </Pressable>
@@ -515,7 +523,7 @@ export default function HomeScreen() {
             <ScrollView style={styles.modalBody}>
               {categories.length > 0 && (
                 <View style={styles.filterSection}>
-                  <Text style={styles.filterSectionTitle}>الفئة</Text>
+                <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0641\u0626\u0629'}</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View style={styles.filterOptions}>
                       <Pressable
@@ -549,7 +557,7 @@ export default function HomeScreen() {
                               selectedCategory === category.id && styles.filterOptionTextActive,
                             ]}
                           >
-                            {category.name_ar || 'فئة'}
+                            {category.name_ar || '\u0641\u0626\u0629'}
                           </Text>
                         </Pressable>
                       ) : null)}
@@ -558,42 +566,11 @@ export default function HomeScreen() {
                 </View>
               )}
 
-
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>{'\u062a\u0648\u0641\u0631 \u0627\u0644\u0645\u0646\u062a\u062c'}</Text>
-                <Pressable
-                  style={[
-                    styles.filterOption,
-                    showOnlySelectedSellingPoint && styles.filterOptionActive,
-                    !selectedSellingPoint && styles.filterOptionDisabled,
-                  ]}
-                  onPress={() => {
-                    if (!selectedSellingPoint) return;
-                    setShowOnlySelectedSellingPoint((prev) => !prev);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.filterOptionText,
-                      showOnlySelectedSellingPoint && styles.filterOptionTextActive,
-                      !selectedSellingPoint && styles.filterOptionTextDisabled,
-                    ]}
-                  >
-                    {'\u0639\u0631\u0636 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0627\u0644\u0645\u062a\u0627\u062d\u0629 \u0641\u0642\u0637 \u0641\u064a \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0627\u0644\u0645\u062d\u062f\u062f\u0629'}
-                  </Text>
-                </Pressable>
-                {!selectedSellingPoint && (
-                  <Text style={styles.filterHintText}>
-                    {'\u0627\u062e\u062a\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0623\u0648\u0644\u0627\u064b \u0644\u062a\u0641\u0639\u064a\u0644 \u0647\u0630\u0627 \u0627\u0644\u062e\u064a\u0627\u0631'}
-                  </Text>
-                )}
-              </View>
-
-              <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>الباركود</Text>
+                <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0628\u0627\u0631\u0643\u0648\u062f'}</Text>
                 <TextInput
                   style={styles.barcodeInput}
-                  placeholder="أدخل الباركود..."
+                  placeholder={'\u0623\u062f\u062e\u0644 \u0627\u0644\u0628\u0627\u0631\u0643\u0648\u062f...'}
                   placeholderTextColor="#999"
                   value={barcodeFilter}
                   onChangeText={setBarcodeFilter}
@@ -602,7 +579,7 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>العلامة التجارية</Text>
+                <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0639\u0644\u0627\u0645\u0629 \u0627\u0644\u062a\u062c\u0627\u0631\u064a\u0629'}</Text>
                 <View style={styles.alphabetNavigation}>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View style={styles.alphabetRow}>
@@ -679,10 +656,9 @@ export default function HomeScreen() {
                   setSelectedCategory('');
                   setSelectedBrands([]);
                   setBarcodeFilter('');
-                  setShowOnlySelectedSellingPoint(false);
                 }}
               >
-                <Text style={styles.clearButtonText}>مسح الكل</Text>
+                <Text style={styles.clearButtonText}>{'\u0645\u0633\u062d \u0627\u0644\u0643\u0644'}</Text>
               </Pressable>
               <Pressable
                 style={({ pressed }) => [
@@ -691,7 +667,7 @@ export default function HomeScreen() {
                 ]}
                 onPress={() => setShowFilters(false)}
               >
-                <Text style={styles.applyButtonText}>تطبيق</Text>
+                <Text style={styles.applyButtonText}>{'\u062a\u0637\u0628\u064a\u0642'}</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -710,94 +686,51 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     paddingHorizontal: 0,
     paddingBottom: 8,
+    zIndex: 20,
   },
   headerCard: {
     backgroundColor: 'transparent',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingHorizontal: 18,
+    paddingBottom: 12,
   },
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  headerLeftCluster: {
+  productHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  chatBubbleButton: {
-    width: 52,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: palette.headerAccent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: palette.accent,
-    position: 'relative' as const,
-  },
-  whatsappBadge: {
-    position: 'absolute' as const,
-    bottom: -3,
-    left: -3,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#25D366',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#111',
-  },
-  whatsappIcon: {
-    width: 10,
-    height: 10,
-  },
-  headerIconButton: {
+  headerCircleButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.92)',
     borderWidth: 1,
-    borderColor: palette.accent,
-    backgroundColor: palette.headerAccent,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerLogoWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerLogoImage: {
-    width: 84,
-    height: 50,
-  },
-  headerRightSpacer: {
-    width: 50,
-  },
-  brandNameText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: palette.textPrimary,
-    marginTop: 2,
-    letterSpacing: 0.8,
-    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' }),
+    borderColor: 'rgba(226, 177, 192, 0.45)',
+    shadowColor: '#7A3A54',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 3,
   },
   searchFieldRow: {
-    flexDirection: 'row-reverse',
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: palette.inputBackground,
-    borderRadius: 20,
+    backgroundColor: 'rgba(255, 248, 250, 0.94)',
+    borderRadius: 21,
     borderWidth: 1,
-    borderColor: palette.stroke,
-    paddingLeft: 8,
-    paddingRight: 12,
-    height: 54,
+    borderColor: 'rgba(226, 177, 192, 0.58)',
+    paddingHorizontal: 8,
+    height: 42,
+    shadowColor: '#7A3A54',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 3,
   },
   searchFieldIcon: {
-    marginLeft: 8,
+    marginHorizontal: 6,
   },
   searchFieldInput: {
     flex: 1,
@@ -807,15 +740,10 @@ const styles = StyleSheet.create({
     writingDirection: 'rtl' as const,
   },
   searchFilterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: '#C98B97',
-    borderWidth: 1,
-    borderColor: '#B37884',
+    width: 34,
+    height: 34,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
     position: 'relative' as const,
   },
   filterBadge: {
@@ -911,17 +839,6 @@ const styles = StyleSheet.create({
   },
   filterOptionTextActive: {
     color: '#FFFFFF',
-  },
-  filterOptionDisabled: {
-    opacity: 0.5,
-  },
-  filterOptionTextDisabled: {
-    color: '#999',
-  },
-  filterHintText: {
-    marginTop: 8,
-    fontSize: 13,
-    color: '#666',
   },
   barcodeInput: {
     backgroundColor: '#F5F5F5',
@@ -1222,7 +1139,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F8F3',
     borderWidth: 1,
     borderColor: '#E4E9DD',
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -1233,6 +1150,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B756B',
     marginBottom: 4,
+    textAlign: 'right' as const,
+    writingDirection: 'rtl',
   },
   sellingPointValue: {
     fontSize: 16,

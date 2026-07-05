@@ -7,6 +7,15 @@ export interface Product {
   brandId?: string;
   category: ProductCategory;
   price: number;
+  basePrice?: number;
+  finalPrice?: number;
+  discountAmount?: number;
+  appliedOffer?: {
+    id: string;
+    name: string;
+    type: string;
+    value: number;
+  } | null;
   image: string;
   description: string;
   ingredients?: string[];
@@ -60,6 +69,16 @@ export interface APIProduct {
   aggregate_version?: number;
   event_by?: string;
   total_available?: number | null;
+  base_price?: number | string | null;
+  final_price?: number | string | null;
+  discount_amount?: number | string | null;
+  applied_offer?: {
+    id?: string | null;
+    nameAr?: string | null;
+    nameEn?: string | null;
+    type?: string | null;
+    value?: number | string | null;
+  } | null;
   availability_by_selling_point?: {
     selling_point?: string | null;
     name_ar?: string | null;
@@ -81,6 +100,17 @@ export interface APIResponse {
   };
 }
 
+function parsePriceValue(value: number | string | null | undefined): number | undefined {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
 export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
   const categoryMap: Record<string, ProductCategory> = {
     'skincare': 'skincare',
@@ -90,7 +120,7 @@ export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
     'bodycare': 'bodycare',
   };
 
-  const productName = apiProduct.name_ar || apiProduct.name_en || apiProduct.name || 'منتج بدون اسم';
+  const productName = apiProduct.name_ar || apiProduct.name_en || apiProduct.name || '\u0645\u0646\u062a\u062c \u0628\u062f\u0648\u0646 \u0627\u0633\u0645';
   const productDescription = apiProduct.description_ar || apiProduct.description_en || apiProduct.description || '';
   
   let category: ProductCategory = 'skincare';
@@ -99,49 +129,43 @@ export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
     category = categoryMap[categoryName] || 'skincare';
   }
   
-  const brandName = apiProduct.brand_name_ar || apiProduct.brand_name_en || 'علامة تجارية غير معروفة';
+  const brandName = apiProduct.brand_name_ar || apiProduct.brand_name_en || '\u0639\u0644\u0627\u0645\u0629 \u062a\u062c\u0627\u0631\u064a\u0629 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641\u0629';
   const brandId = apiProduct.brand_id?.toString() || apiProduct.brand?.toString() || undefined;
 
-  let imageUrl = '';
-  try {
-    if (apiProduct.images) {
-      let imagesArray: string[] = [];
-      if (typeof apiProduct.images === 'string') {
-        imagesArray = JSON.parse(apiProduct.images);
-      } else if (Array.isArray(apiProduct.images)) {
-        imagesArray = apiProduct.images;
-      }
-      
-      const firstImage = imagesArray[0];
-      if (firstImage) {
-        const rootDir = 'angeapi';
-        const stableVersion =
-          typeof apiProduct.aggregate_version === 'number'
-            ? apiProduct.aggregate_version.toString()
-            : apiProduct.updated_at || undefined;
-        const versionQuery = stableVersion ? `?v=${encodeURIComponent(stableVersion)}` : '';
-        imageUrl = `https://images.angebeauty.net/${rootDir}/cdn/images/${apiProduct.id}/thumbs/${firstImage}${versionQuery}`;
-      }
-    }
-  } catch (error) {
-    console.error('[Product] Error parsing images:', error);
-  }
+  const productId = apiProduct.id?.toString() || '';
+  const stableVersion =
+    typeof apiProduct.aggregate_version === 'number'
+      ? apiProduct.aggregate_version.toString()
+      : apiProduct.updated_at || undefined;
+  const versionQuery = stableVersion ? `?v=${encodeURIComponent(stableVersion)}` : '';
+  const imageUrl = productId
+    ? `https://images.angebeauty.net/angeapi/cdn/images/${productId}/thumbs/${productId}.webp${versionQuery}`
+    : '';
 
-  let price = 0;
-  if (typeof apiProduct.price === 'number') {
-    price = apiProduct.price;
-  } else if (typeof apiProduct.price === 'string') {
-    const parsedPrice = parseFloat(apiProduct.price);
-    price = isNaN(parsedPrice) ? 0 : parsedPrice;
-  }
+  const rawPrice = parsePriceValue(apiProduct.price) ?? 0;
+  const basePrice = parsePriceValue(apiProduct.base_price) ?? rawPrice;
+  const finalPrice = parsePriceValue(apiProduct.final_price) ?? rawPrice;
+  const discountAmount = parsePriceValue(apiProduct.discount_amount);
+  const hasDiscount = finalPrice < basePrice || (discountAmount ?? 0) > 0;
 
   return {
-    id: apiProduct.id?.toString() || '',
+    id: productId,
     name: productName,
     brand: brandName,
     brandId,
     category,
-    price,
+    price: finalPrice,
+    basePrice,
+    finalPrice,
+    discountAmount: hasDiscount ? (discountAmount ?? basePrice - finalPrice) : undefined,
+    appliedOffer: apiProduct.applied_offer?.id
+      ? {
+          id: apiProduct.applied_offer.id,
+          name: apiProduct.applied_offer.nameAr || apiProduct.applied_offer.nameEn || '',
+          type: apiProduct.applied_offer.type || '',
+          value: parsePriceValue(apiProduct.applied_offer.value) ?? 0,
+        }
+      : null,
     image: imageUrl,
     description: productDescription,
     ingredients: apiProduct.tags || [],

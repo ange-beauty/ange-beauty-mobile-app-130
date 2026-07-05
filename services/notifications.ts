@@ -19,7 +19,6 @@ Notifications.setNotificationHandler({
 
 export async function registerForPushNotifications(): Promise<string | null> {
   if (Platform.OS === 'web') {
-    console.log('[Notifications] Push notifications are not supported on web');
     await logTelemetry({
       endpoint: 'registerForPushNotifications',
       payload: { reason: 'unsupported_platform', platform: Platform.OS },
@@ -28,7 +27,6 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   if (!Device.isDevice) {
-    console.log('[Notifications] Push notifications must use physical device');
     await logTelemetry({
       endpoint: 'registerForPushNotifications',
       payload: { reason: 'simulator', platform: Platform.OS },
@@ -46,7 +44,6 @@ export async function registerForPushNotifications(): Promise<string | null> {
     }
     
     if (finalStatus !== 'granted') {
-      console.log('[Notifications] Permission not granted for push notifications');
       await logTelemetry({
         endpoint: 'registerForPushNotifications',
         payload: { reason: 'permission_denied', platform: Platform.OS },
@@ -55,13 +52,11 @@ export async function registerForPushNotifications(): Promise<string | null> {
     }
 
     const projectId = Constants.expoConfig?.extra?.eas?.projectId || 'a5db08fb-fcd1-47ca-929f-e3d8ebe03d73';
-    console.log('[Notifications] Using project ID:', projectId);
     
     const token = await Notifications.getExpoPushTokenAsync({
       projectId,
     });
 
-    console.log('[Notifications] Push token obtained:', token.data);
     await logTelemetry({
       endpoint: 'registerForPushNotifications',
       payload: {
@@ -109,10 +104,8 @@ async function logTelemetry(data: {
 }
 
 export async function registerPushTokenWithServer(pushToken: string): Promise<boolean> {
-  console.log('[Notifications] Registering push token with server:', pushToken);
   
   const appVersion = Constants.expoConfig?.version || '1.0.0';
-  console.log('[Notifications] App version:', appVersion);
   
   const endpoint = `${API_BASE_URL}?action=register-push-token`;
   const payload = {
@@ -130,7 +123,6 @@ export async function registerPushTokenWithServer(pushToken: string): Promise<bo
       body: JSON.stringify(payload),
     }, 'Notifications');
     
-    console.log('[Notifications] Registration response status:', response.status);
     
     let responseData;
     try {
@@ -147,7 +139,6 @@ export async function registerPushTokenWithServer(pushToken: string): Promise<bo
     });
     
     if (response && response.ok) {
-      console.log('[Notifications] Push token registered successfully');
       return true;
     }
     
