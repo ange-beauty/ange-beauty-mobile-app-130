@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+﻿import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import React, { useMemo, useState, useCallback, useRef } from 'react';
@@ -63,13 +63,13 @@ const palette = {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ brandId?: string; openBrands?: string; product?: string }>();
+  const params = useLocalSearchParams<{ brandId?: string; categoryId?: string; openBrands?: string; product?: string }>();
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToBasket, getItemQuantity } = useBasket();
   const { selectedSellingPoint } = useSellingPoint();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(params.categoryId ? [params.categoryId] : []);
   const [selectedBrands, setSelectedBrands] = useState<string[]>(params.brandId ? [params.brandId] : []);
   const [barcodeFilter, setBarcodeFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -106,6 +106,13 @@ export default function HomeScreen() {
       listRef.current?.scrollToOffset({ offset: 0, animated: false });
     }
   }, [params.brandId]);
+
+  React.useEffect(() => {
+    if (params.categoryId) {
+      setSelectedCategories([params.categoryId]);
+      listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    }
+  }, [params.categoryId]);
 
   React.useEffect(() => {
     if (params.openBrands === '1') {
@@ -148,13 +155,13 @@ export default function HomeScreen() {
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ['products', searchQuery, productFilter, selectedCategory, selectedBrands, barcodeFilter],
+    queryKey: ['products', searchQuery, productFilter, selectedCategories, selectedBrands, barcodeFilter],
     queryFn: ({ pageParam = 1 }) => fetchProducts({
       page: pageParam,
       limit: 20,
       keyword: searchQuery || undefined,
       product: productFilter || undefined,
-      category: selectedCategory || undefined,
+      category: selectedCategories.length > 0 ? selectedCategories.join(',') : undefined,
       brand: selectedBrands.length > 0 ? selectedBrands.join(',') : undefined,
       barcode: barcodeFilter || undefined,
     }),
@@ -375,7 +382,7 @@ export default function HomeScreen() {
                 onPress={handleFilterOpen}
               >
                 <Feather name="sliders" color={palette.accentDark} size={20} />
-                {(productFilter || selectedCategory || selectedBrands.length > 0 || barcodeFilter) && (
+                {(productFilter || selectedCategories.length > 0 || selectedBrands.length > 0 || barcodeFilter) && (
                   <View style={styles.filterBadge} />
                 )}
               </Pressable>
@@ -386,7 +393,7 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          {(productFilter || selectedCategory || selectedBrands.length > 0 || barcodeFilter) && (
+          {(productFilter || selectedCategories.length > 0 || selectedBrands.length > 0 || barcodeFilter) && (
             <View style={styles.activeFiltersContainer}>
               {productFilter && (
                 <View style={styles.activeFilterChip}>
@@ -396,16 +403,20 @@ export default function HomeScreen() {
                   </Pressable>
                 </View>
               )}
-              {selectedCategory && categories.length > 0 && (
-                <View style={styles.activeFilterChip}>
-                  <Text style={styles.activeFilterText}>
-                    {categories.find(c => c && c.id === selectedCategory)?.name_ar || '\u0627\u0644\u0641\u0626\u0629'}
-                  </Text>
-                  <Pressable onPress={() => setSelectedCategory('')}>
-                    <Feather name="x" color="#666" size={14} />
-                  </Pressable>
-                </View>
-              )}
+              {selectedCategories.map(categoryId => {
+                const category = categories.find(c => c && c.id === categoryId);
+                if (!category) return null;
+                return (
+                  <View key={categoryId} style={styles.activeFilterChip}>
+                    <Text style={styles.activeFilterText}>
+                      {category.category_name_ar || '\u0627\u0644\u0641\u0626\u0629'}
+                    </Text>
+                    <Pressable onPress={() => setSelectedCategories(prev => prev.filter(id => id !== categoryId))}>
+                      <Feather name="x" color="#666" size={14} />
+                    </Pressable>
+                  </View>
+                );
+              })}
               {selectedBrands.map(brandId => {
                 const brand = brands.find(b => b && b.id === brandId);
                 if (!brand) return null;
@@ -438,11 +449,11 @@ export default function HomeScreen() {
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1A1A1A" />
-          <Text style={styles.loadingText}>جاري تحميل المنتجات...</Text>
+          <Text style={styles.loadingText}>{'\u062c\u0627\u0631\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a...'}</Text>
         </View>
       ) : error ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>فشل تحميل المنتجات</Text>
+          <Text style={styles.emptyText}>{'\u0641\u0634\u0644 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a'}</Text>
           <Text style={styles.errorText}>{(error as Error).message}</Text>
         </View>
       ) : (
@@ -475,14 +486,14 @@ export default function HomeScreen() {
             }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>لم يتم العثور على منتجات</Text>
+                <Text style={styles.emptyText}>{'\u0644\u0645 \u064a\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 \u0645\u0646\u062a\u062c\u0627\u062a'}</Text>
               </View>
             }
             ListFooterComponent={
               isFetchingNextPage ? (
                 <View style={styles.footerLoading}>
                   <ActivityIndicator size="small" color="#1A1A1A" />
-                  <Text style={styles.footerLoadingText}>جاري تحميل المزيد...</Text>
+                  <Text style={styles.footerLoadingText}>{'\u062c\u0627\u0631\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u0632\u064a\u062f...'}</Text>
                 </View>
               ) : null
             }
@@ -523,23 +534,23 @@ export default function HomeScreen() {
             <ScrollView style={styles.modalBody}>
               {categories.length > 0 && (
                 <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0641\u0626\u0629'}</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0641\u0626\u0629'}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent}>
                     <View style={styles.filterOptions}>
                       <Pressable
                         style={[
                           styles.filterOption,
-                          !selectedCategory && styles.filterOptionActive,
+                          selectedCategories.length === 0 && styles.filterOptionActive,
                         ]}
-                        onPress={() => setSelectedCategory('')}
+                        onPress={() => setSelectedCategories([])}
                       >
                         <Text
                           style={[
                             styles.filterOptionText,
-                            !selectedCategory && styles.filterOptionTextActive,
+                            selectedCategories.length === 0 && styles.filterOptionTextActive,
                           ]}
                         >
-                          الكل
+                          {'\u0627\u0644\u0643\u0644'}
                         </Text>
                       </Pressable>
                       {categories.map((category) => category && category.id ? (
@@ -547,17 +558,21 @@ export default function HomeScreen() {
                           key={category.id}
                           style={[
                             styles.filterOption,
-                            selectedCategory === category.id && styles.filterOptionActive,
+                            selectedCategories.includes(category.id) && styles.filterOptionActive,
                           ]}
-                          onPress={() => setSelectedCategory(category.id)}
+                          onPress={() => setSelectedCategories(prev =>
+                            prev.includes(category.id)
+                              ? prev.filter(id => id !== category.id)
+                              : [...prev, category.id]
+                          )}
                         >
                           <Text
                             style={[
                               styles.filterOptionText,
-                              selectedCategory === category.id && styles.filterOptionTextActive,
+                              selectedCategories.includes(category.id) && styles.filterOptionTextActive,
                             ]}
                           >
-                            {category.name_ar || '\u0641\u0626\u0629'}
+                            {category.category_name_ar || '\u0641\u0626\u0629'}
                           </Text>
                         </Pressable>
                       ) : null)}
@@ -581,7 +596,7 @@ export default function HomeScreen() {
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0639\u0644\u0627\u0645\u0629 \u0627\u0644\u062a\u062c\u0627\u0631\u064a\u0629'}</Text>
                 <View style={styles.alphabetNavigation}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent}>
                     <View style={styles.alphabetRow}>
                       {alphabet.map((letter) => {
                         const isAvailable = availableLetters.includes(letter);
@@ -640,7 +655,7 @@ export default function HomeScreen() {
                 </View>
                 {(!brandsByLetter[selectedLetter] || brandsByLetter[selectedLetter].length === 0) && (
                   <View style={styles.emptyBrandsContainer}>
-                    <Text style={styles.emptyBrandsText}>لا توجد علامات تجارية تبدأ بـ {selectedLetter}</Text>
+                    <Text style={styles.emptyBrandsText}>{'\u0644\u0627 \u062a\u0648\u062c\u062f \u0639\u0644\u0627\u0645\u0627\u062a \u062a\u062c\u0627\u0631\u064a\u0629 \u062a\u0628\u062f\u0623 \u0628\u0640'} {selectedLetter}</Text>
                   </View>
                 )}
               </View>
@@ -653,7 +668,7 @@ export default function HomeScreen() {
                   pressed && styles.buttonPressed,
                 ]}
                 onPress={() => {
-                  setSelectedCategory('');
+                  setSelectedCategories([]);
                   setSelectedBrands([]);
                   setBarcodeFilter('');
                 }}
@@ -757,7 +772,7 @@ const styles = StyleSheet.create({
   },
 
   activeFiltersContainer: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     flexWrap: 'wrap',
     gap: 8,
     marginTop: 10,
@@ -765,7 +780,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   activeFilterChip: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -779,6 +794,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: palette.textPrimary,
     fontWeight: '500' as const,
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   modalOverlay: {
     flex: 1,
@@ -792,7 +809,7 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
   },
   modalHeader: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
@@ -803,6 +820,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700' as const,
     color: '#1A1A1A',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   modalBody: {
     padding: 20,
@@ -815,10 +834,17 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#1A1A1A',
     marginBottom: 12,
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   filterOptions: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     gap: 8,
+  },
+  filterScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+    direction: 'rtl',
   },
   filterOption: {
     paddingHorizontal: 16,
@@ -836,6 +862,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600' as const,
     color: '#666',
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   filterOptionTextActive: {
     color: '#FFFFFF',
@@ -847,9 +875,11 @@ const styles = StyleSheet.create({
     height: 48,
     fontSize: 16,
     color: '#1A1A1A',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   modalFooter: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     padding: 20,
     gap: 12,
     borderTopWidth: 1,
@@ -887,7 +917,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   alphabetRow: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
@@ -922,10 +952,11 @@ const styles = StyleSheet.create({
     color: '#CCCCCC',
   },
   brandsGrid: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     flexWrap: 'wrap',
     gap: 8,
     marginTop: 12,
+    justifyContent: 'flex-start',
   },
   brandItem: {
     paddingHorizontal: 16,
@@ -943,6 +974,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600' as const,
     color: '#666',
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   brandItemNameSelected: {
     color: '#FFFFFF',

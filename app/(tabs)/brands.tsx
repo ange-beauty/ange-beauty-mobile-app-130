@@ -161,7 +161,7 @@ export default function BrandsScreen() {
               {
                 paddingStart: horizontalPadding + gridRightGutter,
                 paddingEnd: horizontalPadding,
-                paddingBottom: insets.bottom + 110,
+                paddingBottom: insets.bottom + 150,
               },
             ]}
             showsVerticalScrollIndicator={false}
@@ -172,7 +172,7 @@ export default function BrandsScreen() {
             }}
           />
 
-          <View pointerEvents="box-none" style={[styles.railLayer, { top: insets.top + 132, bottom: insets.bottom + 88 }]}>
+          <View pointerEvents="box-none" style={[styles.railLayer, { top: insets.top + 132, bottom: insets.bottom + 170 }]}>
             <View style={styles.alphabetRail}>
               {alphabet.map((letter) => {
                 const isAvailable = availableLetters.includes(letter);
@@ -297,12 +297,12 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 12,
     backgroundColor: 'rgba(255, 226, 236, 0.76)',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
+    justifyContent: 'flex-start',
+    paddingVertical: 4,
   },
   railLetterButton: {
     width: 23,
-    height: 20,
+    height: 17,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -312,8 +312,8 @@ const styles = StyleSheet.create({
   },
   railLetter: {
     color: '#C77D98',
-    fontSize: 15,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 15,
     fontWeight: '800',
   },
   railLetterDisabled: {

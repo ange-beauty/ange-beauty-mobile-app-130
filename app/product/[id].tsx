@@ -239,7 +239,7 @@ export default function ProductDetailScreen() {
                             <style>
                               * { margin: 0; padding: 0; box-sizing: border-box; }
                               body {
-                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+                                font-family: Tajawal, Arial, sans-serif;
                                 font-size: 15px; line-height: 1.7; color: #3C2B2E;
                                 direction: rtl; text-align: right; background: transparent;
                               }
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 30,
     fontWeight: '700',
-    fontFamily: 'Roboto',
+    fontFamily: 'Tajawal-Bold',
     color: beautyTheme.colors.text,
     textAlign: 'right',
     marginBottom: 12,

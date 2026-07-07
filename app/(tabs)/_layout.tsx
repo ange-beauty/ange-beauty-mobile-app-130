@@ -91,6 +91,13 @@ export default function TabLayout() {
         name="products"
         options={{
           title: '\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a',
+          tabBarIcon: ({ color, size }) => <Feather name="package" color={color} size={28} />,
+        }}
+      />
+      <Tabs.Screen
+        name="categories"
+        options={{
+          title: '\u0627\u0644\u0641\u0626\u0627\u062a',
           tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={28} />,
         }}
       />

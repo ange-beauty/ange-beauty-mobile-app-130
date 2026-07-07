@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     color: beautyTheme.colors.accentDark,
     textAlign: 'right',
     fontWeight: '700',
-    fontFamily: 'serif',
+    fontFamily: 'Tajawal-Bold',
   },
   subtitle: {
     fontSize: 14,

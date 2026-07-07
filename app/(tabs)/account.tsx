@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: '#3C2B2E',
     fontWeight: '700',
-    fontFamily: 'serif',
+    fontFamily: 'Tajawal-Bold',
     textAlign: 'center',
   },
   statsRow: {
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#3A2A2E',
     fontWeight: '700',
-    fontFamily: 'serif',
+    fontFamily: 'Tajawal-Bold',
     textAlign: 'right',
   },
   menuSubtitle: {

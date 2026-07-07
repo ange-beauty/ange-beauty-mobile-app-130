@@ -154,7 +154,6 @@ export default function HomeScreen() {
           <>
             {showHighlights ? (
               <>
-                <SectionTitle title={'\u0645\u0645\u064a\u0632\u0627\u062a \u0627\u0644\u064a\u0648\u0645'} />
                 <View style={styles.highlightsWrap}>
                   <ScrollView
                     ref={highlightScrollRef}
@@ -386,14 +385,18 @@ const styles = StyleSheet.create({
   sectionHeader: {
     marginTop: 10,
     marginBottom: 8,
+    width: '100%',
+    alignItems: 'flex-end',
   },
   sectionTitle: {
+    width: '100%',
     textAlign: 'right',
+    writingDirection: 'rtl',
     color: beautyTheme.colors.text,
     fontSize: 22,
     lineHeight: 30,
     fontWeight: '700',
-    fontFamily: 'serif',
+    fontFamily: 'Tajawal-Bold',
   },
   highlightsRow: {
     gap: 12,

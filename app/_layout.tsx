@@ -165,7 +165,7 @@ const splashStyles = StyleSheet.create({
     lineHeight: 42,
     fontWeight: "700",
     textAlign: "center",
-    fontFamily: Platform.select({ ios: "Georgia", android: "serif", default: "Georgia" }),
+    fontFamily: "Tajawal-Bold",
   },
   brandSubTitle: {
     marginTop: 6,
@@ -259,12 +259,13 @@ export default function RootLayout() {
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(true);
   const [updateRequired, setUpdateRequired] = useState(false);
   const [updateCheckError, setUpdateCheckError] = useState<string | null>(null);
-  const [fontsLoaded] = useFonts(Feather.font);
-  const globalFontFamily = Platform.select({
-    ios: "SF Pro Text",
-    android: "sans-serif",
-    default: "sans-serif",
+  const [fontsLoaded] = useFonts({
+    ...Feather.font,
+    "Tajawal-Regular": require("@/assets/fonts/Tajawal-Regular.ttf"),
+    "Tajawal-Medium": require("@/assets/fonts/Tajawal-Medium.ttf"),
+    "Tajawal-Bold": require("@/assets/fonts/Tajawal-Bold.ttf"),
   });
+  const globalFontFamily = "Tajawal-Regular";
   const AnyText = Text as any;
   const AnyTextInput = TextInput as any;
 

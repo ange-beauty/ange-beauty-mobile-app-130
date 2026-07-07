@@ -13,8 +13,13 @@ export interface Brand {
 
 export interface Category {
   id: string;
-  name_ar: string;
-  name_en?: string;
+  category_name_ar: string;
+  category_name_en?: string | null;
+  category_description_ar?: string | null;
+  category_description_en?: string | null;
+  parent_category?: string | null;
+  is_active?: number | boolean;
+  aggregate_version?: number;
 }
 
 export interface OfferTarget {
@@ -277,7 +282,7 @@ export async function fetchBrands(): Promise<Brand[]> {
 export async function fetchCategories(): Promise<Category[]> {
   
   try {
-    const response = await debugFetch(`${API_BASE_URL}?action=fetch-categories`, {
+    const response = await debugFetch(`${API_BASE}/api/v1/categories`, {
       method: 'GET',
       headers: withClientSourceHeader({
         'Accept': 'application/json',
@@ -304,7 +309,7 @@ export async function fetchCategories(): Promise<Category[]> {
     }
     
     
-    if (!result || result.status !== 'success') {
+    if (!result || (result.status !== 'success' && result.success !== true)) {
       console.error(`[API] Invalid categories response status`);
       return [];
     }
@@ -315,7 +320,10 @@ export async function fetchCategories(): Promise<Category[]> {
     
     const categories = Array.isArray(result.data) ? result.data : [];
     
-    return categories.filter((category: any) => category && category.id && category.name_ar);
+    return categories.filter((category: any) => {
+      const isActive = category.is_active === undefined || category.is_active === true || category.is_active === 1;
+      return category && category.id && category.category_name_ar && isActive;
+    });
   } catch (error) {
     console.error('[API] Error fetching categories:', error);
     return [];
