@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fetchProducts, fetchBrands, fetchCategories } from '@/services/api';
+import { fetchProducts, fetchBrands, fetchCategories, Category } from '@/services/api';
 import { Product } from '@/types/product';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
@@ -61,6 +61,41 @@ const palette = {
   danger: '#B9442B',
 };
 
+type CategoryTreeNode = {
+  category: Category;
+  children: CategoryTreeNode[];
+};
+
+function getCategoryName(category: Category) {
+  return category.category_name_ar || category.category_name_en || '';
+}
+
+function sortCategoryNodes(nodes: CategoryTreeNode[]) {
+  nodes.sort((a, b) => getCategoryName(a.category).localeCompare(getCategoryName(b.category), 'ar'));
+  nodes.forEach((node) => sortCategoryNodes(node.children));
+  return nodes;
+}
+
+function buildCategoryTree(categories: Category[]) {
+  const nodes = new Map<string, CategoryTreeNode>();
+  categories.forEach((category) => {
+    nodes.set(category.id, { category, children: [] });
+  });
+
+  const roots: CategoryTreeNode[] = [];
+  nodes.forEach((node) => {
+    const parentId = node.category.parent_category;
+    const parent = parentId ? nodes.get(parentId) : undefined;
+    if (parent && parent.category.id !== node.category.id) {
+      parent.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+
+  return sortCategoryNodes(roots);
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ brandId?: string; categoryId?: string; openBrands?: string; product?: string }>();
@@ -70,6 +105,7 @@ export default function HomeScreen() {
   const { selectedSellingPoint } = useSellingPoint();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>(params.categoryId ? [params.categoryId] : []);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>(params.brandId ? [params.brandId] : []);
   const [barcodeFilter, setBarcodeFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -99,6 +135,24 @@ export default function HomeScreen() {
     if (!categoriesData) return [];
     return Array.isArray(categoriesData) ? categoriesData : [];
   }, [categoriesData]);
+
+  const categoryTree = useMemo(() => buildCategoryTree(categories), [categories]);
+
+  const toggleCategory = useCallback((categoryId: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    );
+  }, []);
+
+  const toggleExpandedCategory = useCallback((categoryId: string) => {
+    setExpandedCategories(prev =>
+      prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    );
+  }, []);
 
   React.useEffect(() => {
     if (params.brandId) {
@@ -204,6 +258,61 @@ export default function HomeScreen() {
     const offsetY = event.nativeEvent.contentOffset.y;
     setShowScrollTop(offsetY > 500);
   }, []);
+
+  const renderCategoryTreeNode = (node: CategoryTreeNode, depth = 0): React.ReactNode => {
+    const isSelected = selectedCategories.includes(node.category.id);
+    const hasChildren = node.children.length > 0;
+    const isExpanded = expandedCategories.includes(node.category.id);
+
+    return (
+      <View key={node.category.id} style={depth > 0 ? styles.categoryTreeNestedBlock : undefined}>
+        <Pressable
+          style={[
+            styles.categoryTreeChip,
+            depth === 0 && styles.categoryTreeParentChip,
+            isSelected && styles.filterOptionActive,
+          ]}
+          onPress={() => hasChildren ? toggleExpandedCategory(node.category.id) : toggleCategory(node.category.id)}
+        >
+          <Pressable
+            style={styles.categoryTreeCheck}
+            onPress={(event) => {
+              event.stopPropagation?.();
+              toggleCategory(node.category.id);
+            }}
+          >
+            <Feather
+              name={isSelected ? 'check-circle' : 'circle'}
+              size={16}
+              color={isSelected ? '#FFFFFF' : palette.accentDark}
+            />
+          </Pressable>
+          <Feather
+            name={hasChildren ? 'folder' : 'tag'}
+            size={14}
+            color={isSelected ? '#FFFFFF' : palette.accentDark}
+          />
+          <Text style={[styles.categoryTreeChipText, isSelected && styles.filterOptionTextActive]} numberOfLines={1}>
+            {getCategoryName(node.category)}
+          </Text>
+          {hasChildren && (
+            <Feather
+              name={isExpanded ? 'chevron-up' : 'chevron-down'}
+              size={17}
+              color={isSelected ? '#FFFFFF' : palette.textMuted}
+            />
+          )}
+        </Pressable>
+
+        {hasChildren && isExpanded && (
+          <View style={styles.categoryTreeChildren}>
+            {node.children.map((child) => renderCategoryTreeNode(child, depth + 1))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   const promptSelectSellingPoint = useCallback(() => {
     const title =
       '\u0627\u062e\u062a\u064a\u0627\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639';
@@ -524,63 +633,14 @@ export default function HomeScreen() {
           onPress={() => setShowFilters(false)}
         >
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
+            <View style={[styles.modalHeader, { paddingTop: insets.top + 16 }]}>
               <Text style={styles.modalTitle}>{'\u062a\u0635\u0641\u064a\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a'}</Text>
               <Pressable onPress={() => setShowFilters(false)}>
                 <Feather name="x" color="#1A1A1A" size={24} />
               </Pressable>
             </View>
 
-            <ScrollView style={styles.modalBody}>
-              {categories.length > 0 && (
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0641\u0626\u0629'}</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent}>
-                    <View style={styles.filterOptions}>
-                      <Pressable
-                        style={[
-                          styles.filterOption,
-                          selectedCategories.length === 0 && styles.filterOptionActive,
-                        ]}
-                        onPress={() => setSelectedCategories([])}
-                      >
-                        <Text
-                          style={[
-                            styles.filterOptionText,
-                            selectedCategories.length === 0 && styles.filterOptionTextActive,
-                          ]}
-                        >
-                          {'\u0627\u0644\u0643\u0644'}
-                        </Text>
-                      </Pressable>
-                      {categories.map((category) => category && category.id ? (
-                        <Pressable
-                          key={category.id}
-                          style={[
-                            styles.filterOption,
-                            selectedCategories.includes(category.id) && styles.filterOptionActive,
-                          ]}
-                          onPress={() => setSelectedCategories(prev =>
-                            prev.includes(category.id)
-                              ? prev.filter(id => id !== category.id)
-                              : [...prev, category.id]
-                          )}
-                        >
-                          <Text
-                            style={[
-                              styles.filterOptionText,
-                              selectedCategories.includes(category.id) && styles.filterOptionTextActive,
-                            ]}
-                          >
-                            {category.category_name_ar || '\u0641\u0626\u0629'}
-                          </Text>
-                        </Pressable>
-                      ) : null)}
-                    </View>
-                  </ScrollView>
-                </View>
-              )}
-
+            <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0628\u0627\u0631\u0643\u0648\u062f'}</Text>
                 <TextInput
@@ -659,9 +719,35 @@ export default function HomeScreen() {
                   </View>
                 )}
               </View>
+
+              {categories.length > 0 && (
+                <View style={styles.filterSection}>
+                  <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0641\u0626\u0629'}</Text>
+                  <View style={styles.categoryTree}>
+                    <Pressable
+                      style={[
+                        styles.categoryTreeChip,
+                        styles.categoryTreeAllChip,
+                        selectedCategories.length === 0 && styles.filterOptionActive,
+                      ]}
+                      onPress={() => setSelectedCategories([])}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryTreeChipText,
+                          selectedCategories.length === 0 && styles.filterOptionTextActive,
+                        ]}
+                      >
+                        {'\u0627\u0644\u0643\u0644'}
+                      </Text>
+                    </Pressable>
+                    {categoryTree.map((node) => renderCategoryTreeNode(node))}
+                  </View>
+                </View>
+              )}
             </ScrollView>
 
-            <View style={styles.modalFooter}>
+            <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
               <Pressable
                 style={({ pressed }) => [
                   styles.clearButton,
@@ -799,22 +885,23 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: '#FFFFFF',
   },
   modalContent: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 18,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
   },
   modalTitle: {
     fontSize: 20,
@@ -824,10 +911,18 @@ const styles = StyleSheet.create({
     writingDirection: 'rtl',
   },
   modalBody: {
+    flex: 1,
+  },
+  modalBodyContent: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
     padding: 20,
   },
   filterSection: {
     marginBottom: 24,
+    width: '100%',
+    alignSelf: 'center',
   },
   filterSectionTitle: {
     fontSize: 16,
@@ -841,9 +936,64 @@ const styles = StyleSheet.create({
     flexDirection: 'row-reverse',
     gap: 8,
   },
+  categoryTree: {
+    gap: 10,
+    alignItems: 'stretch',
+    width: '100%',
+  },
+  categoryTreeNestedBlock: {
+    width: '100%',
+  },
+  categoryTreeChildren: {
+    marginTop: 8,
+    paddingRight: 12,
+    borderRightWidth: 2,
+    borderRightColor: '#EFE1E6',
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  categoryTreeChip: {
+    minHeight: 38,
+    borderRadius: 19,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#F5F5F5',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'flex-end',
+  },
+  categoryTreeCheck: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryTreeParentChip: {
+    width: '100%',
+    justifyContent: 'flex-start',
+    backgroundColor: '#FBF6F8',
+    borderColor: '#EADDE0',
+  },
+  categoryTreeAllChip: {
+    alignSelf: 'flex-end',
+  },
+  categoryTreeChipText: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#555',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    flexShrink: 1,
+  },
   filterScrollContent: {
     flexGrow: 1,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     direction: 'rtl',
   },
   filterOption: {
@@ -884,6 +1034,9 @@ const styles = StyleSheet.create({
     gap: 12,
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
   },
   clearButton: {
     flex: 1,
@@ -915,12 +1068,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
     borderRadius: 12,
     marginBottom: 12,
+    width: '100%',
   },
   alphabetRow: {
     flexDirection: 'row-reverse',
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
+    justifyContent: 'center',
   },
   letterButton: {
     width: 32,
@@ -956,7 +1111,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginTop: 12,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
+    width: '100%',
   },
   brandItem: {
     paddingHorizontal: 16,
