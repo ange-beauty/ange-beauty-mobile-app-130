@@ -117,7 +117,7 @@ function CustomSplashScreen({ onFinish }: { onFinish: () => void }) {
         </View>
         <Text style={splashStyles.brandTitle}>{"\u0623\u0646\u062c \u0628\u064a\u0648\u062a\u064a"}</Text>
         <Text style={splashStyles.brandSubTitle}>
-          {"\u062c\u0645\u0627\u0644\u0643 \u064a\u0628\u062f\u0623 \u0645\u0646 \u0647\u0646\u0627"}
+          {"\u0623\u0646\u062c \u0628\u064a\u0648\u062a\u064a \u062c\u0645\u0627\u0644 \u0645\u0644\u0627\u0626\u0643\u064a"}
         </Text>
       </Animated.View>
     </View>

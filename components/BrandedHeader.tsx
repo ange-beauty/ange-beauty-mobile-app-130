@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { beautyTheme } from '@/constants/uiTheme';
+import { useAuth } from '@/contexts/AuthContext';
 
 type BrandedHeaderProps = {
   topInset?: number;
@@ -20,6 +21,7 @@ export default function BrandedHeader({
   floating = false,
 }: BrandedHeaderProps) {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const canGoBack = showBackButton && router.canGoBack();
 
   return (
@@ -28,14 +30,17 @@ export default function BrandedHeader({
         <Pressable style={styles.iconButton} onPress={() => router.back()}>
           <Feather name="arrow-right" size={20} color="#2F2527" />
         </Pressable>
-      ) : (
+      ) : isAuthenticated ? (
         <Pressable style={styles.iconButton} onPress={() => router.push('/(tabs)/account')}>
           <Feather name="bell" size={19} color="#2F2527" />
         </Pressable>
-      )}
+      ) : null}
 
       {showSearch ? (
-        <Pressable style={styles.searchPill} onPress={() => router.push('/(tabs)/products')}>
+        <Pressable
+          style={styles.searchPill}
+          onPress={() => router.push({ pathname: '/(tabs)/products', params: { focusSearch: '1' } })}
+        >
           <Feather name="search" size={22} color={beautyTheme.colors.accentDark} />
           <Text style={styles.searchText}>{'\u0628\u062d\u062b \u0639\u0646 COSRX'}</Text>
         </Pressable>

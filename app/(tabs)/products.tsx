@@ -25,6 +25,7 @@ import { fetchProducts, fetchBrands, fetchCategories, Category } from '@/service
 import { Product } from '@/types/product';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
 import FloralBackdrop from '@/components/FloralBackdrop';
 import ProductPrice from '@/components/ProductPrice';
@@ -36,11 +37,9 @@ import { toArabicNumerals } from '@/utils/formatPrice';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const getNumColumns = () => {
-  if (Platform.OS === 'web') {
-    if (SCREEN_WIDTH >= 1200) return 5;
-    if (SCREEN_WIDTH >= 900) return 4;
-    if (SCREEN_WIDTH >= 600) return 3;
-  }
+  if (SCREEN_WIDTH >= 1200) return 5;
+  if (SCREEN_WIDTH >= 900) return 4;
+  if (SCREEN_WIDTH >= 650) return 3;
   return 2;
 };
 
@@ -98,10 +97,11 @@ function buildCategoryTree(categories: Category[]) {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ brandId?: string; categoryId?: string; openBrands?: string; product?: string }>();
+  const params = useLocalSearchParams<{ brandId?: string; categoryId?: string; openBrands?: string; product?: string; focusSearch?: string }>();
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToBasket, getItemQuantity } = useBasket();
+  const { isAuthenticated } = useAuth();
   const { selectedSellingPoint } = useSellingPoint();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>(params.categoryId ? [params.categoryId] : []);
@@ -114,7 +114,9 @@ export default function HomeScreen() {
   const [numColumns, setNumColumns] = useState(NUM_COLUMNS);
   const [key, setKey] = useState('grid-' + NUM_COLUMNS);
   const listRef = useRef<FlatList>(null);
+  const searchInputRef = useRef<TextInput>(null);
   const productFilter = typeof params.product === 'string' ? params.product : '';
+  const shouldFocusSearch = params.focusSearch === '1';
 
   const { data: brandsData } = useQuery({
     queryKey: ['brands'],
@@ -179,6 +181,15 @@ export default function HomeScreen() {
       listRef.current?.scrollToOffset({ offset: 0, animated: false });
     }
   }, [productFilter]);
+
+  React.useEffect(() => {
+    if (!shouldFocusSearch) return;
+    const timer = setTimeout(() => {
+      searchInputRef.current?.focus();
+      router.setParams({ focusSearch: '' });
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [router, shouldFocusSearch]);
 
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0-9'.split('');
   
@@ -334,11 +345,9 @@ export default function HomeScreen() {
   React.useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
       const newNumColumns = (() => {
-        if (Platform.OS === 'web') {
-          if (window.width >= 1200) return 5;
-          if (window.width >= 900) return 4;
-          if (window.width >= 600) return 3;
-        }
+        if (window.width >= 1200) return 5;
+        if (window.width >= 900) return 4;
+        if (window.width >= 650) return 3;
         return 2;
       })();
       
@@ -353,7 +362,9 @@ export default function HomeScreen() {
 
   const cardWidth = useMemo(() => {
     const screenWidth = Dimensions.get('window').width;
-    return (screenWidth - 16 * (numColumns + 1)) / numColumns;
+    const horizontalPadding = 16;
+    const columnGap = 12;
+    return (screenWidth - horizontalPadding * 2 - columnGap * (numColumns - 1)) / numColumns;
   }, [numColumns]);
 
   const renderProduct = ({ item }: { item: Product }) => {
@@ -471,13 +482,16 @@ export default function HomeScreen() {
       <View style={styles.headerWrapper}>
         <View style={[styles.headerCard, { paddingTop: insets.top + 10 }]}>
           <View style={styles.productHeaderRow}>
-            <Pressable style={styles.headerCircleButton} onPress={() => router.push('/(tabs)/account')}>
-              <Feather name="bell" size={19} color="#2F2527" />
-            </Pressable>
+            {isAuthenticated ? (
+              <Pressable style={styles.headerCircleButton} onPress={() => router.push('/(tabs)/account')}>
+                <Feather name="bell" size={19} color="#2F2527" />
+              </Pressable>
+            ) : null}
 
             <View style={styles.searchFieldRow}>
               <Feather name="search" size={21} color={palette.accentDark} style={styles.searchFieldIcon} />
               <TextInput
+                ref={searchInputRef}
                 testID="home-search-input"
                 style={styles.searchFieldInput}
                 placeholder={'\u0627\u0628\u062d\u062b \u0639\u0646 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a...'}
@@ -1149,7 +1163,8 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   productRow: {
-    justifyContent: 'space-between',
+    gap: 12,
+    justifyContent: 'flex-start',
   },
   productCard: {
     width: '100%',

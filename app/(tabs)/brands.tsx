@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useRef, useState } from 'react';
 import {
@@ -131,18 +130,6 @@ export default function BrandsScreen() {
   return (
     <View style={styles.container}>
       <FloralBackdrop subtle />
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.headerActions}>
-          <Pressable style={styles.iconButton} onPress={() => router.push('/contact')}>
-            <Feather name="message-circle" size={22} color="#17242A" />
-          </Pressable>
-          <Pressable style={styles.iconButton} onPress={() => router.push('/(tabs)/products')}>
-            <Feather name="search" size={23} color="#17242A" />
-          </Pressable>
-        </View>
-        <Text style={styles.title}>{'\u062a\u0633\u0648\u0642 \u062d\u0633\u0628 \u0627\u0644\u0645\u0627\u0631\u0643\u0629'}</Text>
-        <Feather name="chevron-left" size={25} color={beautyTheme.colors.accentDark} />
-      </View>
 
       {isLoading ? (
         <View style={styles.loadingBox}>
@@ -159,6 +146,7 @@ export default function BrandsScreen() {
             contentContainerStyle={[
               styles.gridContent,
               {
+                paddingTop: insets.top + 16,
                 paddingStart: horizontalPadding + gridRightGutter,
                 paddingEnd: horizontalPadding,
                 paddingBottom: insets.bottom + 150,
@@ -201,33 +189,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFDFD',
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  iconButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    flex: 1,
-    color: '#17242A',
-    fontSize: 25,
-    fontWeight: '700',
-    textAlign: 'right',
-    writingDirection: 'rtl',
-    marginHorizontal: 12,
   },
   body: {
     flex: 1,

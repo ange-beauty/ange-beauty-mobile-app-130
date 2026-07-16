@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   ScrollView,
   Pressable,
   StyleSheet,
@@ -18,6 +19,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useBasket } from '@/contexts/BasketContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
+
+const appLogo = require('@/assets/images/icon.png');
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
@@ -121,6 +124,49 @@ export default function AccountScreen() {
     ],
     [router]
   );
+
+  if (!isLoading && !isAuthenticated) {
+    return (
+      <View style={styles.container}>
+        <FloralBackdrop subtle />
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={[
+            styles.guestCenteredContainer,
+            { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 120 },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          <Image source={appLogo} style={styles.guestLogo} resizeMode="contain" />
+          <Text style={styles.guestBrandTitle}>{'\u0623\u0646\u062c \u0628\u064a\u0648\u062a\u064a'}</Text>
+          <Text style={styles.guestMotto}>{'\u0623\u0646\u062c \u0628\u064a\u0648\u062a\u064a \u062c\u0645\u0627\u0644 \u0645\u0644\u0627\u0626\u0643\u064a'}</Text>
+
+          <View style={styles.guestActionCard}>
+            {guestActions.map((action) => (
+              <Pressable
+                key={action.key}
+                style={({ pressed }) => [
+                  action.variant === 'primary' ? styles.primaryButton : styles.secondaryButton,
+                  pressed && styles.buttonPressed,
+                ]}
+                onPress={action.onPress}
+              >
+                <Text
+                  style={
+                    action.variant === 'primary'
+                      ? styles.primaryButtonText
+                      : styles.secondaryButtonText
+                  }
+                >
+                  {action.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -251,6 +297,39 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
     paddingBottom: 160,
+  },
+  guestCenteredContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestLogo: {
+    width: 132,
+    height: 132,
+  },
+  guestBrandTitle: {
+    marginTop: 10,
+    fontSize: 32,
+    lineHeight: 40,
+    color: '#7E4A53',
+    fontWeight: '700',
+    fontFamily: 'Tajawal-Bold',
+    textAlign: 'center',
+  },
+  guestMotto: {
+    marginTop: 2,
+    fontSize: 16,
+    color: '#6D5B5F',
+    fontWeight: '700',
+    textAlign: 'center',
+    writingDirection: 'rtl',
+  },
+  guestActionCard: {
+    width: '100%',
+    maxWidth: 420,
+    marginTop: 26,
+    gap: 10,
   },
   heroCard: {
     backgroundColor: '#FFF8FA',

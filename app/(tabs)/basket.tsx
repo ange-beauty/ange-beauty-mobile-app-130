@@ -17,7 +17,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
 import ProductPrice from '@/components/ProductPrice';
 
@@ -256,11 +255,7 @@ export default function BasketScreen() {
     return (
       <View style={styles.container}>
         <FloralBackdrop subtle />
-        <BrandedHeader topInset={insets.top} showBackButton={false} />
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>{'\u0627\u0644\u0633\u0644\u0629'}</Text>
-        </View>
-        <View style={styles.loadingContainer}>
+        <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
           <ActivityIndicator size="large" color="#1A1A1A" />
           <Text style={styles.loadingText}>{'\u062c\u0627\u0631\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0633\u0644\u0629...'}</Text>
         </View>
@@ -272,11 +267,7 @@ export default function BasketScreen() {
     return (
       <View style={styles.container}>
         <FloralBackdrop subtle />
-        <BrandedHeader topInset={insets.top} showBackButton={false} />
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>{'\u0627\u0644\u0633\u0644\u0629'}</Text>
-        </View>
-        <View style={styles.missingStoreContainer}>
+        <View style={[styles.missingStoreContainer, { paddingTop: insets.top }]}>
           <View style={styles.stateIconWrap}>
             <Feather name="map-pin" color="#B78690" size={56} />
           </View>
@@ -301,11 +292,7 @@ export default function BasketScreen() {
     return (
       <View style={styles.container}>
         <FloralBackdrop subtle />
-        <BrandedHeader topInset={insets.top} showBackButton={false} />
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>{'\u0627\u0644\u0633\u0644\u0629'}</Text>
-        </View>
-        <View style={styles.emptyContainer}>
+        <View style={[styles.emptyContainer, { paddingTop: insets.top }]}>
           <View style={styles.stateIconWrap}>
             <Feather name="shopping-bag" color="#B78690" size={56} />
           </View>
@@ -484,10 +471,8 @@ export default function BasketScreen() {
   return (
     <View style={styles.container}>
       <FloralBackdrop subtle />
-      <BrandedHeader topInset={insets.top} showBackButton={false} />
-        <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View>
-          <Text style={styles.headerTitle}>{'\u0627\u0644\u0633\u0644\u0629'}</Text>
           <Text style={styles.itemCount}>{toArabicNumerals(totalItems)} {'\u0645\u0646\u062a\u062c'}</Text>
         </View>
         <Pressable
@@ -745,11 +730,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600' as const,
     color: '#FF3B30',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-    color: '#1A1A1A',
   },
   itemCount: {
     fontSize: 14,

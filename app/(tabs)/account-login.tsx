@@ -3,6 +3,7 @@ import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,17 +13,18 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
 import TurnstileWidget from '@/components/TurnstileWidget';
 import { useAuth } from '@/contexts/AuthContext';
+
+const appLogo = require('@/assets/images/icon.png');
 
 export default function AccountLoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { login } = useAuth();
-  const [email, setEmail] = useState('z3864072@gmail.com');
-  const [password, setPassword] = useState('Lozyaser_1985');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,17 +75,21 @@ export default function AccountLoginScreen() {
   return (
     <View style={styles.container}>
       <FloralBackdrop subtle />
-      <BrandedHeader topInset={insets.top} showBackButton />
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>{'\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644'}</Text>
+        <View style={styles.brandBlock}>
+          <Image source={appLogo} style={styles.logo} resizeMode="contain" />
+          <Text style={styles.brandTitle}>{'\u0623\u0646\u062c \u0628\u064a\u0648\u062a\u064a'}</Text>
+          <Text style={styles.motto}>{'\u0623\u0646\u062c \u0628\u064a\u0648\u062a\u064a \u062c\u0645\u0627\u0644 \u0645\u0644\u0627\u0626\u0643\u064a'}</Text>
+        </View>
 
         <View style={styles.card}>
+          <Text style={styles.title}>{'\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644'}</Text>
           <TextInput
             style={[styles.input, fieldErrors.email ? styles.inputErrorBorder : null]}
             value={email}
@@ -158,6 +164,11 @@ export default function AccountLoginScreen() {
               {'\u0625\u0646\u0634\u0627\u0621 \u062d\u0633\u0627\u0628 \u062c\u062f\u064a\u062f'}
             </Text>
           </Pressable>
+          {router.canGoBack() ? (
+            <Pressable style={({ pressed }) => [styles.backButton, pressed && styles.buttonPressed]} onPress={() => router.back()}>
+              <Text style={styles.backButtonText}>{'\u0631\u062c\u0648\u0639'}</Text>
+            </Pressable>
+          ) : null}
         </View>
       </ScrollView>
     </View>
@@ -173,16 +184,48 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
+    flexGrow: 1,
+    padding: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  brandBlock: {
+    width: '100%',
+    maxWidth: 380,
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  logo: {
+    width: 116,
+    height: 116,
+  },
+  brandTitle: {
+    marginTop: 10,
+    fontSize: 30,
+    lineHeight: 38,
+    color: '#7E4A53',
+    fontWeight: '700',
+    fontFamily: 'Tajawal-Bold',
+    textAlign: 'center',
+  },
+  motto: {
+    marginTop: 2,
+    fontSize: 15,
+    color: '#6D5B5F',
+    fontWeight: '700',
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: '#2F2527',
-    textAlign: 'right',
-    marginBottom: 14,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   card: {
+    width: '100%',
+    maxWidth: 420,
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
@@ -255,6 +298,16 @@ const styles = StyleSheet.create({
     color: '#4B383D',
     fontSize: 14,
     fontWeight: '600',
+  },
+  backButton: {
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backButtonText: {
+    color: '#7F6A6F',
+    fontSize: 14,
+    fontWeight: '700',
   },
   buttonPressed: {
     opacity: 0.75,
