@@ -62,7 +62,14 @@ export interface APIProduct {
   state?: string | null;
   available_quantity?: number | null;
   suppliers?: any[] | null;
-  tags?: string[];
+  tags?: (
+    | string
+    | {
+        id?: string | null;
+        tag_name_ar?: string | null;
+        tag_name_en?: string | null;
+      }
+  )[] | null;
   created_at?: string;
   updated_at?: string;
   event_version?: string;
@@ -109,6 +116,17 @@ function parsePriceValue(value: number | string | null | undefined): number | un
     return Number.isFinite(parsed) ? parsed : undefined;
   }
   return undefined;
+}
+
+function mapProductTags(tags: APIProduct['tags']): string[] {
+  if (!Array.isArray(tags)) return [];
+
+  return tags
+    .map((tag) => {
+      if (typeof tag === 'string') return tag.trim();
+      return (tag?.tag_name_ar || tag?.tag_name_en || '').trim();
+    })
+    .filter((tag): tag is string => tag.length > 0);
 }
 
 export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
@@ -168,7 +186,7 @@ export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
       : null,
     image: imageUrl,
     description: productDescription,
-    ingredients: apiProduct.tags || [],
+    ingredients: mapProductTags(apiProduct.tags),
     rating: 4.5,
     reviewCount: 0,
     totalAvailable: typeof apiProduct.total_available === 'number' ? apiProduct.total_available : undefined,

@@ -1,7 +1,7 @@
 {
   "name": "expo-app",
   "main": "expo-router/entry",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "scripts": {
     "start": "npx rork start -p 2zlifppxsf94bsd8q9jiw --tunnel",
     "start-web": "npx rork start -p 2zlifppxsf94bsd8q9jiw --web --tunnel",
