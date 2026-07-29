@@ -14,3 +14,8 @@ yarn-error.*
 android/
 
 *.apk
+
+# Never upload server credentials with the mobile build context.
+ange-beauty-mobile-firebase-adminsdk-*.json
+angebeauty-*.json
+.env*.local

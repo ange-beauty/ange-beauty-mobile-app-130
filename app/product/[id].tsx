@@ -23,6 +23,7 @@ import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
 import ProductPrice from '@/components/ProductPrice';
 import { beautyTheme } from '@/constants/uiTheme';
+import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
@@ -30,6 +31,12 @@ import { fetchProductById } from '@/services/api';
 import { getAvailableQuantityForSellingPoint } from '@/utils/availability';
 import { getDisplayBrand } from '@/utils/brand';
 import { toArabicNumerals } from '@/utils/formatPrice';
+
+function normalizeDescriptionHtml(description: string): string {
+  return description
+    .replace(/(?:&nbsp;|&#160;|&#x0*a0;)/gi, ' ')
+    .replace(/\u00a0/g, ' ');
+}
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -42,6 +49,7 @@ export default function ProductDetailScreen() {
   const maxContentWidth = isWeb ? 1200 : width;
   const contentWidth = Math.min(width, maxContentWidth);
   const heroWidth = isWideWeb ? Math.max(360, Math.min(500, contentWidth * 0.4)) : undefined;
+  const { isAuthenticated } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToBasket, getItemQuantity } = useBasket();
   const { selectedSellingPoint } = useSellingPoint();
@@ -52,6 +60,7 @@ export default function ProductDetailScreen() {
     queryFn: () => fetchProductById(id as string),
     enabled: !!id,
   });
+  const descriptionHtml = normalizeDescriptionHtml(product?.description ?? '');
 
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
@@ -119,6 +128,27 @@ export default function ProductDetailScreen() {
       { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' },
     ]);
   };
+  const handleToggleFavorite = () => {
+    if (isAuthenticated) {
+      toggleFavorite(product.id);
+      return;
+    }
+
+    const title = '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0645\u0637\u0644\u0648\u0628';
+    const message =
+      '\u064a\u062c\u0628 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0644\u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0625\u0644\u0649 \u0627\u0644\u0645\u0641\u0636\u0644\u0629.';
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      if (window.confirm(`${title}\n\n${message}`)) {
+        router.push('/(tabs)/account-login');
+      }
+      return;
+    }
+
+    Alert.alert(title, message, [
+      { text: '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644', onPress: () => router.push('/(tabs)/account-login') },
+      { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' },
+    ]);
+  };
 
   const handleAddToBasket = () => {
     if (!selectedSellingPoint?.id) {
@@ -173,8 +203,8 @@ export default function ProductDetailScreen() {
             ]}
           >
             <View style={[styles.imageWrap, isWideWeb && styles.imageWrapWeb]}>
-              {product.image ? (
-                <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
+              {product.fullImage || product.image ? (
+                <Image source={{ uri: product.fullImage || product.image }} style={styles.image} resizeMode="contain" />
               ) : (
                 <Image
                   source={{ uri: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop' }}
@@ -185,7 +215,7 @@ export default function ProductDetailScreen() {
             </View>
             <Pressable
               style={({ pressed }) => [styles.favoriteButton, pressed && styles.buttonPressed]}
-              onPress={() => toggleFavorite(product.id)}
+              onPress={handleToggleFavorite}
             >
               <Feather name="heart" size={20} color={isFav ? beautyTheme.colors.accentDark : '#8F7B7F'} />
             </Pressable>
@@ -210,23 +240,8 @@ export default function ProductDetailScreen() {
 
             <Text style={[styles.productName, isWideWeb && styles.productNameWeb]}>{product.name || '\u0645\u0646\u062a\u062c \u0628\u062f\u0648\u0646 \u0627\u0633\u0645'}</Text>
 
-            <View style={styles.priceCard}>
-              <Text style={styles.priceLabel}>{'\u0627\u0644\u0633\u0639\u0631'}</Text>
-              <ProductPrice product={product} priceStyle={styles.priceValue} />
-              {selectedSellingPoint ? (
-                <Text style={[styles.availabilityText, selectedPointAvailable === null ? styles.notAvailable : styles.available]}>
-                  {selectedPointAvailable === null
-                    ? '\u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631 \u0641\u064a \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0627\u0644\u0645\u062e\u062a\u0627\u0631\u0629'
-                    : `\u0627\u0644\u0645\u062a\u0648\u0641\u0631: ${toArabicNumerals(selectedPointAvailable)}`}
-                </Text>
-              ) : (
-                <Text style={styles.availabilityText}>{'\u0627\u062e\u062a\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0644\u0645\u0639\u0631\u0641\u0629 \u0627\u0644\u062a\u0648\u0641\u0631'}</Text>
-              )}
-            </View>
-
-            {!!product.description && (
+            {!!descriptionHtml && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{'\u0627\u0644\u0648\u0635\u0641'}</Text>
                 <View style={styles.descriptionBox}>
                   <WebView
                     originWhitelist={['*']}
@@ -238,10 +253,12 @@ export default function ProductDetailScreen() {
                             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
                             <style>
                               * { margin: 0; padding: 0; box-sizing: border-box; }
+                              html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
                               body {
                                 font-family: Tajawal, Arial, sans-serif;
                                 font-size: 15px; line-height: 1.7; color: #3C2B2E;
                                 direction: rtl; text-align: right; background: transparent;
+                                white-space: normal; overflow-wrap: anywhere; padding: 14px;
                               }
                               p { margin-bottom: 12px; }
                               p:last-child { margin-bottom: 0; }
@@ -251,10 +268,11 @@ export default function ProductDetailScreen() {
                               img { max-width: 100%; border-radius: 8px; margin: 8px 0; }
                             </style>
                           </head>
-                          <body>${product.description}</body>
+                          <body>${descriptionHtml}</body>
                           <script>
                             window.addEventListener('load', function() {
-                              window.ReactNativeWebView.postMessage(JSON.stringify({ height: document.body.scrollHeight }));
+                              var height = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+                              window.ReactNativeWebView.postMessage(JSON.stringify({ height: Math.ceil(height) }));
                             });
                           </script>
                         </html>
@@ -278,7 +296,7 @@ export default function ProductDetailScreen() {
 
             {!!product.ingredients?.length && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{'\u0627\u0644\u0645\u0643\u0648\u0646\u0627\u062a \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629'}</Text>
+                <Text style={styles.sectionTitle}>{'\u0627\u0644\u0648\u0633\u0648\u0645'}</Text>
                 <View style={styles.chipsWrap}>
                   {product.ingredients.map((ingredient, index) => (
                     <View key={index} style={styles.chip}>
@@ -305,9 +323,20 @@ export default function ProductDetailScreen() {
           },
         ]}
       >
-        <View>
+        <View style={styles.bottomInfo}>
           <Text style={styles.bottomLabel}>{'\u0627\u0644\u0633\u0639\u0631'}</Text>
           <ProductPrice product={product} priceStyle={styles.bottomPrice} />
+          {selectedSellingPoint ? (
+            <Text style={[styles.bottomAvailability, selectedPointAvailable === null ? styles.notAvailable : styles.available]}>
+              {selectedPointAvailable === null
+                ? '\u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631 \u0641\u064a \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0627\u0644\u0645\u062e\u062a\u0627\u0631\u0629'
+                : `\u0627\u0644\u0645\u062a\u0648\u0641\u0631: ${toArabicNumerals(selectedPointAvailable)}`}
+            </Text>
+          ) : (
+            <Text style={styles.bottomAvailability}>
+              {'\u0627\u062e\u062a\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0644\u0645\u0639\u0631\u0641\u0629 \u0627\u0644\u062a\u0648\u0641\u0631'}
+            </Text>
+          )}
         </View>
         <Pressable style={({ pressed }) => [styles.addButton, pressed && styles.buttonPressed]} onPress={handleAddToBasket}>
           <Text style={styles.addText}>
@@ -480,34 +509,6 @@ const styles = StyleSheet.create({
     fontSize: 21,
     lineHeight: 29,
   },
-  priceCard: {
-    backgroundColor: '#FFF7F9',
-    borderWidth: 1,
-    borderColor: '#EBDDE1',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 16,
-  },
-  priceLabel: {
-    fontSize: 12,
-    color: beautyTheme.colors.textMuted,
-    textAlign: 'right',
-    writingDirection: 'rtl',
-  },
-  priceValue: {
-    marginTop: 3,
-    fontSize: 24,
-    color: beautyTheme.colors.accentDark,
-    fontWeight: '700',
-    textAlign: 'right',
-  },
-  availabilityText: {
-    marginTop: 4,
-    fontSize: 13,
-    textAlign: 'right',
-    color: beautyTheme.colors.textMuted,
-  },
   available: {
     color: '#3F7A4A',
   },
@@ -525,6 +526,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   descriptionBox: {
+    width: '100%',
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
@@ -532,6 +534,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFDFD',
   },
   webView: {
+    width: '100%',
     backgroundColor: 'transparent',
   },
   chipsWrap: {
@@ -572,6 +575,11 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     marginBottom: 12,
   },
+  bottomInfo: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 12,
+  },
   bottomLabel: {
     fontSize: 12,
     color: beautyTheme.colors.textMuted,
@@ -584,6 +592,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: beautyTheme.colors.accentDark,
     textAlign: 'right',
+  },
+  bottomAvailability: {
+    marginTop: 3,
+    color: beautyTheme.colors.textMuted,
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   addButton: {
     minWidth: 190,

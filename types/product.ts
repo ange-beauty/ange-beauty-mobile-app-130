@@ -17,6 +17,7 @@ export interface Product {
     value: number;
   } | null;
   image: string;
+  fullImage?: string;
   description: string;
   ingredients?: string[];
   rating: number;
@@ -129,6 +130,27 @@ function mapProductTags(tags: APIProduct['tags']): string[] {
     .filter((tag): tag is string => tag.length > 0);
 }
 
+function getPrimaryImageFileName(images: APIProduct['images'], productId: string): string {
+  if (Array.isArray(images)) {
+    const firstImage = images.find((image): image is string => typeof image === 'string' && image.trim().length > 0);
+    if (firstImage) return firstImage.trim();
+  }
+
+  if (typeof images === 'string' && images.trim()) {
+    try {
+      const parsed = JSON.parse(images);
+      if (Array.isArray(parsed)) {
+        const firstImage = parsed.find((image): image is string => typeof image === 'string' && image.trim().length > 0);
+        if (firstImage) return firstImage.trim();
+      }
+    } catch {
+      if (!images.trim().startsWith('[')) return images.trim();
+    }
+  }
+
+  return productId ? `${productId}.webp` : '';
+}
+
 export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
   const categoryMap: Record<string, ProductCategory> = {
     'skincare': 'skincare',
@@ -156,8 +178,12 @@ export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
       ? apiProduct.aggregate_version.toString()
       : apiProduct.updated_at || undefined;
   const versionQuery = stableVersion ? `?v=${encodeURIComponent(stableVersion)}` : '';
-  const imageUrl = productId
-    ? `https://images.angebeauty.net/angeapi/cdn/images/${productId}/thumbs/${productId}.webp${versionQuery}`
+  const imageFileName = getPrimaryImageFileName(apiProduct.images, productId);
+  const imageUrl = productId && imageFileName
+    ? `https://images.angebeauty.net/angeapi/cdn/images/${productId}/thumbs/${imageFileName}${versionQuery}`
+    : '';
+  const fullImageUrl = productId && imageFileName
+    ? `https://images.angebeauty.net/angeapi/cdn/images/${productId}/${imageFileName}${versionQuery}`
     : '';
 
   const rawPrice = parsePriceValue(apiProduct.price) ?? 0;
@@ -185,6 +211,7 @@ export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
         }
       : null,
     image: imageUrl,
+    fullImage: fullImageUrl || imageUrl,
     description: productDescription,
     ingredients: mapProductTags(apiProduct.tags),
     rating: 4.5,

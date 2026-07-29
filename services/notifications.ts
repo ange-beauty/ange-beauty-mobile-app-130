@@ -6,6 +6,7 @@ import { withClientSourceHeader } from '@/services/requestHeaders';
 import { debugFetch } from '@/services/httpDebug';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
+const API_BASE = API_BASE_URL.replace(/\/+$/, '');
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -35,6 +36,15 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   try {
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'General',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#8A4F58',
+      });
+    }
+
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
     
@@ -85,31 +95,21 @@ async function logTelemetry(data: {
   error?: any;
   statusCode?: number;
 }): Promise<void> {
-  try {
-    await debugFetch(`${API_BASE_URL}?action=log`, {
-      method: 'POST',
-      headers: withClientSourceHeader({
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      }),
-      body: JSON.stringify({
-        timestamp: new Date().toISOString(),
-        type: 'notification_token',
-        ...data,
-      }),
-    }, 'Notifications');
-  } catch (logError) {
-    console.error('[Notifications] Failed to log telemetry:', logError);
-  }
+  console.debug('[Notifications]', {
+    timestamp: new Date().toISOString(),
+    type: 'notification_token',
+    ...data,
+  });
 }
 
 export async function registerPushTokenWithServer(pushToken: string): Promise<boolean> {
   
   const appVersion = Constants.expoConfig?.version || '1.0.0';
   
-  const endpoint = `${API_BASE_URL}?action=register-push-token`;
+  const endpoint = `${API_BASE}/api/v1/notifications/devices`;
   const payload = {
     token: pushToken,
+    platform: Platform.OS,
     app_version: appVersion,
   };
   
@@ -168,4 +168,8 @@ export function addNotificationResponseReceivedListener(
   callback: (response: Notifications.NotificationResponse) => void
 ) {
   return Notifications.addNotificationResponseReceivedListener(callback);
+}
+
+export function getLastNotificationResponseAsync() {
+  return Notifications.getLastNotificationResponseAsync();
 }

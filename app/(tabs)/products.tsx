@@ -341,6 +341,27 @@ export default function HomeScreen() {
       { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' },
     ]);
   }, [router]);
+  const handleToggleFavorite = useCallback((productId: string) => {
+    if (isAuthenticated) {
+      toggleFavorite(productId);
+      return;
+    }
+
+    const title = '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0645\u0637\u0644\u0648\u0628';
+    const message =
+      '\u064a\u062c\u0628 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0644\u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0625\u0644\u0649 \u0627\u0644\u0645\u0641\u0636\u0644\u0629.';
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      if (window.confirm(`${title}\n\n${message}`)) {
+        router.push('/(tabs)/account-login');
+      }
+      return;
+    }
+
+    Alert.alert(title, message, [
+      { text: '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644', onPress: () => router.push('/(tabs)/account-login') },
+      { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' },
+    ]);
+  }, [isAuthenticated, router, toggleFavorite]);
 
   React.useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -430,7 +451,7 @@ export default function HomeScreen() {
               ]}
               onPress={(e) => {
                 e.stopPropagation();
-                toggleFavorite(item.id);
+                handleToggleFavorite(item.id);
               }}
             >
               <Feather

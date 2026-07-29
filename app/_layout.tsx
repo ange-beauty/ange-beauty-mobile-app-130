@@ -28,7 +28,12 @@ import { BasketContext } from "@/contexts/BasketContext";
 import { FavoritesContext } from "@/contexts/FavoritesContext";
 import { SellingPointContext } from "@/contexts/SellingPointContext";
 import { checkAppUpdateStatus } from "@/services/api";
-import { registerForPushNotifications, registerPushTokenWithServer } from "@/services/notifications";
+import {
+  addNotificationResponseReceivedListener,
+  getLastNotificationResponseAsync,
+  registerForPushNotifications,
+  registerPushTokenWithServer,
+} from "@/services/notifications";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -38,6 +43,32 @@ const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.ange.b
 const appLogo = require("@/assets/images/icon.png");
 
 function RootLayoutNav() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const openNotificationRoute = (data: Record<string, unknown>) => {
+      const route = data.route;
+      if (
+        typeof route === "string" &&
+        route.startsWith("/") &&
+        !route.startsWith("//")
+      ) {
+        router.push(route as never);
+      }
+    };
+
+    const responseListener = addNotificationResponseReceivedListener((response) => {
+      openNotificationRoute(response.notification.request.content.data);
+    });
+    void getLastNotificationResponseAsync().then((response) => {
+      if (response) {
+        openNotificationRoute(response.notification.request.content.data);
+      }
+    });
+
+    return () => responseListener.remove();
+  }, [router]);
+
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -64,6 +95,27 @@ function RootLayoutNav() {
       />
     </Stack>
   );
+}
+
+function NotificationBootstrap() {
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (Platform.OS === "web" || isLoading) {
+      return;
+    }
+
+    async function setupPushNotifications() {
+      const pushToken = await registerForPushNotifications();
+      if (pushToken) {
+        await registerPushTokenWithServer(pushToken);
+      }
+    }
+
+    void setupPushNotifications();
+  }, [isLoading, user?.id]);
+
+  return null;
 }
 
 function CustomSplashScreen({ onFinish }: { onFinish: () => void }) {
@@ -312,21 +364,6 @@ export default function RootLayout() {
     runUpdateCheck();
   }, [runUpdateCheck]);
 
-  useEffect(() => {
-    async function setupPushNotifications() {
-      if (Platform.OS === "web") {
-        return;
-      }
-
-      const pushToken = await registerForPushNotifications();
-
-      if (pushToken) {
-        await registerPushTokenWithServer(pushToken);
-      }
-    }
-    setupPushNotifications();
-  }, []);
-
   if (!fontsLoaded) {
     return (
       <View style={splashStyles.container}>
@@ -394,6 +431,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <SellingPointContext>
         <AuthContext>
+          <NotificationBootstrap />
           <FavoritesContext>
             <BasketContext>
               <GestureHandlerRootView style={activationAlertStyles.shell}>
