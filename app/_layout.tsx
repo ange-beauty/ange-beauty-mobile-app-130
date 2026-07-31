@@ -38,8 +38,17 @@ import {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+// Screens already define Arabic layout explicitly with right alignment and row-reverse.
+// Keep Yoga in LTR mode to avoid React Native reversing those styles a second time.
+if (Platform.OS !== "web") {
+  I18nManager.allowRTL(false);
+  I18nManager.forceRTL(false);
+  I18nManager.swapLeftAndRightInRTL(false);
+}
+
 const queryClient = new QueryClient();
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.ange.beauty.cosmetic";
+const PLAY_STORE_APP_URL = "market://details?id=app.ange.beauty.cosmetic";
 const appLogo = require("@/assets/images/icon.png");
 
 function RootLayoutNav() {
@@ -274,6 +283,20 @@ const updateStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
+  secondaryButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#1A1A1A",
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    color: "#1A1A1A",
+    fontSize: 16,
+    fontWeight: "700",
+  },
 });
 
 const activationAlertStyles = StyleSheet.create({
@@ -298,11 +321,11 @@ const activationAlertStyles = StyleSheet.create({
   },
   shell: {
     flex: 1,
-    direction: "rtl",
+    direction: "ltr",
   },
   content: {
     flex: 1,
-    direction: "rtl",
+    direction: "ltr",
   },
 });
 
@@ -327,9 +350,23 @@ export default function RootLayout() {
   AnyTextInput.defaultProps.style = [AnyTextInput.defaultProps.style, { fontFamily: globalFontFamily }];
 
   const handleUpdatePress = async () => {
+    const preferredUrl =
+      Platform.OS === "android" ? PLAY_STORE_APP_URL : PLAY_STORE_URL;
     try {
-      await Linking.openURL(PLAY_STORE_URL);
+      await Linking.openURL(preferredUrl);
     } catch (error) {
+      if (preferredUrl !== PLAY_STORE_URL) {
+        try {
+          await Linking.openURL(PLAY_STORE_URL);
+          return;
+        } catch (fallbackError) {
+          console.error(
+            "[RootLayout] Failed to open Play Store URL:",
+            fallbackError,
+          );
+          return;
+        }
+      }
       console.error("[RootLayout] Failed to open Play Store URL:", error);
     }
   };
@@ -348,13 +385,6 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (Platform.OS !== "web") {
-      I18nManager.allowRTL(true);
-      I18nManager.swapLeftAndRightInRTL(true);
-      if (!I18nManager.isRTL) {
-        I18nManager.forceRTL(true);
-      }
-    }
     if (fontsLoaded) {
       SplashScreen.hideAsync();
     }
@@ -392,16 +422,21 @@ export default function RootLayout() {
 
   if (updateRequired) {
     return (
-      <View style={updateStyles.container}>
+      <Pressable
+        style={updateStyles.container}
+        onPress={handleUpdatePress}
+        accessibilityRole="button"
+        accessibilityLabel={"\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u062a\u0637\u0628\u064a\u0642"}
+      >
         <View style={updateStyles.messageBox}>
           <Text style={updateStyles.messageText}>
             {"\u0627\u0644\u0631\u062c\u0627\u0621 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0628\u0631\u0646\u0627\u0645\u062c"}
           </Text>
-          <Pressable style={updateStyles.updateButton} onPress={handleUpdatePress}>
+          <View style={updateStyles.updateButton}>
             <Text style={updateStyles.updateButtonText}>{"\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0622\u0646"}</Text>
-          </Pressable>
+          </View>
         </View>
-      </View>
+      </Pressable>
     );
   }
 
@@ -420,6 +455,14 @@ export default function RootLayout() {
           >
             <Text style={updateStyles.updateButtonText}>
               {'\u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629'}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={updateStyles.secondaryButton}
+            onPress={handleUpdatePress}
+          >
+            <Text style={updateStyles.secondaryButtonText}>
+              {"\u0641\u062a\u062d \u0635\u0641\u062d\u0629 \u0627\u0644\u062a\u062d\u062f\u064a\u062b"}
             </Text>
           </Pressable>
         </View>

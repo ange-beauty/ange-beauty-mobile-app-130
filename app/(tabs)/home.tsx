@@ -391,7 +391,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     width: '100%',
     textAlign: 'right',
-    writingDirection: 'rtl',
     color: beautyTheme.colors.text,
     fontSize: 22,
     lineHeight: 30,

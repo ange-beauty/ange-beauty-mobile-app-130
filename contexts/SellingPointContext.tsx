@@ -4,7 +4,9 @@ import { useCallback, useMemo } from 'react';
 import { debugFetch } from '@/services/httpDebug';
 import { withClientSourceHeader } from '@/services/requestHeaders';
 
-const DEFAULT_SELLING_POINT_ID = '0fTUIooeOt-sp';
+const DEFAULT_SELLING_POINT_ID =
+  process.env.EXPO_PUBLIC_DEFAULT_SELLING_POINT_ID || '0epz6PNqLt-sp';
+const DEFAULT_SELLING_POINT_NAME_AR = '\u0645\u0631\u0643\u0632 \u0623\u0646\u062c \u0628\u064a\u0648\u062a\u064a';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 const API_BASE = API_BASE_URL.replace(/\/+$/, '');
 
@@ -59,9 +61,10 @@ export const [SellingPointContext, useSellingPoint] = createContextHook(() => {
 
   const sellingPoints = sellingPointsQuery.data || [];
   const selectedSellingPoint =
-    sellingPoints.find((p) => p.id === DEFAULT_SELLING_POINT_ID) || {
+    sellingPoints.find((p) => p.id === DEFAULT_SELLING_POINT_ID) ||
+    sellingPoints[0] || {
       id: DEFAULT_SELLING_POINT_ID,
-      name_ar: null,
+      name_ar: DEFAULT_SELLING_POINT_NAME_AR,
       name_en: null,
       city: null,
       country: null,
@@ -71,7 +74,7 @@ export const [SellingPointContext, useSellingPoint] = createContextHook(() => {
     () => ({
       sellingPoints,
       selectedSellingPoint,
-      selectedSellingPointId: DEFAULT_SELLING_POINT_ID,
+      selectedSellingPointId: selectedSellingPoint.id,
       setSelectedSellingPointId: setSelectedSellingPointIdAndPersist,
       isLoadingSellingPoints: sellingPointsQuery.isLoading,
     }),

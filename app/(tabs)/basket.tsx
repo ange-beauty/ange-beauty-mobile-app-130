@@ -596,6 +596,10 @@ export default function BasketScreen() {
 
             <ScrollView
               style={styles.modalContent}
+              contentContainerStyle={[
+                styles.modalContentContainer,
+                { paddingBottom: insets.bottom + 24 },
+              ]}
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.orderSummary}>
@@ -956,7 +960,6 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#666',
     textAlign: 'right' as const,
-    writingDirection: 'rtl',
   },
   totalAmount: {
     fontSize: 24,
@@ -1040,7 +1043,9 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     paddingHorizontal: 20,
-    paddingVertical: 24,
+  },
+  modalContentContainer: {
+    paddingTop: 24,
   },
   orderSummary: {
     flexDirection: 'row-reverse',
@@ -1056,7 +1061,6 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#666',
     textAlign: 'right' as const,
-    writingDirection: 'rtl',
   },
   summaryAmount: {
     fontSize: 20,
@@ -1073,7 +1077,6 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 8,
     textAlign: 'right' as const,
-    writingDirection: 'rtl',
   },
   input: {
     backgroundColor: '#F8F8F8',
@@ -1085,7 +1088,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#1A1A1A',
     textAlign: 'right',
-    writingDirection: 'rtl',
   },
   pickerInput: {
     minHeight: 52,
@@ -1148,7 +1150,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500' as const,
     textAlign: 'right' as const,
-    writingDirection: 'rtl',
   },
   textArea: {
     minHeight: 80,

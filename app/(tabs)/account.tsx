@@ -323,7 +323,6 @@ const styles = StyleSheet.create({
     color: '#6D5B5F',
     fontWeight: '700',
     textAlign: 'center',
-    writingDirection: 'rtl',
   },
   guestActionCard: {
     width: '100%',

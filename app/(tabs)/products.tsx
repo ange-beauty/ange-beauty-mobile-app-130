@@ -44,6 +44,8 @@ const getNumColumns = () => {
 };
 
 const NUM_COLUMNS = getNumColumns();
+const GRID_HORIZONTAL_PADDING = 12;
+const GRID_COLUMN_GAP = 10;
 
 const palette = {
   background: beautyTheme.colors.page,
@@ -95,16 +97,35 @@ function buildCategoryTree(categories: Category[]) {
   return sortCategoryNodes(roots);
 }
 
+function parseCategoryIds(value?: string | string[]) {
+  const serialized = Array.isArray(value) ? value.join(',') : value || '';
+  return [...new Set(serialized.split(',').map((id) => id.trim()).filter(Boolean))];
+}
+
 export default function HomeScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ brandId?: string; categoryId?: string; openBrands?: string; product?: string; focusSearch?: string }>();
+  const params = useLocalSearchParams<{
+    brandId?: string;
+    categoryId?: string;
+    categoryIds?: string | string[];
+    openBrands?: string;
+    product?: string;
+    focusSearch?: string;
+  }>();
+  const categoryRouteParam = Array.isArray(params.categoryIds)
+    ? params.categoryIds.join(',')
+    : params.categoryIds !== undefined
+      ? params.categoryIds
+      : params.categoryId;
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToBasket, getItemQuantity } = useBasket();
   const { isAuthenticated } = useAuth();
   const { selectedSellingPoint } = useSellingPoint();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(params.categoryId ? [params.categoryId] : []);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    parseCategoryIds(categoryRouteParam),
+  );
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>(params.brandId ? [params.brandId] : []);
   const [barcodeFilter, setBarcodeFilter] = useState('');
@@ -164,11 +185,12 @@ export default function HomeScreen() {
   }, [params.brandId]);
 
   React.useEffect(() => {
-    if (params.categoryId) {
-      setSelectedCategories([params.categoryId]);
+    const routeCategoryIds = parseCategoryIds(categoryRouteParam);
+    setSelectedCategories(routeCategoryIds);
+    if (routeCategoryIds.length > 0) {
       listRef.current?.scrollToOffset({ offset: 0, animated: false });
     }
-  }, [params.categoryId]);
+  }, [categoryRouteParam]);
 
   React.useEffect(() => {
     if (params.openBrands === '1') {
@@ -383,9 +405,11 @@ export default function HomeScreen() {
 
   const cardWidth = useMemo(() => {
     const screenWidth = Dimensions.get('window').width;
-    const horizontalPadding = 16;
-    const columnGap = 12;
-    return (screenWidth - horizontalPadding * 2 - columnGap * (numColumns - 1)) / numColumns;
+    return (
+      screenWidth -
+      GRID_HORIZONTAL_PADDING * 2 -
+      GRID_COLUMN_GAP * (numColumns - 1)
+    ) / numColumns;
   }, [numColumns]);
 
   const renderProduct = ({ item }: { item: Product }) => {
@@ -419,7 +443,7 @@ export default function HomeScreen() {
     const displayBrand = getDisplayBrand(item.brand);
 
     return (
-      <View style={{ width: cardWidth, marginBottom: 16 }}>
+      <View style={{ width: cardWidth, marginBottom: 12 }}>
         <Pressable
           onPress={() => router.push(`/product/${item.id}`)}
           onPressIn={handlePressIn}
@@ -457,40 +481,46 @@ export default function HomeScreen() {
               <Feather
                 name="heart"
                 color={isItemFavorite ? palette.danger : palette.textMuted}
-                size={18}
+                size={17}
               />
             </Pressable>
           </View>
           <View style={styles.productInfo}>
-            {!!displayBrand && <Text style={styles.brandText}>{displayBrand}</Text>}
+            <Text style={styles.brandText} numberOfLines={1}>{displayBrand || ' '}</Text>
             <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-            <ProductPrice product={item} priceStyle={styles.price} />
-            
+            <View style={styles.productFooter}>
+              <ProductPrice
+                product={item}
+                containerStyle={styles.priceContainer}
+                priceStyle={styles.price}
+                oldPriceStyle={styles.oldPrice}
+              />
+              <Pressable
+                style={({ pressed }) => [
+                  styles.addToBasketButtonHome,
+                  pressed && styles.buttonPressed,
+                ]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  if (!selectedSellingPoint?.id) {
+                    promptSelectSellingPoint();
+                    return;
+                  }
+                  if (selectedPointAvailable !== null && itemQuantity >= selectedPointAvailable) {
+                    return;
+                  }
+                  addToBasket(item.id, 1);
+                }}
+              >
+                <Feather name="shopping-bag" color={palette.accentDark} size={15} />
+                {itemQuantity > 0 && (
+                  <View style={styles.basketCountBadge}>
+                    <Text style={styles.basketCountText}>{toArabicNumerals(itemQuantity)}</Text>
+                  </View>
+                )}
+              </Pressable>
+            </View>
           </View>
-          <Pressable
-            style={({ pressed }) => [
-              styles.addToBasketButtonHome,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={(e) => {
-              e.stopPropagation();
-              if (!selectedSellingPoint?.id) {
-                promptSelectSellingPoint();
-                return;
-              }
-              if (selectedPointAvailable !== null && itemQuantity >= selectedPointAvailable) {
-                return;
-              }
-              addToBasket(item.id, 1);
-            }}
-          >
-            <Feather name="shopping-bag" color={palette.accentDark} size={16} />
-            {itemQuantity > 0 && (
-              <View style={styles.basketCountBadge}>
-                <Text style={styles.basketCountText}>{toArabicNumerals(itemQuantity)}</Text>
-              </View>
-            )}
-          </Pressable>
           </Animated.View>
         </Pressable>
       </View>
@@ -609,7 +639,10 @@ export default function HomeScreen() {
             renderItem={renderProduct}
             keyExtractor={(item) => item.id}
             numColumns={numColumns}
-            contentContainerStyle={styles.productsContainer}
+            contentContainerStyle={[
+              styles.productsContainer,
+              { paddingBottom: insets.bottom + 130 },
+            ]}
             columnWrapperStyle={styles.productRow}
             showsVerticalScrollIndicator={false}
             onScroll={handleScroll}
@@ -873,7 +906,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: palette.textPrimary,
     textAlign: 'right',
-    writingDirection: 'rtl' as const,
   },
   searchFilterButton: {
     width: 34,
@@ -916,7 +948,6 @@ const styles = StyleSheet.create({
     color: palette.textPrimary,
     fontWeight: '500' as const,
     textAlign: 'right',
-    writingDirection: 'rtl',
   },
   modalOverlay: {
     flex: 1,
@@ -943,7 +974,6 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#1A1A1A',
     textAlign: 'right',
-    writingDirection: 'rtl',
   },
   modalBody: {
     flex: 1,
@@ -965,7 +995,6 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 12,
     textAlign: 'right',
-    writingDirection: 'rtl',
   },
   filterOptions: {
     flexDirection: 'row-reverse',
@@ -1023,13 +1052,11 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#555',
     textAlign: 'right',
-    writingDirection: 'rtl',
     flexShrink: 1,
   },
   filterScrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    direction: 'rtl',
   },
   filterOption: {
     paddingHorizontal: 16,
@@ -1048,7 +1075,6 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#666',
     textAlign: 'center',
-    writingDirection: 'rtl',
   },
   filterOptionTextActive: {
     color: '#FFFFFF',
@@ -1061,7 +1087,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1A1A1A',
     textAlign: 'right',
-    writingDirection: 'rtl',
   },
   modalFooter: {
     flexDirection: 'row-reverse',
@@ -1166,7 +1191,6 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#666',
     textAlign: 'center',
-    writingDirection: 'rtl',
   },
   brandItemNameSelected: {
     color: '#FFFFFF',
@@ -1181,25 +1205,26 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   productsContainer: {
-    padding: 16,
+    paddingHorizontal: GRID_HORIZONTAL_PADDING,
+    paddingTop: 12,
   },
   productRow: {
-    gap: 12,
+    flexDirection: 'row-reverse',
+    gap: GRID_COLUMN_GAP,
     justifyContent: 'flex-start',
   },
   productCard: {
     width: '100%',
-    backgroundColor: '#FFFDFD',
-    borderRadius: 20,
-    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#EDE1E3',
+    borderColor: '#E9E2E3',
     shadowColor: '#7A5A62',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   productImageContainer: {
     width: '100%',
@@ -1211,40 +1236,43 @@ const styles = StyleSheet.create({
     position: 'absolute' as const,
     top: 8,
     right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
   },
   productImage: {
     width: '100%',
     height: '100%',
   },
   productInfo: {
-    padding: 12,
-    paddingRight: 52,
+    height: 112,
+    padding: 10,
   },
   brandText: {
-    fontSize: 11,
+    height: 13,
+    fontSize: 10,
+    lineHeight: 13,
     color: palette.textMuted,
     fontWeight: '600' as const,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.5,
-    marginBottom: 4,
+    marginBottom: 3,
+    textAlign: 'right' as const,
   },
   productName: {
-    fontSize: 15,
-    fontWeight: '600' as const,
+    height: 34,
+    fontSize: 13,
+    fontWeight: '500' as const,
     color: palette.textPrimary,
-    marginBottom: 6,
-    lineHeight: 18,
+    marginBottom: 4,
+    lineHeight: 17,
+    textAlign: 'right' as const,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -1262,18 +1290,33 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   price: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700' as const,
     color: palette.accentDark,
-    marginBottom: 8,
+    textAlign: 'right' as const,
+  },
+  productFooter: {
+    height: 34,
+    marginTop: 'auto',
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  oldPrice: {
+    fontSize: 11,
+    textAlign: 'right' as const,
+  },
+  priceContainer: {
+    height: 34,
+    flex: 1,
+    alignItems: 'stretch',
+    justifyContent: 'flex-end',
   },
   addToBasketButtonHome: {
-    position: 'absolute' as const,
-    bottom: 8,
-    right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E9DDE0',
@@ -1281,9 +1324,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#7A5A62',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
   },
   basketCountBadge: {
     position: 'absolute' as const,
@@ -1376,7 +1419,6 @@ const styles = StyleSheet.create({
     color: '#6B756B',
     marginBottom: 4,
     textAlign: 'right' as const,
-    writingDirection: 'rtl',
   },
   sellingPointValue: {
     fontSize: 16,

@@ -25,7 +25,7 @@ export default function ProductPrice({
       {hasDiscount ? (
         <Text style={[styles.oldPrice, oldPriceStyle]}>{formatPrice(basePrice)}</Text>
       ) : null}
-      <Text style={[priceStyle, styles.currentPrice]}>{formatPrice(product.price)}</Text>
+      <Text style={priceStyle}>{formatPrice(product.price)}</Text>
     </View>
   );
 }
@@ -39,9 +39,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textDecorationLine: 'line-through',
     textAlign: 'right',
-    writingDirection: 'rtl',
-  },
-  currentPrice: {
-    writingDirection: 'rtl',
   },
 });

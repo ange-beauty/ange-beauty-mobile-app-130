@@ -584,7 +584,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: beautyTheme.colors.textMuted,
     textAlign: 'right',
-    writingDirection: 'rtl',
   },
   bottomPrice: {
     marginTop: 2,
@@ -599,7 +598,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     textAlign: 'right',
-    writingDirection: 'rtl',
   },
   addButton: {
     minWidth: 190,

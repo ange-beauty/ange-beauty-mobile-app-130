@@ -76,7 +76,7 @@ export default function BrandsScreen() {
   const horizontalPadding = width >= 768 ? 22 : 14;
   const gridGap = width >= 390 ? 14 : 10;
   const railWidth = 24;
-  const gridRightGutter = railWidth + 34;
+  const gridRightGutter = railWidth + 10;
   const tileWidth = Math.floor((width - horizontalPadding * 2 - gridRightGutter - gridGap * (columns - 1)) / columns);
 
   const chunkBrands = (items: Brand[]) => {
@@ -147,8 +147,8 @@ export default function BrandsScreen() {
               styles.gridContent,
               {
                 paddingTop: insets.top + 16,
-                paddingStart: horizontalPadding + gridRightGutter,
-                paddingEnd: horizontalPadding,
+                paddingStart: horizontalPadding,
+                paddingEnd: horizontalPadding + gridRightGutter,
                 paddingBottom: insets.bottom + 150,
               },
             ]}

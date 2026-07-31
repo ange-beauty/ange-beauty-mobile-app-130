@@ -78,7 +78,10 @@ export default function AccountLoginScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 120 },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -214,7 +217,6 @@ const styles = StyleSheet.create({
     color: '#6D5B5F',
     fontWeight: '700',
     textAlign: 'center',
-    writingDirection: 'rtl',
   },
   title: {
     fontSize: 22,

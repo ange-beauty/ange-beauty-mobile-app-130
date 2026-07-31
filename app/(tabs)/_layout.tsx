@@ -42,6 +42,7 @@ export default function TabLayout() {
             <BlurView pointerEvents="none" intensity={55} tint="light" style={styles.tabBackgroundNative} />
           ),
         tabBarStyle: {
+          direction: 'rtl',
           position: 'absolute',
           left: 12,
           right: 12,

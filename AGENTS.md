@@ -81,6 +81,8 @@ Follow these rules before changing code.
 - Preserve existing route names and tab behavior unless explicitly requested.
 
 ## Arabic/RTL Safety Rules (Critical)
+- Keep the React Native/Yoga root layout LTR. Screens implement Arabic visual order explicitly with `textAlign: 'right'` and `row-reverse`; forcing native RTL causes double reversal on Android.
+- Do not add `writingDirection: 'rtl'` to native text styles. Arabic Unicode text retains its bidi shaping while explicit right alignment controls placement.
 - Do not paste corrupted mojibake text (examples: `Ø`, `Ù`, `�`).
 - Prefer one of:
   - direct Arabic literals, or
