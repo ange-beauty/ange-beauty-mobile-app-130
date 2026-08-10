@@ -260,7 +260,7 @@ export default function CategoriesScreen() {
         <>
           <View style={[styles.selectionHeader, { paddingTop: insets.top + 8 }]}>
             <View style={styles.selectionStatus}>
-              <Text style={styles.selectionTitle}>{'\u0627\u0644\u0641\u0626\u0627\u062a'}</Text>
+              <Text style={styles.selectionTitle}>{'\u062a\u0635\u0646\u064a\u0641\u0627\u062a'}</Text>
               <Text style={styles.selectionCount}>
                 {selectedCategoryIds.length > 0
                   ? `${selectedCategoryIds.length.toLocaleString('ar-IQ')} \u0641\u0626\u0627\u062a \u0645\u062d\u062f\u062f\u0629`
@@ -279,7 +279,7 @@ export default function CategoriesScreen() {
                 <Pressable
                   style={({ pressed }) => [styles.clearButton, pressed && styles.buttonPressed]}
                   onPress={() => setSelectedCategoryIds([])}
-                  accessibilityLabel={'\u0625\u0644\u063a\u0627\u0621 \u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0641\u0626\u0627\u062a'}
+                  accessibilityLabel={'\u0625\u0644\u063a\u0627\u0621 \u062a\u062d\u062f\u064a\u062f \u0627\u0644\u062a\u0635\u0646\u064a\u0641\u0627\u062a'}
                 >
                   <Feather name="x" size={20} color={beautyTheme.colors.accentDark} />
                 </Pressable>

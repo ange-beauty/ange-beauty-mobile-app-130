@@ -98,7 +98,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="categories"
         options={{
-          title: '\u0627\u0644\u0641\u0626\u0627\u062a',
+          title: '\u062a\u0635\u0646\u064a\u0641\u0627\u062a',
           tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={28} />,
         }}
       />
@@ -112,7 +112,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="brands"
         options={{
-          title: '\u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062a',
+          title: '\u0628\u0631\u0627\u0646\u062f\u0627\u062a\u0646\u0627',
           tabBarIcon: ({ color, size }) => <Feather name="tag" color={color} size={28} />,
         }}
       />
