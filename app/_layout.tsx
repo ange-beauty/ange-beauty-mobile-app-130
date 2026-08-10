@@ -29,10 +29,12 @@ import { FavoritesContext } from "@/contexts/FavoritesContext";
 import { SellingPointContext } from "@/contexts/SellingPointContext";
 import { checkAppUpdateStatus } from "@/services/api";
 import {
+  addNotificationReceivedListener,
   addNotificationResponseReceivedListener,
   getLastNotificationResponseAsync,
   registerForPushNotifications,
   registerPushTokenWithServer,
+  reportNotificationInteraction,
 } from "@/services/notifications";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -67,15 +69,23 @@ function RootLayoutNav() {
     };
 
     const responseListener = addNotificationResponseReceivedListener((response) => {
+      void reportNotificationInteraction(response.notification, "opened");
       openNotificationRoute(response.notification.request.content.data);
+    });
+    const receivedListener = addNotificationReceivedListener((notification) => {
+      void reportNotificationInteraction(notification, "received");
     });
     void getLastNotificationResponseAsync().then((response) => {
       if (response) {
+        void reportNotificationInteraction(response.notification, "opened");
         openNotificationRoute(response.notification.request.content.data);
       }
     });
 
-    return () => responseListener.remove();
+    return () => {
+      responseListener.remove();
+      receivedListener.remove();
+    };
   }, [router]);
 
   return (

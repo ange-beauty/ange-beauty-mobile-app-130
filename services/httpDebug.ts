@@ -1,5 +1,20 @@
 const DEBUG_HTTP = process.env.EXPO_PUBLIC_DEBUG_HTTP === 'true';
 
+function redactSensitiveFields(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(redactSensitiveFields);
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, fieldValue]) => [
+        key,
+        key.toLowerCase() === 'security_token' ? '[redacted]' : redactSensitiveFields(fieldValue),
+      ])
+    );
+  }
+  return value;
+}
+
 function normalizeBody(body: BodyInit | null | undefined) {
   if (body == null) {
     return undefined;
@@ -7,7 +22,7 @@ function normalizeBody(body: BodyInit | null | undefined) {
 
   if (typeof body === 'string') {
     try {
-      return JSON.parse(body);
+      return redactSensitiveFields(JSON.parse(body));
     } catch {
       return body;
     }

@@ -2,11 +2,15 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { withClientSourceHeader } from '@/services/requestHeaders';
 import { debugFetch } from '@/services/httpDebug';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 const API_BASE = API_BASE_URL.replace(/\/+$/, '');
+const NOTIFICATION_DEVICE_ID_KEY = 'ange_notification_device_id';
+
+export type NotificationInteractionAction = 'received' | 'opened';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -156,6 +160,44 @@ export async function registerPushTokenWithServer(pushToken: string): Promise<bo
     
     return false;
   }
+}
+
+export async function reportNotificationInteraction(
+  notification: Notifications.Notification,
+  action: NotificationInteractionAction,
+): Promise<void> {
+  const notificationId = notification.request.content.data?.notification_id;
+  if (typeof notificationId !== 'string' || !notificationId.trim()) return;
+
+  try {
+    const deviceId = await getNotificationDeviceId();
+    const requestId = notification.request.identifier || notificationId;
+    await debugFetch(`${API_BASE}/api/v1/notifications/interactions`, {
+      method: 'POST',
+      headers: withClientSourceHeader({
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }),
+      body: JSON.stringify({
+        notification_id: notificationId.trim(),
+        action,
+        occurred_at: new Date().toISOString(),
+        idempotency_key: `${notificationId}:${requestId}:${action}`,
+        device_id: deviceId,
+      }),
+    }, 'NotificationInteraction');
+  } catch (error) {
+    console.warn('[Notifications] Failed to report interaction:', error);
+  }
+}
+
+async function getNotificationDeviceId(): Promise<string> {
+  const existing = await AsyncStorage.getItem(NOTIFICATION_DEVICE_ID_KEY);
+  if (existing) return existing;
+
+  const generated = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+  await AsyncStorage.setItem(NOTIFICATION_DEVICE_ID_KEY, generated);
+  return generated;
 }
 
 export function addNotificationReceivedListener(

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 type TurnstileWidgetProps = {
-  action: 'login' | 'register';
+  action: 'login' | 'register' | 'checkout';
   resetKey?: number;
   onTokenChange: (token: string | null) => void;
 };

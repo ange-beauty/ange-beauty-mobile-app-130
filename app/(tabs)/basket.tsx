@@ -19,6 +19,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FloralBackdrop from '@/components/FloralBackdrop';
 import ProductPrice from '@/components/ProductPrice';
+import TurnstileWidget from '@/components/TurnstileWidget';
 
 import { useBasket } from '@/contexts/BasketContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
@@ -34,6 +35,14 @@ import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 const API_BASE = API_BASE_URL.replace(/\/+$/, '');
 
+function createIdempotencyKey(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, character => {
+    const random = Math.floor(Math.random() * 16);
+    const value = character === 'x' ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
 export default function BasketScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -48,10 +57,13 @@ export default function BasketScreen() {
   const [telephone, setTelephone] = useState('');
   const [address, setAddress] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const listRef = useRef<FlatList>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   const orderMutation = useMutation({
-    mutationFn: async (orderData: any) => {
+    mutationFn: async ({ orderData, idempotencyKey }: { orderData: any; idempotencyKey: string }) => {
 
       const path = '/api/v1/selling-orders/client-initialization';
       const response = await debugFetch(`${API_BASE}${path}`, {
@@ -59,6 +71,7 @@ export default function BasketScreen() {
         headers: withClientSourceHeader({
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
         }),
         body: JSON.stringify(orderData),
       }, 'Order');
@@ -103,6 +116,8 @@ export default function BasketScreen() {
       setTelephone('');
       setAddress('');
       setFieldErrors({});
+      setTurnstileToken(null);
+      idempotencyKeyRef.current = null;
       clearBasket();
       if (Platform.OS === 'web') {
         window.alert(`${successTitle}\n\n${successMessage}`);
@@ -115,6 +130,10 @@ export default function BasketScreen() {
     },
     onError: (error: any) => {
       console.error('[Order] Order error:', error);
+      if (isGuestCheckout) {
+        setTurnstileToken(null);
+        setTurnstileResetKey(previous => previous + 1);
+      }
       Alert.alert(
         '\u062e\u0637\u0623',
         error.message || '\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628. \u062d\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649',
@@ -358,6 +377,8 @@ export default function BasketScreen() {
     setName(user?.name || '');
     setEmail(user?.email || '');
     setTelephone(user?.phone || '');
+    setTurnstileToken(null);
+    idempotencyKeyRef.current = createIdempotencyKey();
     setShowCheckoutModal(true);
   };
 
@@ -371,6 +392,9 @@ export default function BasketScreen() {
       return;
     }
     setIsGuestCheckout(true);
+    setTurnstileToken(null);
+    setTurnstileResetKey(previous => previous + 1);
+    idempotencyKeyRef.current = createIdempotencyKey();
     setShowCheckoutModal(true);
   };
 
@@ -382,6 +406,8 @@ export default function BasketScreen() {
     setTelephone('');
     setAddress('');
     setFieldErrors({});
+    setTurnstileToken(null);
+    idempotencyKeyRef.current = null;
   };
 
   const handleSubmitOrder = () => {
@@ -423,6 +449,9 @@ export default function BasketScreen() {
     if (!selectedSellingPoint?.id) {
       errors.sellingPoint = '\u0646\u0642\u0637\u0629\u0020\u0627\u0644\u0628\u064a\u0639\u0020\u0645\u0637\u0644\u0648\u0628\u0629';
     }
+    if (isGuestCheckout && !turnstileToken) {
+      errors.turnstile = '\u0623\u0643\u0645\u0644 \u0627\u0644\u062a\u062d\u0642\u0642 \u0623\u0648\u0644\u0627\u064b';
+    }
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -462,10 +491,14 @@ export default function BasketScreen() {
         totalItems: totalItems,
         totalPrice: totalPrice,
       },
-      timestamp: new Date().toISOString(),
+      security_token: isGuestCheckout ? turnstileToken : undefined,
     };
 
-    orderMutation.mutate(orderData);
+    idempotencyKeyRef.current ||= createIdempotencyKey();
+    orderMutation.mutate({
+      orderData,
+      idempotencyKey: idempotencyKeyRef.current,
+    });
   };
 
   return (
@@ -684,6 +717,22 @@ export default function BasketScreen() {
                 />
                 {fieldErrors.address ? <Text style={styles.errorText}>{fieldErrors.address}</Text> : null}
               </View>
+
+              {isGuestCheckout ? (
+                <View style={styles.formGroup}>
+                  <TurnstileWidget
+                    action="checkout"
+                    resetKey={turnstileResetKey}
+                    onTokenChange={token => {
+                      setTurnstileToken(token);
+                      if (token && fieldErrors.turnstile) {
+                        setFieldErrors(previous => ({ ...previous, turnstile: '' }));
+                      }
+                    }}
+                  />
+                  {fieldErrors.turnstile ? <Text style={styles.errorText}>{fieldErrors.turnstile}</Text> : null}
+                </View>
+              ) : null}
 
               <Pressable
                 style={({ pressed }) => [
