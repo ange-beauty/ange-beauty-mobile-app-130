@@ -435,12 +435,12 @@ export default function BasketScreen() {
     if (!telephone.trim()) {
       errors.telephone = '\u0631\u0642\u0645\u0020\u0627\u0644\u0647\u0627\u062a\u0641\u0020\u0645\u0637\u0644\u0648\u0628';
     }
-    if (!email.trim()) {
+    if (!isGuestCheckout && !email.trim()) {
       errors.email = '\u0627\u0644\u0628\u0631\u064a\u062f\u0020\u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a\u0020\u0645\u0637\u0644\u0648\u0628';
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (email.trim() && !emailRegex.test(email.trim())) {
+    if (!isGuestCheckout && email.trim() && !emailRegex.test(email.trim())) {
       errors.email = '\u064a\u0631\u062c\u0649\u0020\u0625\u062f\u062e\u0627\u0644\u0020\u0628\u0631\u064a\u062f\u0020\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a\u0020\u0635\u062d\u064a\u062d';
     }
     if (!address.trim()) {
@@ -473,7 +473,7 @@ export default function BasketScreen() {
       selling_point: selectedSellingPoint?.id,
       customer: {
         name: name.trim(),
-        email: email.trim(),
+        ...(!isGuestCheckout ? { email: email.trim() } : {}),
         telephone: telephone.trim(),
         address: address.trim(),
       },
@@ -671,22 +671,24 @@ export default function BasketScreen() {
                 {fieldErrors.telephone ? <Text style={styles.errorText}>{fieldErrors.telephone}</Text> : null}
               </View>
 
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>{'\u0627\u0644\u0628\u0631\u064a\u062f\u0020\u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a\u0020\u002a'}</Text>
-                <TextInput
-                  style={[styles.input, fieldErrors.email ? styles.inputErrorBorder : null]}
-                  value={email}
-                  onChangeText={(value) => {
-                    setEmail(value);
-                    if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }));
-                  }}
-                  placeholder={'\u0623\u062f\u062e\u0644\u0020\u0628\u0631\u064a\u062f\u0643\u0020\u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a'}
-                  placeholderTextColor="#999"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-                {fieldErrors.email ? <Text style={styles.errorText}>{fieldErrors.email}</Text> : null}
-              </View>
+              {!isGuestCheckout ? (
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>{'\u0627\u0644\u0628\u0631\u064a\u062f\u0020\u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a\u0020\u002a'}</Text>
+                  <TextInput
+                    style={[styles.input, fieldErrors.email ? styles.inputErrorBorder : null]}
+                    value={email}
+                    onChangeText={(value) => {
+                      setEmail(value);
+                      if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }));
+                    }}
+                    placeholder={'\u0623\u062f\u062e\u0644\u0020\u0628\u0631\u064a\u062f\u0643\u0020\u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a'}
+                    placeholderTextColor="#999"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                  {fieldErrors.email ? <Text style={styles.errorText}>{fieldErrors.email}</Text> : null}
+                </View>
+              ) : null}
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>{'\u0646\u0642\u0637\u0629\u0020\u0627\u0644\u0628\u064a\u0639\u0020\u002a'}</Text>
