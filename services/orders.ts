@@ -9,6 +9,7 @@ export type ClientOrderItem = {
 
 export type ClientOrder = {
   id: string;
+  sellingOrder: string;
   status: string;
   sellingPoint: string;
   createdAt: string;
@@ -52,7 +53,8 @@ export async function fetchMyOrders(): Promise<ClientOrder[]> {
 
     return {
       id: String(row?.id || ''),
-      status: String(row?.status || 'pending').toLowerCase(),
+      sellingOrder: String(row?.selling_order || ''),
+      status: String(row?.status || 'draft').toLowerCase(),
       sellingPoint: String(row?.selling_point || ''),
       createdAt: String(row?.['created-at'] || row?.created_at || ''),
       totalItems: asNumber(summary.totalItems) || items.reduce((sum: number, item: ClientOrderItem) => sum + item.quantity, 0),
