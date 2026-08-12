@@ -562,9 +562,6 @@ export default function HomeScreen() {
               </Pressable>
             </View>
 
-            <Pressable style={styles.headerCircleButton} onPress={() => router.push('/contact')}>
-              <Feather name="message-circle" size={20} color="#2F2527" />
-            </Pressable>
           </View>
 
           {(productFilter || selectedCategories.length > 0 || selectedBrands.length > 0 || barcodeFilter) && (

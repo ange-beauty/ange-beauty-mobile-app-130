@@ -1,15 +1,16 @@
 import { Feather } from '@expo/vector-icons';
 import React from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
 import { beautyTheme } from '@/constants/uiTheme';
 
-const CONTACT_PHONE = '+212638624446';
+const CONTACT_PHONE = '+96477061791777';
 const CONTACT_EMAIL = 'support@angebeauty.net';
-const CONTACT_WHATSAPP = '212638624446';
+const CONTACT_WHATSAPP = '96477061791777';
+const CONTACT_WEBSITE = 'https://www.angebeauty.net';
 
 export default function ContactScreen() {
   const insets = useSafeAreaInsets();
@@ -25,9 +26,12 @@ export default function ContactScreen() {
   return (
     <View style={styles.container}>
       <FloralBackdrop subtle />
-      <BrandedHeader topInset={insets.top} showSearch={false} showContact={false} />
+      <BrandedHeader topInset={insets.top} showBackButton={false} />
 
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) + 96 }]}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.title}>{'\u062a\u0648\u0627\u0635\u0644 \u0645\u0639\u0646\u0627'}</Text>
         <Text style={styles.subtitle}>
           {'\u0646\u062d\u0646 \u0647\u0646\u0627 \u0644\u0645\u0633\u0627\u0639\u062f\u062a\u0643. \u0627\u062e\u062a\u0631 \u0637\u0631\u064a\u0642\u0629 \u0627\u0644\u062a\u0648\u0627\u0635\u0644 \u0627\u0644\u0645\u0646\u0627\u0633\u0628\u0629.'}
@@ -71,7 +75,22 @@ export default function ContactScreen() {
           </View>
           <Feather name="chevron-left" size={18} color="#9A8A8E" style={styles.trailingArrow} />
         </Pressable>
-      </View>
+
+        <Pressable style={styles.contactCard} onPress={() => openLink(CONTACT_WEBSITE)}>
+          <View style={styles.leadingGroup}>
+            <View style={styles.iconWrap}>
+              <Feather name="globe" size={18} color={beautyTheme.colors.accentDark} />
+            </View>
+            <View style={styles.textWrap}>
+              <Text style={styles.cardTitle}>{'الموقع الإلكتروني'}</Text>
+              <Text style={styles.cardValue}>www.angebeauty.net</Text>
+            </View>
+          </View>
+          <Feather name="chevron-left" size={18} color="#9A8A8E" style={styles.trailingArrow} />
+        </Pressable>
+
+        <Text style={styles.note}>{'للاستفسار عن طلب، يرجى تجهيز رقم الطلب قبل التواصل.'}</Text>
+      </ScrollView>
     </View>
   );
 }
@@ -82,6 +101,7 @@ const styles = StyleSheet.create({
     backgroundColor: beautyTheme.colors.page,
   },
   content: {
+    flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 8,
     gap: 10,
@@ -145,5 +165,12 @@ const styles = StyleSheet.create({
   },
   trailingArrow: {
     marginRight: 12,
+  },
+  note: {
+    marginTop: 10,
+    color: beautyTheme.colors.textMuted,
+    fontSize: 13,
+    lineHeight: 21,
+    textAlign: 'right',
   },
 });

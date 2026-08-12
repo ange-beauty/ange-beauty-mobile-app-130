@@ -9,7 +9,6 @@ type BrandedHeaderProps = {
   topInset?: number;
   showBackButton?: boolean;
   showSearch?: boolean;
-  showContact?: boolean;
   floating?: boolean;
 };
 
@@ -17,7 +16,6 @@ export default function BrandedHeader({
   topInset = 0,
   showBackButton = true,
   showSearch = true,
-  showContact = true,
   floating = false,
 }: BrandedHeaderProps) {
   const router = useRouter();
@@ -48,13 +46,6 @@ export default function BrandedHeader({
         <View style={styles.searchPillPlaceholder} />
       )}
 
-      {showContact ? (
-        <Pressable style={styles.iconButton} onPress={() => router.push('/contact')}>
-          <Feather name="message-circle" size={20} color="#2F2527" />
-        </Pressable>
-      ) : (
-        <View style={styles.iconButton} />
-      )}
     </View>
   );
 }

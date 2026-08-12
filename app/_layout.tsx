@@ -105,13 +105,6 @@ function RootLayoutNav() {
           presentation: "card",
         }}
       />
-      <Stack.Screen
-        name="contact"
-        options={{
-          headerShown: false,
-          presentation: "card",
-        }}
-      />
     </Stack>
   );
 }

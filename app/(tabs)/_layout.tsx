@@ -117,6 +117,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="contact"
+        options={{
+          title: '\u062a\u0648\u0627\u0635\u0644',
+          tabBarIcon: ({ color, size }) => <Feather name="message-circle" color={color} size={27} />,
+        }}
+      />
+      <Tabs.Screen
         name="store"
         options={{
           href: null,

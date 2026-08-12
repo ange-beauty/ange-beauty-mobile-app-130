@@ -68,6 +68,7 @@ export default function BasketScreen() {
       const path = '/api/v1/selling-orders/client-initialization';
       const response = await debugFetch(`${API_BASE}${path}`, {
         method: 'POST',
+        credentials: 'include',
         headers: withClientSourceHeader({
           'Accept': 'application/json',
           'Content-Type': 'application/json',
