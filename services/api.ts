@@ -9,6 +9,8 @@ export interface Brand {
   id: string;
   brand_name_ar: string;
   brand_name_en?: string;
+  icon?: string | null;
+  aggregate_version?: number;
 }
 
 export interface Category {

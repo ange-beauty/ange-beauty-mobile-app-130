@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useRef, useState } from 'react';
 import {
@@ -31,6 +32,12 @@ function getBrandLetter(brand: Brand) {
   const name = getBrandDisplayName(brand)?.trim() || '';
   const first = name.charAt(0).toUpperCase();
   return /^[A-Z]$/.test(first) ? first : '#';
+}
+
+function getBrandIconUrl(brand: Brand) {
+  if (!brand.icon) return '';
+  const root = process.env.EXPO_PUBLIC_ROOT_DIR || 'angeapi';
+  return `https://images.angebeauty.net/${root}/cdn/images/${brand.id}/${brand.icon}?v=${brand.aggregate_version || 1}`;
 }
 
 export default function BrandsScreen() {
@@ -96,6 +103,7 @@ export default function BrandsScreen() {
 
   const renderBrandTile = (item: Brand) => {
     const name = getBrandDisplayName(item);
+    const iconUrl = getBrandIconUrl(item);
 
     return (
       <View key={item.id} style={{ width: tileWidth }}>
@@ -103,9 +111,13 @@ export default function BrandsScreen() {
           style={({ pressed }) => [styles.brandTile, { width: tileWidth, height: tileWidth }, pressed && styles.buttonPressed]}
           onPress={() => router.push(`/(tabs)/products?brandId=${item.id}`)}
         >
-          <Text style={styles.brandLogoText} numberOfLines={2} adjustsFontSizeToFit>
-            {name}
-          </Text>
+          {iconUrl ? (
+            <Image source={{ uri: iconUrl }} style={styles.brandLogoImage} contentFit="contain" transition={150} />
+          ) : (
+            <Text style={styles.brandLogoText} numberOfLines={2} adjustsFontSizeToFit>
+              {name}
+            </Text>
+          )}
         </Pressable>
         <Text style={styles.brandName} numberOfLines={1}>
           {name}
@@ -236,6 +248,10 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: Platform.select({ ios: '600', android: '600', default: '600' }),
     textAlign: 'center',
+  },
+  brandLogoImage: {
+    width: '82%',
+    height: '82%',
   },
   brandName: {
     marginTop: 5,
