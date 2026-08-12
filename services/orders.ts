@@ -3,6 +3,7 @@ import { apiFetch } from '@/services/httpClient';
 export type ClientOrderItem = {
   productId: string;
   productName: string;
+  image: string;
   quantity: number;
   price: number;
 };
@@ -47,6 +48,7 @@ export async function fetchMyOrders(): Promise<ClientOrder[]> {
     const items = rawItems.map((item: any) => ({
       productId: String(item?.productId || item?.product_id || item?.product || ''),
       productName: String(item?.productName || item?.product_name || ''),
+      image: String(item?.image || item?.image_url || ''),
       quantity: asNumber(item?.quantity),
       price: asNumber(item?.price),
     }));
