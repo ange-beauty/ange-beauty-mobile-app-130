@@ -7,9 +7,9 @@ import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
 import { beautyTheme } from '@/constants/uiTheme';
 
-const CONTACT_PHONE = '+96477061791777';
+const CONTACT_PHONE = '+9647761791777';
 const CONTACT_EMAIL = 'support@angebeauty.net';
-const CONTACT_WHATSAPP = '96477061791777';
+const CONTACT_WHATSAPP = '9647761791777';
 const CONTACT_WEBSITE = 'https://www.angebeauty.net';
 
 export default function ContactScreen() {
