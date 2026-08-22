@@ -1,5 +1,6 @@
 import { withClientSourceHeader } from '@/services/requestHeaders';
 import { debugFetch } from '@/services/httpDebug';
+import { getArabicApiErrorMessage } from '@/services/apiErrorMessages';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 const API_BASE = API_BASE_URL.replace(/\/+$/, '');
@@ -80,10 +81,14 @@ export async function apiFetch<T = any>(
 
   const body = await safeJsonParse(response);
   if (!response.ok) {
+    const localizedMessage = getArabicApiErrorMessage(body);
+    const localizedBody = body && typeof body === 'object'
+      ? { ...body, message: localizedMessage }
+      : { success: false, message: localizedMessage };
     throw new ApiHttpError(
       response.status,
-      body?.message || 'Request failed',
-      body
+      localizedMessage,
+      localizedBody
     );
   }
 

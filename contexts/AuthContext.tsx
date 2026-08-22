@@ -11,6 +11,7 @@ import {
   type UpdateProfilePayload,
 } from '@/services/auth';
 import { ApiHttpError } from '@/services/httpClient';
+import { getArabicApiErrorMessage } from '@/services/apiErrorMessages';
 
 const DEBUG_AUTH = process.env.EXPO_PUBLIC_DEBUG_AUTH === 'true';
 
@@ -147,8 +148,10 @@ export const [AuthContext, useAuth] = createContextHook(() => {
       } catch (error: any) {
         const message =
           error instanceof ApiHttpError
-            ? error.body?.message ||
-              '\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062f\u062e\u0648\u0644 \u063a\u064a\u0631 \u0635\u062d\u064a\u062d\u0629'
+            ? getArabicApiErrorMessage(
+                error.body,
+                '\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0623\u0648 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u063a\u064a\u0631 \u0635\u062d\u064a\u062d\u0629',
+              )
             : '\u062a\u0639\u0630\u0631 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0627\u0644\u062e\u0627\u062f\u0645';
         return { success: false, message };
       }
