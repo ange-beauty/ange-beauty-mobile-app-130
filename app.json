@@ -2,7 +2,7 @@
   "expo": {
     "name": "AngeBeauty",
     "slug": "ange-boutique-mobile-app",
-    "version": "1.0.8",
+    "version": "1.0.10",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "rork-app",
@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.ange.beauty.cosmetic"
+      "bundleIdentifier": "app.ange.beauty.cosmetic",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "googleServicesFile": "./google-services.json",

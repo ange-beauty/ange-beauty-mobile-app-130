@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Constants from "expo-constants";
+import * as Application from "expo-application";
 
 import FloralBackdrop from "@/components/FloralBackdrop";
 import { beautyTheme } from "@/constants/uiTheme";
@@ -51,6 +52,7 @@ if (Platform.OS !== "web") {
 const queryClient = new QueryClient();
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.ange.beauty.cosmetic";
 const PLAY_STORE_APP_URL = "market://details?id=app.ange.beauty.cosmetic";
+const APP_STORE_URL = process.env.EXPO_PUBLIC_APP_STORE_URL || "https://apps.apple.com/";
 const appLogo = require("@/assets/images/icon.png");
 
 function RootLayoutNav() {
@@ -100,6 +102,13 @@ function RootLayoutNav() {
       />
       <Stack.Screen
         name="verify-email"
+        options={{
+          headerShown: false,
+          presentation: "card",
+        }}
+      />
+      <Stack.Screen
+        name="forgot-password"
         options={{
           headerShown: false,
           presentation: "card",
@@ -353,24 +362,19 @@ export default function RootLayout() {
   AnyTextInput.defaultProps.style = [AnyTextInput.defaultProps.style, { fontFamily: globalFontFamily }];
 
   const handleUpdatePress = async () => {
-    const preferredUrl =
-      Platform.OS === "android" ? PLAY_STORE_APP_URL : PLAY_STORE_URL;
-    try {
-      await Linking.openURL(preferredUrl);
-    } catch (error) {
-      if (preferredUrl !== PLAY_STORE_URL) {
-        try {
-          await Linking.openURL(PLAY_STORE_URL);
-          return;
-        } catch (fallbackError) {
-          console.error(
-            "[RootLayout] Failed to open Play Store URL:",
-            fallbackError,
-          );
-          return;
+    const urls = Platform.OS === "ios"
+      ? [APP_STORE_URL]
+      : [PLAY_STORE_APP_URL, PLAY_STORE_URL];
+
+    for (const url of urls) {
+      try {
+        await Linking.openURL(url);
+        return;
+      } catch (error) {
+        if (url === urls[urls.length - 1]) {
+          console.error("[RootLayout] Failed to open app update URL:", error);
         }
       }
-      console.error("[RootLayout] Failed to open Play Store URL:", error);
     }
   };
 
@@ -380,8 +384,15 @@ export default function RootLayout() {
       return;
     }
 
-    const appVersion = Constants.expoConfig?.version || "1.0.0";
-    const result = await checkAppUpdateStatus(appVersion);
+    const appVersion = Application.nativeApplicationVersion
+      || Constants.expoConfig?.version
+      || "1.0.0";
+    const buildNumber = Application.nativeBuildVersion || "0";
+    const result = await checkAppUpdateStatus(
+      appVersion,
+      Platform.OS as "android" | "ios",
+      buildNumber,
+    );
     setUpdateRequired(result.status === "update_required");
     setUpdateCheckError(result.status === "network_error" ? result.message : null);
     setIsCheckingUpdate(false);

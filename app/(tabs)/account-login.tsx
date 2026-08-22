@@ -135,6 +135,12 @@ export default function AccountLoginScreen() {
           </View>
           {fieldErrors.password ? <Text style={styles.errorText}>{fieldErrors.password}</Text> : null}
 
+          <Pressable onPress={() => router.push('/forgot-password')} hitSlop={8}>
+            <Text style={styles.forgotPasswordText}>
+              {'\u0646\u0633\u064a\u062a \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631\u061f'}
+            </Text>
+          </Pressable>
+
           <TurnstileWidget
             action="login"
             resetKey={turnstileResetKey}
@@ -273,6 +279,12 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#B9442B',
     fontSize: 13,
+    textAlign: 'right',
+  },
+  forgotPasswordText: {
+    color: '#7E4A53',
+    fontSize: 14,
+    fontWeight: '700',
     textAlign: 'right',
   },
   primaryButton: {

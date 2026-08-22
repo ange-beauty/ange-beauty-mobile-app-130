@@ -337,11 +337,17 @@ export type AppUpdateCheckResult =
   | { status: 'update_required' }
   | { status: 'network_error'; message: string };
 
-export async function checkAppUpdateStatus(appVersion: string): Promise<AppUpdateCheckResult> {
+export async function checkAppUpdateStatus(
+  appVersion: string,
+  platform: 'android' | 'ios',
+  buildNumber: string,
+): Promise<AppUpdateCheckResult> {
   try {
     const endpoint = `${API_BASE}/api/v1/auth/client-version/validate`;
     const payload = {
       version: appVersion,
+      platform,
+      build_number: buildNumber,
     };
 
     const response = await debugFetch(endpoint, {
