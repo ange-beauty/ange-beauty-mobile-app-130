@@ -102,6 +102,13 @@ export async function logout(): Promise<any> {
   });
 }
 
+export async function deleteAccount(): Promise<any> {
+  return apiFetch('/api/v1/auth/me', {
+    method: 'DELETE',
+    skipRefreshRetry: true,
+  });
+}
+
 export async function sendEmailVerification(): Promise<any> {
   return apiFetch('/api/v1/auth/send-email-verification', {
     method: 'POST',

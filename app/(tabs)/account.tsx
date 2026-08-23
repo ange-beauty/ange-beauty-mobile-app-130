@@ -18,6 +18,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useBasket } from '@/contexts/BasketContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
+import { deleteAccount } from '@/services/auth';
+import { ApiHttpError } from '@/services/httpClient';
 import AccountLoginScreen from './account-login';
 
 export default function AccountScreen() {
@@ -28,6 +30,7 @@ export default function AccountScreen() {
   const { favorites } = useFavorites();
   const { selectedSellingPoint } = useSellingPoint();
   const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const handleResendVerification = async () => {
     setIsResendingVerification(true);
@@ -39,6 +42,39 @@ export default function AccountScreen() {
         ? '\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0631\u0633\u0627\u0644\u0629'
         : '\u062e\u0637\u0623',
       result.message
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      '\u062d\u0630\u0641 \u0627\u0644\u062d\u0633\u0627\u0628',
+      '\u0633\u064a\u062a\u0645 \u062d\u0630\u0641 \u062d\u0633\u0627\u0628\u0643 \u0646\u0647\u0627\u0626\u064a\u0627\u064b \u0648\u0644\u0646 \u062a\u062a\u0645\u0643\u0646 \u0645\u0646 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0625\u0644\u064a\u0647 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.',
+      [
+        {
+          text: '\u0625\u0644\u063a\u0627\u0621',
+          style: 'cancel',
+        },
+        {
+          text: '\u062d\u0630\u0641 \u0646\u0647\u0627\u0626\u064a',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsDeletingAccount(true);
+              await deleteAccount();
+              await logout();
+            } catch (error) {
+              Alert.alert(
+                '\u062e\u0637\u0623',
+                error instanceof ApiHttpError
+                  ? error.body?.message || '\u062a\u0639\u0630\u0631 \u062d\u0630\u0641 \u0627\u0644\u062d\u0633\u0627\u0628'
+                  : '\u062a\u0639\u0630\u0631 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0627\u0644\u062e\u0627\u062f\u0645'
+              );
+            } finally {
+              setIsDeletingAccount(false);
+            }
+          },
+        },
+      ]
     );
   };
 
@@ -174,6 +210,26 @@ export default function AccountScreen() {
             >
               <Feather name="log-out" size={18} color="#FFF" />
               <Text style={styles.logoutButtonText}>{'\u062a\u0633\u062c\u064a\u0644 \u062e\u0631\u0648\u062c'}</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                styles.deleteAccountButton,
+                pressed && styles.buttonPressed,
+                isDeletingAccount && styles.buttonDisabled,
+              ]}
+              onPress={handleDeleteAccount}
+              disabled={isDeletingAccount}
+            >
+              {isDeletingAccount ? (
+                <ActivityIndicator size="small" color="#A3384A" />
+              ) : (
+                <Feather name="trash-2" size={18} color="#A3384A" />
+              )}
+              <Text style={styles.deleteAccountButtonText}>
+                {isDeletingAccount
+                  ? '\u062c\u0627\u0631\u064a \u062d\u0630\u0641 \u0627\u0644\u062d\u0633\u0627\u0628...'
+                  : '\u062d\u0630\u0641 \u0627\u0644\u062d\u0633\u0627\u0628 \u0646\u0647\u0627\u0626\u064a\u0627\u064b'}
+              </Text>
             </Pressable>
           </View>
         ) : null}
@@ -328,6 +384,25 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  deleteAccountButton: {
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#C75D70',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  deleteAccountButtonText: {
+    color: '#A3384A',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  buttonDisabled: {
+    opacity: 0.55,
   },
   menuSection: {
     marginTop: 14,

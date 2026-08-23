@@ -6,10 +6,17 @@ function redactSensitiveFields(value: unknown): unknown {
   }
   if (value && typeof value === 'object') {
     return Object.fromEntries(
-      Object.entries(value).map(([key, fieldValue]) => [
-        key,
-        key.toLowerCase() === 'security_token' ? '[redacted]' : redactSensitiveFields(fieldValue),
-      ])
+      Object.entries(value).map(([key, fieldValue]) => {
+        const normalizedKey = key.toLowerCase();
+        const isSensitive =
+          normalizedKey.includes('password') ||
+          normalizedKey.includes('token') ||
+          normalizedKey.includes('secret') ||
+          normalizedKey === 'authorization' ||
+          normalizedKey === 'cookie';
+
+        return [key, isSensitive ? '[redacted]' : redactSensitiveFields(fieldValue)];
+      })
     );
   }
   return value;
@@ -39,7 +46,7 @@ async function normalizeResponseBody(response: Response) {
     }
 
     try {
-      return JSON.parse(text);
+      return redactSensitiveFields(JSON.parse(text));
     } catch {
       return text;
     }
@@ -57,7 +64,7 @@ export async function debugFetch(
     console.log(`[${label}] Request`, {
       method: init.method || 'GET',
       url: input,
-      headers: init.headers,
+      headers: redactSensitiveFields(init.headers),
       credentials: init.credentials,
       body: normalizeBody(init.body),
     });
