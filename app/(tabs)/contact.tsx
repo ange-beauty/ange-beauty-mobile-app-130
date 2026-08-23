@@ -3,7 +3,6 @@ import React from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
 import { beautyTheme } from '@/constants/uiTheme';
 
@@ -26,10 +25,15 @@ export default function ContactScreen() {
   return (
     <View style={styles.container}>
       <FloralBackdrop subtle />
-      <BrandedHeader topInset={insets.top} showBackButton={false} />
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) + 96 }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: Math.max(insets.top, 16) + 8,
+            paddingBottom: Math.max(insets.bottom, 24) + 96,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>{'\u062a\u0648\u0627\u0635\u0644 \u0645\u0639\u0646\u0627'}</Text>

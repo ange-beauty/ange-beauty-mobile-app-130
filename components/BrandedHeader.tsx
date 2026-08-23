@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { beautyTheme } from '@/constants/uiTheme';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,14 @@ type BrandedHeaderProps = {
   floating?: boolean;
 };
 
+const searchSuggestions = [
+  '\u0627\u0628\u062d\u062b\u064a \u0639\u0646 \u0645\u0646\u062a\u062c \u0623\u0648 \u0628\u0631\u0627\u0646\u062f',
+  '\u0645\u0627\u0630\u0627 \u062a\u0628\u062d\u062b\u064a\u0646 \u0639\u0646\u0647 \u0627\u0644\u064a\u0648\u0645\u061f',
+  '\u0627\u0643\u062a\u0634\u0641\u064a \u062c\u062f\u064a\u062f \u0627\u0644\u0639\u0646\u0627\u064a\u0629 \u0648\u0627\u0644\u062c\u0645\u0627\u0644',
+  '\u0627\u0628\u062d\u062b\u064a \u0639\u0646 \u0628\u0631\u0627\u0646\u062f\u0643 \u0627\u0644\u0645\u0641\u0636\u0644',
+  '\u0627\u0643\u062a\u0634\u0641\u064a \u0639\u0631\u0648\u0636 \u0623\u0646\u062c \u0628\u064a\u0648\u062a\u064a',
+] as const;
+
 export default function BrandedHeader({
   topInset = 0,
   showBackButton = true,
@@ -21,6 +29,9 @@ export default function BrandedHeader({
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const canGoBack = showBackButton && router.canGoBack();
+  const [searchSuggestion] = useState(
+    () => searchSuggestions[Math.floor(Math.random() * searchSuggestions.length)],
+  );
 
   return (
     <View style={[styles.container, floating && styles.floating, { paddingTop: topInset + 10 }]}>
@@ -40,7 +51,7 @@ export default function BrandedHeader({
           onPress={() => router.push({ pathname: '/(tabs)/products', params: { focusSearch: '1' } })}
         >
           <Feather name="search" size={22} color={beautyTheme.colors.accentDark} />
-          <Text style={styles.searchText}>{'\u0628\u062d\u062b \u0639\u0646 COSRX'}</Text>
+          <Text style={styles.searchText} numberOfLines={1}>{searchSuggestion}</Text>
         </Pressable>
       ) : (
         <View style={styles.searchPillPlaceholder} />
@@ -103,9 +114,9 @@ const styles = StyleSheet.create({
   },
   searchText: {
     flex: 1,
-    color: '#5B5054',
+    color: 'rgba(91, 80, 84, 0.68)',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '500',
     textAlign: 'right',
     paddingHorizontal: 10,
   },

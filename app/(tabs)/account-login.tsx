@@ -173,11 +173,6 @@ export default function AccountLoginScreen() {
               {'\u0625\u0646\u0634\u0627\u0621 \u062d\u0633\u0627\u0628 \u062c\u062f\u064a\u062f'}
             </Text>
           </Pressable>
-          {router.canGoBack() ? (
-            <Pressable style={({ pressed }) => [styles.backButton, pressed && styles.buttonPressed]} onPress={() => router.back()}>
-              <Text style={styles.backButtonText}>{'\u0631\u062c\u0648\u0639'}</Text>
-            </Pressable>
-          ) : null}
         </View>
       </ScrollView>
     </View>
@@ -312,16 +307,6 @@ const styles = StyleSheet.create({
     color: '#4B383D',
     fontSize: 14,
     fontWeight: '600',
-  },
-  backButton: {
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButtonText: {
-    color: '#7F6A6F',
-    fontSize: 14,
-    fontWeight: '700',
   },
   buttonPressed: {
     opacity: 0.75,

@@ -4,7 +4,6 @@ import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   ScrollView,
   Pressable,
   StyleSheet,
@@ -19,8 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useBasket } from '@/contexts/BasketContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
-
-const appLogo = require('@/assets/images/icon.png');
+import AccountLoginScreen from './account-login';
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
@@ -107,65 +105,8 @@ export default function AccountScreen() {
       }),
     [isAuthenticated]
   );
-  const guestActions = useMemo(
-    () => [
-      {
-        key: 'login',
-        label: '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644',
-        onPress: () => router.push('/(tabs)/account-login'),
-        variant: 'primary' as const,
-      },
-      {
-        key: 'register',
-        label: '\u0625\u0646\u0634\u0627\u0621 \u062d\u0633\u0627\u0628 \u062c\u062f\u064a\u062f',
-        onPress: () => router.push('/(tabs)/account-register'),
-        variant: 'secondary' as const,
-      },
-    ],
-    [router]
-  );
-
   if (!isLoading && !isAuthenticated) {
-    return (
-      <View style={styles.container}>
-        <FloralBackdrop subtle />
-        <ScrollView
-          style={styles.content}
-          contentContainerStyle={[
-            styles.guestCenteredContainer,
-            { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 120 },
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          <Image source={appLogo} style={styles.guestLogo} resizeMode="contain" />
-          <Text style={styles.guestBrandTitle}>{'\u0623\u0646\u062c \u0628\u064a\u0648\u062a\u064a'}</Text>
-          <Text style={styles.guestMotto}>{'\u0623\u0646\u062c \u0628\u064a\u0648\u062a\u064a \u062c\u0645\u0627\u0644 \u0645\u0644\u0627\u0626\u0643\u064a'}</Text>
-
-          <View style={styles.guestActionCard}>
-            {guestActions.map((action) => (
-              <Pressable
-                key={action.key}
-                style={({ pressed }) => [
-                  action.variant === 'primary' ? styles.primaryButton : styles.secondaryButton,
-                  pressed && styles.buttonPressed,
-                ]}
-                onPress={action.onPress}
-              >
-                <Text
-                  style={
-                    action.variant === 'primary'
-                      ? styles.primaryButtonText
-                      : styles.secondaryButtonText
-                  }
-                >
-                  {action.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
-    );
+    return <AccountLoginScreen />;
   }
 
   return (
@@ -235,35 +176,7 @@ export default function AccountScreen() {
               <Text style={styles.logoutButtonText}>{'\u062a\u0633\u062c\u064a\u0644 \u062e\u0631\u0648\u062c'}</Text>
             </Pressable>
           </View>
-        ) : (
-          <View style={styles.loginCard}>
-            <Text style={styles.sectionTitle}>{'\u0627\u0644\u062f\u062e\u0648\u0644 \u0625\u0644\u0649 \u062d\u0633\u0627\u0628\u0643'}</Text>
-            <Text style={styles.guestDescription}>
-              {'\u0627\u0646\u062a\u0642\u0644 \u0625\u0644\u0649 \u0634\u0627\u0634\u0629 \u0645\u062e\u0635\u0635\u0629 \u0644\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0623\u0648 \u0623\u0646\u0634\u0626 \u062d\u0633\u0627\u0628\u0627\u064b \u062c\u062f\u064a\u062f\u0627\u064b.'}
-            </Text>
-
-            {guestActions.map((action) => (
-              <Pressable
-                key={action.key}
-                style={({ pressed }) => [
-                  action.variant === 'primary' ? styles.primaryButton : styles.secondaryButton,
-                  pressed && styles.buttonPressed,
-                ]}
-                onPress={action.onPress}
-              >
-                <Text
-                  style={
-                    action.variant === 'primary'
-                      ? styles.primaryButtonText
-                      : styles.secondaryButtonText
-                  }
-                >
-                  {action.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
+        ) : null}
 
         <View style={styles.menuSection}>
           {visibleProfileLinks.map((item) => (
@@ -297,38 +210,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
     paddingBottom: 160,
-  },
-  guestCenteredContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  guestLogo: {
-    width: 132,
-    height: 132,
-  },
-  guestBrandTitle: {
-    marginTop: 10,
-    fontSize: 32,
-    lineHeight: 40,
-    color: '#7E4A53',
-    fontWeight: '700',
-    fontFamily: 'Tajawal-Bold',
-    textAlign: 'center',
-  },
-  guestMotto: {
-    marginTop: 2,
-    fontSize: 16,
-    color: '#6D5B5F',
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  guestActionCard: {
-    width: '100%',
-    maxWidth: 420,
-    marginTop: 26,
-    gap: 10,
   },
   heroCard: {
     backgroundColor: '#FFF8FA',
@@ -400,45 +281,6 @@ const styles = StyleSheet.create({
     borderColor: '#E8DCDD',
     padding: 14,
     gap: 10,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2F2527',
-    textAlign: 'right',
-    marginBottom: 4,
-  },
-  guestDescription: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#6D5B5F',
-    textAlign: 'right',
-  },
-  primaryButton: {
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: '#7E4A53',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 6,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E4D2D6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: '#4B383D',
-    fontSize: 14,
-    fontWeight: '600',
   },
   unverifiedCard: {
     borderWidth: 1,

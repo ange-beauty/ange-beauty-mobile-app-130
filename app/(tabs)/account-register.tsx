@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -221,22 +222,33 @@ export default function RegisterScreen() {
             <Text style={styles.errorText}>{fieldErrors.confirmPassword}</Text>
           ) : null}
 
-          <Pressable
-            style={styles.checkboxRow}
-            onPress={() => {
-              setAcceptedTerms((prev) => !prev);
-              if (fieldErrors.acceptedTerms) {
-                setFieldErrors((prev) => ({ ...prev, acceptedTerms: '' }));
-              }
-            }}
-          >
-            <View style={[styles.checkboxBox, acceptedTerms ? styles.checkboxBoxChecked : null]}>
-              {acceptedTerms ? <Feather name="check" size={14} color="#FFFFFF" /> : null}
-            </View>
+          <View style={styles.checkboxRow}>
+            <Pressable
+              onPress={() => {
+                setAcceptedTerms((prev) => !prev);
+                if (fieldErrors.acceptedTerms) {
+                  setFieldErrors((prev) => ({ ...prev, acceptedTerms: '' }));
+                }
+              }}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: acceptedTerms }}
+              hitSlop={8}
+            >
+              <View style={[styles.checkboxBox, acceptedTerms ? styles.checkboxBoxChecked : null]}>
+                {acceptedTerms ? <Feather name="check" size={14} color="#FFFFFF" /> : null}
+              </View>
+            </Pressable>
             <Text style={styles.checkboxText}>
-              {'\u0623\u0648\u0627\u0641\u0642 \u0639\u0644\u0649 \u0634\u0631\u0648\u0637 \u0648\u0623\u062d\u0643\u0627\u0645 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645'}
+              {'\u0623\u0648\u0627\u0641\u0642 \u0639\u0644\u0649 '}
+              <Text
+                style={styles.termsInlineLink}
+                onPress={() => void Linking.openURL('https://www.angebeauty.net/terms')}
+                accessibilityRole="link"
+              >
+                {'\u0634\u0631\u0648\u0637 \u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645'}
+              </Text>
             </Text>
-          </Pressable>
+          </View>
           {fieldErrors.acceptedTerms ? <Text style={styles.errorText}>{fieldErrors.acceptedTerms}</Text> : null}
 
           <Pressable
@@ -388,6 +400,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     textAlign: 'right',
+  },
+  termsInlineLink: {
+    color: '#7E4A53',
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   primaryButton: {
     height: 46,

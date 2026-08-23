@@ -12,7 +12,6 @@ import {
   View,
 } from 'react-native';
 
-import BrandedHeader from '@/components/BrandedHeader';
 import { forgotPassword } from '@/services/auth';
 
 export default function ForgotPasswordScreen() {
@@ -46,7 +45,6 @@ export default function ForgotPasswordScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <BrandedHeader />
       <View style={styles.content}>
         <View style={styles.card}>
           <Feather name={submitted ? 'mail' : 'key'} size={42} color="#7E4A53" />
