@@ -54,6 +54,7 @@ function OrderCard({ order, onPress }: { order: ClientOrder; onPress: () => void
 }
 
 function OrderDetails({ order, onClose }: { order: ClientOrder | null; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
   const productQueries = useQueries({
     queries: (order?.items || []).map((item) => ({
       queryKey: ['order-product', item.productId],
@@ -75,7 +76,15 @@ function OrderDetails({ order, onClose }: { order: ClientOrder | null; onClose: 
           </View>
 
           {order ? (
-            <ScrollView contentContainerStyle={styles.detailsContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.detailsScroll}
+              contentContainerStyle={[
+                styles.detailsContent,
+                { paddingBottom: Math.max(insets.bottom, 16) + 24 },
+              ]}
+              showsVerticalScrollIndicator
+              nestedScrollEnabled
+            >
               <View style={styles.detailsSummary}>
                 <View style={[styles.statusBadge, styles[`status_${order.status}` as keyof typeof styles]]}>
                   <Text style={styles.statusText}>{STATUS_LABELS[order.status] || order.status}</Text>
@@ -211,11 +220,12 @@ const styles = StyleSheet.create({
   detailsHint: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   detailsHintText: { color: beautyTheme.colors.textMuted, fontSize: 12 },
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(24, 18, 20, 0.4)' },
-  detailsSheet: { maxHeight: '82%', minHeight: 320, borderTopLeftRadius: 20, borderTopRightRadius: 20, backgroundColor: beautyTheme.colors.card, overflow: 'hidden' },
+  detailsSheet: { height: '82%', minHeight: 320, borderTopLeftRadius: 20, borderTopRightRadius: 20, backgroundColor: beautyTheme.colors.card, overflow: 'hidden' },
   detailsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: beautyTheme.colors.border },
   detailsTitle: { color: beautyTheme.colors.text, fontSize: 20, fontWeight: '700', textAlign: 'right' },
   closeButton: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 19, backgroundColor: '#F6F0F2' },
-  detailsContent: { padding: 16, paddingBottom: 32 },
+  detailsScroll: { flex: 1 },
+  detailsContent: { padding: 16 },
   detailsSummary: { alignItems: 'flex-end', gap: 7, paddingBottom: 14 },
   detailsOrderId: { color: beautyTheme.colors.text, fontSize: 13, fontWeight: '700', textAlign: 'right' },
   detailsDate: { color: beautyTheme.colors.textMuted, fontSize: 12, textAlign: 'right' },

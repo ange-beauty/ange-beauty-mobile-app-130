@@ -55,7 +55,10 @@ export default function BasketScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [telephone, setTelephone] = useState('');
-  const [address, setAddress] = useState('');
+  const [provence, setProvence] = useState('');
+  const [city, setCity] = useState('');
+  const [addressLine, setAddressLine] = useState('');
+  const [addressComplement, setAddressComplement] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
@@ -115,7 +118,10 @@ export default function BasketScreen() {
       setName('');
       setEmail('');
       setTelephone('');
-      setAddress('');
+      setProvence('');
+      setCity('');
+      setAddressLine('');
+      setAddressComplement('');
       setFieldErrors({});
       setTurnstileToken(null);
       idempotencyKeyRef.current = null;
@@ -378,6 +384,10 @@ export default function BasketScreen() {
     setName(user?.name || '');
     setEmail(user?.email || '');
     setTelephone(user?.phone || '');
+    setProvence(user?.provence || '');
+    setCity(user?.city || '');
+    setAddressLine(user?.addressLine || '');
+    setAddressComplement(user?.addressComplement || '');
     setTurnstileToken(null);
     idempotencyKeyRef.current = createIdempotencyKey();
     setShowCheckoutModal(true);
@@ -393,6 +403,13 @@ export default function BasketScreen() {
       return;
     }
     setIsGuestCheckout(true);
+    setName('');
+    setEmail('');
+    setTelephone('');
+    setProvence('');
+    setCity('');
+    setAddressLine('');
+    setAddressComplement('');
     setTurnstileToken(null);
     setTurnstileResetKey(previous => previous + 1);
     idempotencyKeyRef.current = createIdempotencyKey();
@@ -405,7 +422,10 @@ export default function BasketScreen() {
     setName('');
     setEmail('');
     setTelephone('');
-    setAddress('');
+    setProvence('');
+    setCity('');
+    setAddressLine('');
+    setAddressComplement('');
     setFieldErrors({});
     setTurnstileToken(null);
     idempotencyKeyRef.current = null;
@@ -444,9 +464,10 @@ export default function BasketScreen() {
     if (!isGuestCheckout && email.trim() && !emailRegex.test(email.trim())) {
       errors.email = '\u064a\u0631\u062c\u0649\u0020\u0625\u062f\u062e\u0627\u0644\u0020\u0628\u0631\u064a\u062f\u0020\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a\u0020\u0635\u062d\u064a\u062d';
     }
-    if (!address.trim()) {
-      errors.address = '\u0627\u0644\u0639\u0646\u0648\u0627\u0646\u0020\u0645\u0637\u0644\u0648\u0628';
-    }
+    if (!provence.trim()) errors.provence = '\u0627\u0644\u0645\u062d\u0627\u0641\u0638\u0629 \u0645\u0637\u0644\u0648\u0628\u0629';
+    if (!city.trim()) errors.city = '\u0627\u0644\u0645\u062f\u064a\u0646\u0629 \u0645\u0637\u0644\u0648\u0628\u0629';
+    if (!addressLine.trim()) errors.addressLine = '\u0627\u0644\u0639\u0646\u0648\u0627\u0646 \u0645\u0637\u0644\u0648\u0628';
+    if (!addressComplement.trim()) errors.addressComplement = '\u0623\u0642\u0631\u0628 \u0646\u0642\u0637\u0629 \u062f\u0627\u0644\u0629 \u0645\u0637\u0644\u0648\u0628\u0629';
     if (!selectedSellingPoint?.id) {
       errors.sellingPoint = '\u0646\u0642\u0637\u0629\u0020\u0627\u0644\u0628\u064a\u0639\u0020\u0645\u0637\u0644\u0648\u0628\u0629';
     }
@@ -470,13 +491,22 @@ export default function BasketScreen() {
 
     setFieldErrors({});
 
+    const combinedAddress = [provence, city, addressLine, addressComplement]
+      .map(value => value.trim())
+      .filter(Boolean)
+      .join('\u060c ');
+
     const orderData = {
       selling_point: selectedSellingPoint?.id,
       customer: {
         name: name.trim(),
         ...(!isGuestCheckout ? { email: email.trim() } : {}),
         telephone: telephone.trim(),
-        address: address.trim(),
+        provence: provence.trim(),
+        city: city.trim(),
+        address_line: addressLine.trim(),
+        address_complement: addressComplement.trim(),
+        address: combinedAddress,
       },
       items: basketProducts.map(product => ({
         productId: product.id,
@@ -704,21 +734,66 @@ export default function BasketScreen() {
               </View>
 
               <View style={styles.formGroup}>
+                <Text style={styles.label}>{'\u0627\u0644\u0645\u062d\u0627\u0641\u0638\u0629 *'}</Text>
+                <TextInput
+                  style={[styles.input, fieldErrors.provence ? styles.inputErrorBorder : null]}
+                  value={provence}
+                  onChangeText={(value) => {
+                    setProvence(value);
+                    if (fieldErrors.provence) setFieldErrors((prev) => ({ ...prev, provence: '' }));
+                  }}
+                  placeholder={'\u0623\u062f\u062e\u0644\u064a \u0627\u0644\u0645\u062d\u0627\u0641\u0638\u0629'}
+                  placeholderTextColor="#999"
+                />
+                {fieldErrors.provence ? <Text style={styles.errorText}>{fieldErrors.provence}</Text> : null}
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>{'\u0627\u0644\u0645\u062f\u064a\u0646\u0629 *'}</Text>
+                <TextInput
+                  style={[styles.input, fieldErrors.city ? styles.inputErrorBorder : null]}
+                  value={city}
+                  onChangeText={(value) => {
+                    setCity(value);
+                    if (fieldErrors.city) setFieldErrors((prev) => ({ ...prev, city: '' }));
+                  }}
+                  placeholder={'\u0623\u062f\u062e\u0644\u064a \u0627\u0644\u0645\u062f\u064a\u0646\u0629'}
+                  placeholderTextColor="#999"
+                />
+                {fieldErrors.city ? <Text style={styles.errorText}>{fieldErrors.city}</Text> : null}
+              </View>
+
+              <View style={styles.formGroup}>
                 <Text style={styles.label}>{'\u0627\u0644\u0639\u0646\u0648\u0627\u0646 *'}</Text>
                 <TextInput
-                  style={[styles.input, styles.textArea, fieldErrors.address ? styles.inputErrorBorder : null]}
-                  value={address}
+                  style={[styles.input, styles.textArea, fieldErrors.addressLine ? styles.inputErrorBorder : null]}
+                  value={addressLine}
                   onChangeText={(value) => {
-                    setAddress(value);
-                    if (fieldErrors.address) setFieldErrors((prev) => ({ ...prev, address: '' }));
+                    setAddressLine(value);
+                    if (fieldErrors.addressLine) setFieldErrors((prev) => ({ ...prev, addressLine: '' }));
                   }}
-                  placeholder={'\u0623\u062f\u062e\u0644 \u0639\u0646\u0648\u0627\u0646\u0643 \u0627\u0644\u0643\u0627\u0645\u0644'}
+                  placeholder={'\u0623\u062f\u062e\u0644\u064a \u0627\u0644\u0639\u0646\u0648\u0627\u0646'}
                   placeholderTextColor="#999"
                   multiline
-                  numberOfLines={3}
+                  numberOfLines={2}
                   textAlignVertical="top"
                 />
-                {fieldErrors.address ? <Text style={styles.errorText}>{fieldErrors.address}</Text> : null}
+                {fieldErrors.addressLine ? <Text style={styles.errorText}>{fieldErrors.addressLine}</Text> : null}
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>{'\u0623\u0642\u0631\u0628 \u0646\u0642\u0637\u0629 \u062f\u0627\u0644\u0629 *'}</Text>
+                <TextInput
+                  style={[styles.input, fieldErrors.addressComplement ? styles.inputErrorBorder : null]}
+                  value={addressComplement}
+                  onChangeText={(value) => {
+                    setAddressComplement(value);
+                    if (fieldErrors.addressComplement) setFieldErrors((prev) => ({ ...prev, addressComplement: '' }));
+                  }}
+                  placeholder={'\u0645\u062b\u0627\u0644: \u0642\u0631\u0628 \u0627\u0644\u0645\u062f\u0631\u0633\u0629 \u0623\u0648 \u0627\u0644\u0633\u0648\u0642'}
+                  placeholderTextColor="#999"
+                />
+                {fieldErrors.addressComplement ? <Text style={styles.errorText}>{fieldErrors.addressComplement}</Text> : null}
               </View>
 
               {isGuestCheckout ? (
