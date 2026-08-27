@@ -21,14 +21,11 @@ export default function AccountProfileScreen() {
   const router = useRouter();
   const { user, isAuthenticated, updateProfile } = useAuth();
   const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const [telephone, setTelephone] = useState('');
   const [addressLine, setAddressLine] = useState('');
   const [addressComplement, setAddressComplement] = useState('');
   const [city, setCity] = useState('');
   const [provence, setProvence] = useState('');
-  const [zipCode, setZipCode] = useState('');
-  const [country, setCountry] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -39,14 +36,11 @@ export default function AccountProfileScreen() {
     }
 
     setFirstName(user.firstName || '');
-    setLastName(user.lastName || '');
     setTelephone(user.phone || '');
     setAddressLine(user.addressLine || '');
     setAddressComplement(user.addressComplement || '');
     setCity(user.city || '');
     setProvence(user.provence || '');
-    setZipCode(user.zipCode || '');
-    setCountry(user.country || '');
   }, [isAuthenticated, router, user]);
 
   const handleSave = async () => {
@@ -68,14 +62,11 @@ export default function AccountProfileScreen() {
     setIsSubmitting(true);
     const result = await updateProfile({
       first_name: firstName,
-      last_name: lastName,
       telephone,
       address_line: addressLine,
       address_complement: addressComplement,
       city,
       provence,
-      zip_code: zipCode,
-      country,
     });
     setIsSubmitting(false);
 
@@ -94,65 +85,50 @@ export default function AccountProfileScreen() {
   const fields = [
     {
       key: 'firstName',
+      label: '\u0627\u0644\u0627\u0633\u0645',
       value: firstName,
       onChange: setFirstName,
       placeholder: '\u0627\u0644\u0627\u0633\u0645',
       keyboardType: 'default' as const,
     },
     {
-      key: 'lastName',
-      value: lastName,
-      onChange: setLastName,
-      placeholder: '\u0627\u0633\u0645 \u0627\u0644\u0639\u0627\u0626\u0644\u0629',
-      keyboardType: 'default' as const,
-    },
-    {
       key: 'telephone',
+      label: '\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062a\u0641',
       value: telephone,
       onChange: setTelephone,
       placeholder: '\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062a\u0641',
       keyboardType: 'phone-pad' as const,
     },
     {
-      key: 'addressLine',
-      value: addressLine,
-      onChange: setAddressLine,
-      placeholder: '\u0627\u0644\u0639\u0646\u0648\u0627\u0646',
-      keyboardType: 'default' as const,
-    },
-    {
-      key: 'addressComplement',
-      value: addressComplement,
-      onChange: setAddressComplement,
-      placeholder: '\u062a\u0641\u0627\u0635\u064a\u0644 \u0625\u0636\u0627\u0641\u064a\u0629 \u0644\u0644\u0639\u0646\u0648\u0627\u0646',
+      key: 'provence',
+      label: '\u0627\u0644\u0645\u062d\u0627\u0641\u0638\u0629',
+      value: provence,
+      onChange: setProvence,
+      placeholder: '\u0623\u062f\u062e\u0644\u064a \u0627\u0644\u0645\u062d\u0627\u0641\u0638\u0629',
       keyboardType: 'default' as const,
     },
     {
       key: 'city',
+      label: '\u0627\u0644\u0645\u062f\u064a\u0646\u0629',
       value: city,
       onChange: setCity,
-      placeholder: '\u0627\u0644\u0645\u062f\u064a\u0646\u0629',
+      placeholder: '\u0623\u062f\u062e\u0644\u064a \u0627\u0644\u0645\u062f\u064a\u0646\u0629',
       keyboardType: 'default' as const,
     },
     {
-      key: 'provence',
-      value: provence,
-      onChange: setProvence,
-      placeholder: '\u0627\u0644\u0645\u0642\u0627\u0637\u0639\u0629',
+      key: 'addressLine',
+      label: '\u0627\u0644\u0639\u0646\u0648\u0627\u0646',
+      value: addressLine,
+      onChange: setAddressLine,
+      placeholder: '\u0623\u062f\u062e\u0644\u064a \u0627\u0644\u0639\u0646\u0648\u0627\u0646',
       keyboardType: 'default' as const,
     },
     {
-      key: 'zipCode',
-      value: zipCode,
-      onChange: setZipCode,
-      placeholder: '\u0627\u0644\u0631\u0645\u0632 \u0627\u0644\u0628\u0631\u064a\u062f\u064a',
-      keyboardType: 'default' as const,
-    },
-    {
-      key: 'country',
-      value: country,
-      onChange: setCountry,
-      placeholder: '\u0627\u0644\u0628\u0644\u062f',
+      key: 'addressComplement',
+      label: '\u0623\u0642\u0631\u0628 \u0646\u0642\u0637\u0629 \u062f\u0627\u0644\u0629',
+      value: addressComplement,
+      onChange: setAddressComplement,
+      placeholder: '\u0645\u062b\u0627\u0644: \u0642\u0631\u0628 \u0627\u0644\u0645\u062f\u0631\u0633\u0629 \u0623\u0648 \u0627\u0644\u0633\u0648\u0642',
       keyboardType: 'default' as const,
     },
   ] as const;
@@ -164,7 +140,7 @@ export default function AccountProfileScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -173,7 +149,8 @@ export default function AccountProfileScreen() {
           <Text style={styles.emailLabel}>{user?.email || ''}</Text>
 
           {fields.map((field) => (
-            <View key={field.key}>
+            <View key={field.key} style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>{field.label}</Text>
               <TextInput
                 style={[styles.input, fieldErrors[field.key] ? styles.inputErrorBorder : null]}
                 value={field.value}
@@ -240,6 +217,15 @@ const styles = StyleSheet.create({
     color: '#7F6A6F',
     textAlign: 'right',
     marginBottom: 4,
+  },
+  fieldGroup: {
+    gap: 6,
+  },
+  fieldLabel: {
+    color: '#4C3B3F',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'right',
   },
   input: {
     height: 48,
