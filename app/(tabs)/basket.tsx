@@ -175,6 +175,15 @@ export default function BasketScreen() {
     return products;
   }, [basket, productsData]);
 
+  React.useEffect(() => {
+    const zeroPriceProduct = basketProducts.find(
+      product => !Number.isFinite(product.price) || product.price <= 0,
+    );
+    if (zeroPriceProduct) {
+      removeFromBasket(zeroPriceProduct.id);
+    }
+  }, [basketProducts, removeFromBasket]);
+
   const totalPrice = React.useMemo(() => {
     return basketProducts.reduce((sum, item) => {
       const price = typeof item.price === 'number' ? item.price : parseFloat(item.price as string || '0');

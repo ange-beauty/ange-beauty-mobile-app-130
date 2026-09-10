@@ -92,13 +92,15 @@ export default function FavoritesScreen() {
 
   const favoriteProducts = productsData || [];
 
-  const handleAddToBasket = (productId: string, e: any) => {
+  const handleAddToBasket = (product: Product, e: any) => {
     e.stopPropagation();
+    if (!Number.isFinite(product.price) || product.price <= 0) return;
+
     if (!selectedSellingPoint?.id) {
       promptSelectSellingPoint();
       return;
     }
-    addToBasket(productId, 1);
+    addToBasket(product, 1);
   };
 
   const handleScrollToTop = useCallback(() => {
@@ -139,6 +141,7 @@ export default function FavoritesScreen() {
     <View style={{ width: cardWidth, marginBottom: 16 }}>
       {(() => {
         const displayBrand = getDisplayBrand(item.brand);
+        const canAddToBasket = Number.isFinite(item.price) && item.price > 0;
         return (
       <Pressable
         style={styles.productCard}
@@ -174,12 +177,16 @@ export default function FavoritesScreen() {
           <Pressable 
             style={({ pressed }) => [
               styles.addToBasketButton,
-              pressed && styles.buttonPressed,
+              !canAddToBasket && styles.addToBasketButtonDisabled,
+              pressed && canAddToBasket && styles.buttonPressed,
             ]}
-            onPress={(e) => handleAddToBasket(item.id, e)}
+            onPress={(e) => handleAddToBasket(item, e)}
+            disabled={!canAddToBasket}
           >
-            <Feather name="plus" color="#FFFFFF" size={16} />
-            <Text style={styles.addToBasketText}>أضف للسلة</Text>
+            <Feather name={canAddToBasket ? 'plus' : 'clock'} color="#FFFFFF" size={16} />
+            <Text style={styles.addToBasketText}>
+              {canAddToBasket ? '\u0623\u0636\u0641 \u0644\u0644\u0633\u0644\u0629' : '\u064a\u062a\u0648\u0641\u0631 \u0642\u0631\u064a\u0628\u0627\u064b'}
+            </Text>
           </Pressable>
         </View>
       </Pressable>
@@ -346,6 +353,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     gap: 4,
+  },
+  addToBasketButtonDisabled: {
+    backgroundColor: '#9A8B8E',
+    opacity: 0.7,
   },
   addToBasketText: {
     fontSize: 13,

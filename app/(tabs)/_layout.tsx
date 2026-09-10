@@ -50,6 +50,7 @@ export default function TabLayout() {
           borderRadius: 24,
           borderTopWidth: 0,
           height: 64 + bottomInset,
+          paddingHorizontal: 8,
           paddingBottom: bottomInset,
           paddingTop: 8,
           backgroundColor: 'transparent',
@@ -66,7 +67,7 @@ export default function TabLayout() {
         },
         tabBarItemStyle: {
           minHeight: 56,
-          paddingHorizontal: 4,
+          paddingHorizontal: 0,
           paddingTop: 2,
         },
         sceneStyle: {
@@ -93,6 +94,22 @@ export default function TabLayout() {
         options={{
           title: '\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a',
           tabBarIcon: ({ color, size }) => <Feather name="package" color={color} size={28} />,
+        }}
+      />
+      <Tabs.Screen
+        name="offers"
+        options={{
+          title: '\u0639\u0631\u0648\u0636',
+          tabBarIcon: ({ color, size }) => <Feather name="percent" color={color} size={28} />,
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.replace({
+              pathname: '/(tabs)/products',
+              params: { hasActiveOffer: 'true' },
+            });
+          },
         }}
       />
       <Tabs.Screen

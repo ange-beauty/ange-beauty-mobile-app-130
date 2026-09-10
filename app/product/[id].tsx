@@ -28,7 +28,6 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
 import { fetchProductById } from '@/services/api';
-import { getAvailableQuantityForSellingPoint } from '@/utils/availability';
 import { getDisplayBrand } from '@/utils/brand';
 import { toArabicNumerals } from '@/utils/formatPrice';
 
@@ -109,8 +108,8 @@ export default function ProductDetailScreen() {
 
   const isFav = isFavorite(product.id);
   const quantity = getItemQuantity(product.id);
-  const selectedPointAvailable = getAvailableQuantityForSellingPoint(product, selectedSellingPoint?.id);
   const displayBrand = getDisplayBrand(product.brand);
+  const canAddToBasket = Number.isFinite(product.price) && product.price > 0;
   const promptSelectSellingPoint = () => {
     const title =
       '\u0627\u062e\u062a\u064a\u0627\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639';
@@ -151,18 +150,13 @@ export default function ProductDetailScreen() {
   };
 
   const handleAddToBasket = () => {
+    if (!canAddToBasket) return;
+
     if (!selectedSellingPoint?.id) {
       promptSelectSellingPoint();
       return;
     }
-    if (selectedPointAvailable !== null && quantity >= selectedPointAvailable) {
-      Alert.alert(
-        '\u062a\u0646\u0628\u064a\u0647',
-        '\u0644\u0627 \u064a\u0645\u0643\u0646 \u0625\u0636\u0627\u0641\u0629 \u0643\u0645\u064a\u0629 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0627\u0644\u0645\u062a\u0648\u0641\u0631 \u0641\u064a \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0627\u0644\u0645\u062e\u062a\u0627\u0631\u0629'
-      );
-      return;
-    }
-    addToBasket(product.id, 1);
+    addToBasket(product, 1);
   };
 
   return (
@@ -326,21 +320,20 @@ export default function ProductDetailScreen() {
         <View style={styles.bottomInfo}>
           <Text style={styles.bottomLabel}>{'\u0627\u0644\u0633\u0639\u0631'}</Text>
           <ProductPrice product={product} priceStyle={styles.bottomPrice} />
-          {selectedSellingPoint ? (
-            <Text style={[styles.bottomAvailability, selectedPointAvailable === null ? styles.notAvailable : styles.available]}>
-              {selectedPointAvailable === null
-                ? '\u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631 \u0641\u064a \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0627\u0644\u0645\u062e\u062a\u0627\u0631\u0629'
-                : `\u0627\u0644\u0645\u062a\u0648\u0641\u0631: ${toArabicNumerals(selectedPointAvailable)}`}
-            </Text>
-          ) : (
-            <Text style={styles.bottomAvailability}>
-              {'\u0627\u062e\u062a\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0644\u0645\u0639\u0631\u0641\u0629 \u0627\u0644\u062a\u0648\u0641\u0631'}
-            </Text>
-          )}
         </View>
-        <Pressable style={({ pressed }) => [styles.addButton, pressed && styles.buttonPressed]} onPress={handleAddToBasket}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.addButton,
+            !canAddToBasket && styles.addButtonDisabled,
+            pressed && canAddToBasket && styles.buttonPressed,
+          ]}
+          onPress={handleAddToBasket}
+          disabled={!canAddToBasket}
+        >
           <Text style={styles.addText}>
-            {quantity > 0
+            {!canAddToBasket
+              ? '\u064a\u062a\u0648\u0641\u0631 \u0642\u0631\u064a\u0628\u0627\u064b'
+              : quantity > 0
               ? `\u0641\u064a \u0627\u0644\u0633\u0644\u0629 (${toArabicNumerals(quantity)})`
               : '\u0625\u0636\u0627\u0641\u0629 \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629'}
           </Text>
@@ -509,12 +502,6 @@ const styles = StyleSheet.create({
     fontSize: 21,
     lineHeight: 29,
   },
-  available: {
-    color: '#3F7A4A',
-  },
-  notAvailable: {
-    color: '#A35141',
-  },
   section: {
     marginBottom: 18,
   },
@@ -592,13 +579,6 @@ const styles = StyleSheet.create({
     color: beautyTheme.colors.accentDark,
     textAlign: 'right',
   },
-  bottomAvailability: {
-    marginTop: 3,
-    color: beautyTheme.colors.textMuted,
-    fontSize: 12,
-    lineHeight: 17,
-    textAlign: 'right',
-  },
   addButton: {
     minWidth: 190,
     borderRadius: 16,
@@ -607,6 +587,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  addButtonDisabled: {
+    backgroundColor: '#9A8B8E',
+    opacity: 0.7,
   },
   addText: {
     color: '#FFFFFF',

@@ -44,6 +44,7 @@ export interface APIProduct {
   description_ar?: string | null;
   description_en?: string | null;
   images?: string | string[] | null;
+  images_version?: number | string | null;
   category?: string | null | {
     id: number;
     name?: string;
@@ -173,10 +174,10 @@ export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
   const brandId = apiProduct.brand_id?.toString() || apiProduct.brand?.toString() || undefined;
 
   const productId = apiProduct.id?.toString() || '';
-  const stableVersion =
-    typeof apiProduct.aggregate_version === 'number'
+  const stableVersion = apiProduct.images_version
+    ?? (typeof apiProduct.aggregate_version === 'number'
       ? apiProduct.aggregate_version.toString()
-      : apiProduct.updated_at || undefined;
+      : apiProduct.updated_at || undefined);
   const versionQuery = stableVersion ? `?v=${encodeURIComponent(stableVersion)}` : '';
   const imageFileName = getPrimaryImageFileName(apiProduct.images, productId);
   const imageUrl = productId && imageFileName

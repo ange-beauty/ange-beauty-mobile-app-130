@@ -24,6 +24,12 @@ export interface Category {
   aggregate_version?: number;
 }
 
+export interface Tag {
+  id: string;
+  tag_name_ar?: string | null;
+  tag_name_en?: string | null;
+}
+
 export interface OfferTarget {
   offer: string;
   target_aggregate_type: string;
@@ -54,6 +60,9 @@ export interface FetchProductsParams {
   brand?: string;
   barcode?: string;
   highlighted?: number | boolean;
+  hasActiveOffer?: boolean;
+  offerIds?: string;
+  tag?: string;
 }
 
 function buildOfferHeroImageUrl(apiOffer: any): string {
@@ -147,14 +156,24 @@ export interface FetchProductsResponse {
 }
 
 export async function fetchProducts(params: FetchProductsParams = {}): Promise<FetchProductsResponse> {
-  const { page = 1, limit = 50, keyword, product, category, brand, barcode, highlighted } = params;
+  const {
+    page = 1,
+    limit = 50,
+    keyword,
+    product,
+    category,
+    brand,
+    barcode,
+    highlighted,
+    hasActiveOffer,
+    offerIds,
+    tag,
+  } = params;
   
   try {
     const queryParams = new URLSearchParams();
     queryParams.append('page', page.toString());
     queryParams.append('limit', limit.toString());
-    queryParams.append('no_zero_price', 'true');
-    queryParams.append('products_with_brand', 'true');
     
     if (keyword) queryParams.append('keyword', keyword);
     if (product) queryParams.append('product', product);
@@ -164,6 +183,11 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<F
     if (typeof highlighted !== 'undefined') {
       queryParams.append('highlighted', highlighted ? '1' : '0');
     }
+    if (typeof hasActiveOffer !== 'undefined') {
+      queryParams.append('has_active_offer', hasActiveOffer ? '1' : '0');
+    }
+    if (offerIds) queryParams.append('offer_ids', offerIds);
+    if (tag) queryParams.append('tag', tag);
     
     const url = `${API_BASE}/api/v1/products?${queryParams.toString()}`;
     
@@ -277,6 +301,28 @@ export async function fetchBrands(): Promise<Brand[]> {
     return brands.filter((brand: any) => brand && brand.id && brand.brand_name_ar);
   } catch (error) {
     console.error('[API] Error fetching brands:', error);
+    return [];
+  }
+}
+
+export async function fetchTagsWithProducts(): Promise<Tag[]> {
+  try {
+    const query = new URLSearchParams({ is_active: '1', has_products: '1' });
+    const response = await debugFetch(`${API_BASE}/api/v1/tags?${query.toString()}`, {
+      method: 'GET',
+      headers: withClientSourceHeader({
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      }),
+    }, 'API');
+
+    if (!response?.ok) return [];
+    const result = await response.json();
+    if (!result || result.success !== true || !Array.isArray(result.data)) return [];
+
+    return result.data.filter((tag: Tag) => tag?.id && (tag.tag_name_ar || tag.tag_name_en));
+  } catch (error) {
+    console.error('[API] Error fetching tags with products:', error);
     return [];
   }
 }

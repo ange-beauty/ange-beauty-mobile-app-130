@@ -102,6 +102,14 @@ function parseCategoryIds(value?: string | string[]) {
   return [...new Set(serialized.split(',').map((id) => id.trim()).filter(Boolean))];
 }
 
+function parseOptionalBoolean(value?: string | string[]) {
+  const serialized = Array.isArray(value) ? value[0] : value;
+  if (!serialized) return undefined;
+  if (serialized === '1' || serialized.toLowerCase() === 'true') return true;
+  if (serialized === '0' || serialized.toLowerCase() === 'false') return false;
+  return undefined;
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
@@ -111,6 +119,9 @@ export default function HomeScreen() {
     openBrands?: string;
     product?: string;
     focusSearch?: string;
+    offerIds?: string | string[];
+    hasActiveOffer?: string | string[];
+    tagId?: string;
   }>();
   const categoryRouteParam = Array.isArray(params.categoryIds)
     ? params.categoryIds.join(',')
@@ -129,6 +140,9 @@ export default function HomeScreen() {
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>(params.brandId ? [params.brandId] : []);
   const [barcodeFilter, setBarcodeFilter] = useState('');
+  const [hasActiveOfferFilter, setHasActiveOfferFilter] = useState<boolean | undefined>(
+    parseOptionalBoolean(params.hasActiveOffer),
+  );
   const [showFilters, setShowFilters] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState<string>('A');
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -137,6 +151,9 @@ export default function HomeScreen() {
   const listRef = useRef<FlatList>(null);
   const searchInputRef = useRef<TextInput>(null);
   const productFilter = typeof params.product === 'string' ? params.product : '';
+  const tagFilter = typeof params.tagId === 'string' ? params.tagId : '';
+  const selectedOfferIds = parseCategoryIds(params.offerIds);
+  const effectiveHasActiveOffer = selectedOfferIds.length > 0 ? true : hasActiveOfferFilter;
   const shouldFocusSearch = params.focusSearch === '1';
 
   const { data: brandsData } = useQuery({
@@ -205,6 +222,10 @@ export default function HomeScreen() {
   }, [productFilter]);
 
   React.useEffect(() => {
+    setHasActiveOfferFilter(parseOptionalBoolean(params.hasActiveOffer));
+  }, [params.hasActiveOffer]);
+
+  React.useEffect(() => {
     if (!shouldFocusSearch) return;
     const timer = setTimeout(() => {
       searchInputRef.current?.focus();
@@ -242,7 +263,17 @@ export default function HomeScreen() {
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ['products', searchQuery, productFilter, selectedCategories, selectedBrands, barcodeFilter],
+    queryKey: [
+      'products',
+      searchQuery,
+      productFilter,
+      tagFilter,
+      selectedCategories,
+      selectedBrands,
+      barcodeFilter,
+      effectiveHasActiveOffer,
+      selectedOfferIds,
+    ],
     queryFn: ({ pageParam = 1 }) => fetchProducts({
       page: pageParam,
       limit: 20,
@@ -251,6 +282,9 @@ export default function HomeScreen() {
       category: selectedCategories.length > 0 ? selectedCategories.join(',') : undefined,
       brand: selectedBrands.length > 0 ? selectedBrands.join(',') : undefined,
       barcode: barcodeFilter || undefined,
+      hasActiveOffer: effectiveHasActiveOffer,
+      offerIds: selectedOfferIds.length > 0 ? selectedOfferIds.join(',') : undefined,
+      tag: tagFilter || undefined,
     }),
     getNextPageParam: (lastPage, allPages) => {
       if (!lastPage.hasMore) return undefined;
@@ -441,6 +475,7 @@ export default function HomeScreen() {
     const itemQuantity = getItemQuantity(item.id);
     const selectedPointAvailable = getAvailableQuantityForSellingPoint(item, selectedSellingPoint?.id);
     const displayBrand = getDisplayBrand(item.brand);
+    const canAddToBasket = Number.isFinite(item.price) && item.price > 0;
 
     return (
       <View style={{ width: cardWidth, marginBottom: 12 }}>
@@ -498,7 +533,8 @@ export default function HomeScreen() {
               <Pressable
                 style={({ pressed }) => [
                   styles.addToBasketButtonHome,
-                  pressed && styles.buttonPressed,
+                  !canAddToBasket && styles.addToBasketButtonDisabled,
+                  pressed && canAddToBasket && styles.buttonPressed,
                 ]}
                 onPress={(e) => {
                   e.stopPropagation();
@@ -509,10 +545,15 @@ export default function HomeScreen() {
                   if (selectedPointAvailable !== null && itemQuantity >= selectedPointAvailable) {
                     return;
                   }
-                  addToBasket(item.id, 1);
+                  addToBasket(item, 1);
                 }}
+                disabled={!canAddToBasket}
               >
-                <Feather name="shopping-bag" color={palette.accentDark} size={15} />
+                <Feather
+                  name="shopping-bag"
+                  color={canAddToBasket ? palette.accentDark : palette.textMuted}
+                  size={15}
+                />
                 {itemQuantity > 0 && (
                   <View style={styles.basketCountBadge}>
                     <Text style={styles.basketCountText}>{toArabicNumerals(itemQuantity)}</Text>
@@ -556,7 +597,7 @@ export default function HomeScreen() {
                 onPress={handleFilterOpen}
               >
                 <Feather name="sliders" color={palette.accentDark} size={20} />
-                {(productFilter || selectedCategories.length > 0 || selectedBrands.length > 0 || barcodeFilter) && (
+                {(productFilter || tagFilter || selectedCategories.length > 0 || selectedBrands.length > 0 || barcodeFilter || effectiveHasActiveOffer !== undefined) && (
                   <View style={styles.filterBadge} />
                 )}
               </Pressable>
@@ -564,7 +605,7 @@ export default function HomeScreen() {
 
           </View>
 
-          {(productFilter || selectedCategories.length > 0 || selectedBrands.length > 0 || barcodeFilter) && (
+          {(productFilter || tagFilter || selectedCategories.length > 0 || selectedBrands.length > 0 || barcodeFilter || effectiveHasActiveOffer !== undefined) && (
             <View style={styles.activeFiltersContainer}>
               {productFilter && (
                 <View style={styles.activeFilterChip}>
@@ -606,6 +647,33 @@ export default function HomeScreen() {
                 <View style={styles.activeFilterChip}>
                   <Text style={styles.activeFilterText}>{'\u0628\u0627\u0631\u0643\u0648\u062f'}: {barcodeFilter}</Text>
                   <Pressable onPress={() => setBarcodeFilter('')}>
+                    <Feather name="x" color="#666" size={14} />
+                  </Pressable>
+                </View>
+              )}
+              {tagFilter && (
+                <View style={styles.activeFilterChip}>
+                  <Text style={styles.activeFilterText}>{'\u0648\u0633\u0645 \u0645\u062d\u062f\u062f'}</Text>
+                  <Pressable onPress={() => router.setParams({ tagId: '' })}>
+                    <Feather name="x" color="#666" size={14} />
+                  </Pressable>
+                </View>
+              )}
+              {effectiveHasActiveOffer !== undefined && (
+                <View style={styles.activeFilterChip}>
+                  <Text style={styles.activeFilterText}>
+                    {selectedOfferIds.length > 0
+                      ? '\u0639\u0631\u0648\u0636 \u0645\u062d\u062f\u062f\u0629'
+                      : effectiveHasActiveOffer
+                        ? '\u0645\u0646\u062a\u062c\u0627\u062a \u0639\u0644\u064a\u0647\u0627 \u0639\u0631\u0648\u0636'
+                        : '\u0645\u0646\u062a\u062c\u0627\u062a \u0628\u062f\u0648\u0646 \u0639\u0631\u0648\u0636'}
+                  </Text>
+                  <Pressable
+                    onPress={() => {
+                      setHasActiveOfferFilter(undefined);
+                      router.setParams({ offerIds: '', hasActiveOffer: '' });
+                    }}
+                  >
                     <Feather name="x" color="#666" size={14} />
                   </Pressable>
                 </View>
@@ -706,6 +774,35 @@ export default function HomeScreen() {
             </View>
 
             <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0639\u0631\u0648\u0636'}</Text>
+                <View style={styles.filterOptions}>
+                  <Pressable
+                    style={[
+                      styles.filterOption,
+                      effectiveHasActiveOffer === true && styles.filterOptionActive,
+                    ]}
+                    onPress={() => {
+                      if (effectiveHasActiveOffer === true) {
+                        setHasActiveOfferFilter(undefined);
+                        router.setParams({ offerIds: '', hasActiveOffer: '' });
+                      } else {
+                        setHasActiveOfferFilter(true);
+                      }
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.filterOptionText,
+                        effectiveHasActiveOffer === true && styles.filterOptionTextActive,
+                      ]}
+                    >
+                      {'\u0645\u0646\u062a\u062c\u0627\u062a \u0639\u0644\u064a\u0647\u0627 \u0639\u0631\u0648\u0636'}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0628\u0627\u0631\u0643\u0648\u062f'}</Text>
                 <TextInput
@@ -822,6 +919,8 @@ export default function HomeScreen() {
                   setSelectedCategories([]);
                   setSelectedBrands([]);
                   setBarcodeFilter('');
+                  setHasActiveOfferFilter(undefined);
+                  router.setParams({ offerIds: '', hasActiveOffer: '', tagId: '' });
                 }}
               >
                 <Text style={styles.clearButtonText}>{'\u0645\u0633\u062d \u0627\u0644\u0643\u0644'}</Text>
@@ -1324,6 +1423,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 3,
     elevation: 1,
+  },
+  addToBasketButtonDisabled: {
+    backgroundColor: '#F1ECEE',
+    opacity: 0.65,
   },
   basketCountBadge: {
     position: 'absolute' as const,

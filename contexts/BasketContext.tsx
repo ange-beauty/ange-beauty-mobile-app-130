@@ -3,6 +3,8 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { Product } from '@/types/product';
+
 const BASKET_KEY = 'cosmetics_basket';
 
 export interface BasketItem {
@@ -37,7 +39,12 @@ export const [BasketContext, useBasket] = createContextHook(() => {
     }
   }, [basketQuery.data]);
 
-  const addToBasket = useCallback((productId: string, quantity: number = 1) => {
+  const addToBasket = useCallback((product: Product, quantity: number = 1) => {
+    if (!Number.isFinite(product.price) || product.price <= 0) {
+      return false;
+    }
+
+    const productId = product.id;
     const existingIndex = basket.findIndex(item => item.productId === productId);
     let updated: BasketItem[];
     
@@ -53,6 +60,7 @@ export const [BasketContext, useBasket] = createContextHook(() => {
     
     setBasket(updated);
     mutate(updated);
+    return true;
   }, [basket, mutate]);
 
   const removeFromBasket = useCallback((productId: string) => {

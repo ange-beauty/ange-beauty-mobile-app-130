@@ -19,6 +19,15 @@ export default function ProductPrice({
 }: ProductPriceProps) {
   const basePrice = product.basePrice ?? product.price;
   const hasDiscount = basePrice > product.price;
+  const isComingSoon = !Number.isFinite(product.price) || product.price <= 0;
+
+  if (isComingSoon) {
+    return (
+      <View style={[styles.container, containerStyle]}>
+        <Text style={priceStyle}>{'\u064a\u062a\u0648\u0641\u0631 \u0642\u0631\u064a\u0628\u0627\u064b'}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, containerStyle]}>
