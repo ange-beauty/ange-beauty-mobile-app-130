@@ -178,6 +178,26 @@ export default function HomeScreen() {
 
   const categoryTree = useMemo(() => buildCategoryTree(categories), [categories]);
 
+  const categoryQueryFilters = useMemo(() => {
+    const childIdsByParent = new Map<string, string[]>();
+    categories.forEach((category) => {
+      if (!category.parent_category) return;
+      const children = childIdsByParent.get(category.parent_category) || [];
+      children.push(category.id);
+      childIdsByParent.set(category.parent_category, children);
+    });
+
+    const ids = new Set<string>();
+    const addWithDescendants = (categoryId: string) => {
+      if (ids.has(categoryId)) return;
+      ids.add(categoryId);
+      (childIdsByParent.get(categoryId) || []).forEach(addWithDescendants);
+    };
+
+    selectedCategories.forEach(addWithDescendants);
+    return Array.from(ids).sort();
+  }, [categories, selectedCategories]);
+
   const toggleCategory = useCallback((categoryId: string) => {
     setSelectedCategories(prev =>
       prev.includes(categoryId)
@@ -268,7 +288,7 @@ export default function HomeScreen() {
       searchQuery,
       productFilter,
       tagFilter,
-      selectedCategories,
+      categoryQueryFilters,
       selectedBrands,
       barcodeFilter,
       effectiveHasActiveOffer,
@@ -279,7 +299,7 @@ export default function HomeScreen() {
       limit: 20,
       keyword: searchQuery || undefined,
       product: productFilter || undefined,
-      category: selectedCategories.length > 0 ? selectedCategories.join(',') : undefined,
+      category: categoryQueryFilters.length > 0 ? categoryQueryFilters.join(',') : undefined,
       brand: selectedBrands.length > 0 ? selectedBrands.join(',') : undefined,
       barcode: barcodeFilter || undefined,
       hasActiveOffer: effectiveHasActiveOffer,

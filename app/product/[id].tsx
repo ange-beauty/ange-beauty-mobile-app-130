@@ -22,6 +22,7 @@ import { WebView } from 'react-native-webview';
 import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
 import ProductPrice from '@/components/ProductPrice';
+import ProductVariationSelector from '@/components/ProductVariationSelector';
 import { beautyTheme } from '@/constants/uiTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
@@ -234,6 +235,7 @@ export default function ProductDetailScreen() {
 
             <Text style={[styles.productName, isWideWeb && styles.productNameWeb]}>{product.name || '\u0645\u0646\u062a\u062c \u0628\u062f\u0648\u0646 \u0627\u0633\u0645'}</Text>
 
+            <ProductVariationSelector key={product.id} productId={product.id} />
             {!!descriptionHtml && (
               <View style={styles.section}>
                 <View style={styles.descriptionBox}>

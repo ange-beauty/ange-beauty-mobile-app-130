@@ -5,6 +5,22 @@ import { debugFetch } from '@/services/httpDebug';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 const API_BASE = API_BASE_URL.replace(/\/+$/, '');
 
+export type ProductVariationGroup = {
+  id: string;
+  options: { id: string; name_ar: string; display_type: string;
+    values: { id: string; name_ar: string; color_hex?: string; image_url?: string }[] }[];
+  members: { product_id: string; is_active: boolean; option_values: Record<string, string> }[];
+};
+
+export async function fetchProductVariations(productId: string): Promise<ProductVariationGroup | null> {
+  const response = await debugFetch(`${API_BASE}/api/v1/product-groups?product_id=${encodeURIComponent(productId)}`, {
+    headers: withClientSourceHeader({ Accept: 'application/json' }),
+  });
+  if (!response.ok) throw new Error('Failed to fetch product variations');
+  const result = await response.json();
+  return result.data?.[0] || null;
+}
+
 export interface Brand {
   id: string;
   brand_name_ar: string;
