@@ -196,8 +196,7 @@ export default function FavoritesScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={styles.container}>
       <BrandedHeader topInset={insets.top} showBackButton={false} />
       {isLoading ? (
         <View style={styles.loadingContainer}>
@@ -252,7 +251,7 @@ export default function FavoritesScreen() {
           )}
         </>
       )}
-    </View>
+    </FloralBackdrop>
   );
 }
 

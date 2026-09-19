@@ -11,10 +11,17 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 
 import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
 import { useAuth } from '@/contexts/AuthContext';
+import { debugFetch } from '@/services/httpDebug';
+import { withClientSourceHeader } from '@/services/requestHeaders';
+
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
+const API_BASE = API_BASE_URL.replace(/\/+$/, '');
+type ProvenceOption = { id: string; name_ar: string; name_en?: string | null };
 
 export default function AccountProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -26,6 +33,8 @@ export default function AccountProfileScreen() {
   const [addressComplement, setAddressComplement] = useState('');
   const [city, setCity] = useState('');
   const [provence, setProvence] = useState('');
+  const [provences, setProvences] = useState<ProvenceOption[]>([]);
+  const [provinceListOpen, setProvinceListOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -42,6 +51,20 @@ export default function AccountProfileScreen() {
     setCity(user.city || '');
     setProvence(user.provence || '');
   }, [isAuthenticated, router, user]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void debugFetch(`${API_BASE}/api/v1/locations/provences?country_id=country-iq`, {
+      headers: withClientSourceHeader({ Accept: 'application/json' }),
+      signal: controller.signal,
+    }, 'Locations')
+      .then(response => response.ok ? response.json() : Promise.reject())
+      .then(body => setProvences(Array.isArray(body?.data) ? body.data : []))
+      .catch(() => {
+        if (!controller.signal.aborted) setProvences([]);
+      });
+    return () => controller.abort();
+  }, []);
 
   const handleSave = async () => {
     const errors: Record<string, string> = {};
@@ -67,6 +90,7 @@ export default function AccountProfileScreen() {
       address_complement: addressComplement,
       city,
       provence,
+      country: '\u0627\u0644\u0639\u0631\u0627\u0642',
     });
     setIsSubmitting(false);
 
@@ -134,8 +158,7 @@ export default function AccountProfileScreen() {
   ] as const;
 
   return (
-    <View style={styles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={styles.container}>
       <BrandedHeader topInset={insets.top} showBackButton />
 
       <ScrollView
@@ -151,20 +174,50 @@ export default function AccountProfileScreen() {
           {fields.map((field) => (
             <View key={field.key} style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>{field.label}</Text>
-              <TextInput
-                style={[styles.input, fieldErrors[field.key] ? styles.inputErrorBorder : null]}
-                value={field.value}
-                onChangeText={(value) => {
-                  field.onChange(value);
-                  if (fieldErrors[field.key]) {
-                    setFieldErrors((prev) => ({ ...prev, [field.key]: '' }));
-                  }
-                }}
-                placeholder={field.placeholder}
-                placeholderTextColor="#9AA39A"
-                keyboardType={field.keyboardType}
-                textAlign="right"
-              />
+              {field.key === 'provence' ? (
+                <>
+                  <Pressable
+                    style={[styles.input, styles.pickerInput, fieldErrors.provence ? styles.inputErrorBorder : null]}
+                    onPress={() => setProvinceListOpen((open) => !open)}
+                  >
+                    <Text style={provence ? styles.pickerText : styles.pickerPlaceholder}>
+                      {provence || '\u0627\u062e\u062a\u0631\u064a \u0627\u0644\u0645\u062d\u0627\u0641\u0638\u0629'}
+                    </Text>
+                    <Feather name={provinceListOpen ? 'chevron-up' : 'chevron-down'} size={20} color="#7E4A53" />
+                  </Pressable>
+                  {provinceListOpen ? (
+                    <ScrollView style={styles.pickerList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                      {provences.map((item) => (
+                        <Pressable
+                          key={item.id}
+                          style={styles.pickerItem}
+                          onPress={() => {
+                            setProvence(item.name_ar);
+                            setProvinceListOpen(false);
+                          }}
+                        >
+                          <Text style={styles.pickerItemText}>{item.name_ar}</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  ) : null}
+                </>
+              ) : (
+                <TextInput
+                  style={[styles.input, fieldErrors[field.key] ? styles.inputErrorBorder : null]}
+                  value={field.value}
+                  onChangeText={(value) => {
+                    field.onChange(value);
+                    if (fieldErrors[field.key]) {
+                      setFieldErrors((prev) => ({ ...prev, [field.key]: '' }));
+                    }
+                  }}
+                  placeholder={field.placeholder}
+                  placeholderTextColor="#9AA39A"
+                  keyboardType={field.keyboardType}
+                  textAlign="right"
+                />
+              )}
               {fieldErrors[field.key] ? <Text style={styles.errorText}>{fieldErrors[field.key]}</Text> : null}
             </View>
           ))}
@@ -182,7 +235,7 @@ export default function AccountProfileScreen() {
           </Pressable>
         </View>
       </ScrollView>
-    </View>
+    </FloralBackdrop>
   );
 }
 
@@ -235,6 +288,40 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF8FA',
     paddingHorizontal: 12,
     color: '#2F2527',
+    textAlign: 'right',
+  },
+  pickerInput: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pickerText: {
+    color: '#2F2527',
+    fontSize: 15,
+    textAlign: 'right',
+  },
+  pickerPlaceholder: {
+    color: '#9AA39A',
+    fontSize: 15,
+    textAlign: 'right',
+  },
+  pickerList: {
+    maxHeight: 240,
+    borderWidth: 1,
+    borderColor: '#E8DCDD',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  pickerItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E8DCDD',
+  },
+  pickerItemText: {
+    color: '#2F2527',
+    fontSize: 15,
     textAlign: 'right',
   },
   inputErrorBorder: {

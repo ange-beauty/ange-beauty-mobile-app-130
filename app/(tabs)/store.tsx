@@ -26,8 +26,7 @@ export default function StoreScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={styles.container}>
       <BrandedHeader topInset={insets.top} showBackButton={false} />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{'\u0627\u0644\u0645\u062a\u062c\u0631'}</Text>
@@ -83,7 +82,7 @@ export default function StoreScreen() {
           })}
         </ScrollView>
       )}
-    </View>
+    </FloralBackdrop>
   );
 }
 

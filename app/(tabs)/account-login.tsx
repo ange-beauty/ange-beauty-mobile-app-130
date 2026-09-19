@@ -73,8 +73,7 @@ export default function AccountLoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={styles.container}>
 
       <ScrollView
         style={styles.scroll}
@@ -175,7 +174,7 @@ export default function AccountLoginScreen() {
           </Pressable>
         </View>
       </ScrollView>
-    </View>
+    </FloralBackdrop>
   );
 }
 

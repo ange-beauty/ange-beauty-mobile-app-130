@@ -249,8 +249,7 @@ export default function CategoriesScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={styles.container}>
 
       {isLoading ? (
         <View style={styles.loadingBox}>
@@ -312,7 +311,7 @@ export default function CategoriesScreen() {
 
         </>
       )}
-    </View>
+    </FloralBackdrop>
   );
 }
 

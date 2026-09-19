@@ -23,8 +23,7 @@ export default function ContactScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={styles.container}>
 
       <ScrollView
         contentContainerStyle={[
@@ -95,7 +94,7 @@ export default function ContactScreen() {
 
         <Text style={styles.note}>{'للاستفسار عن طلب، يرجى تجهيز رقم الطلب قبل التواصل.'}</Text>
       </ScrollView>
-    </View>
+    </FloralBackdrop>
   );
 }
 

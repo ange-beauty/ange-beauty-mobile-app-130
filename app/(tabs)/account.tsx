@@ -146,8 +146,7 @@ export default function AccountScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={styles.container}>
       <BrandedHeader topInset={insets.top} showBackButton={false} />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
@@ -251,7 +250,7 @@ export default function AccountScreen() {
           ))}
         </View>
       </ScrollView>
-    </View>
+    </FloralBackdrop>
   );
 }
 

@@ -140,8 +140,7 @@ export default function BrandsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={styles.container}>
 
       {isLoading ? (
         <View style={styles.loadingBox}>
@@ -193,7 +192,7 @@ export default function BrandsScreen() {
           </View>
         </View>
       )}
-    </View>
+    </FloralBackdrop>
   );
 }
 

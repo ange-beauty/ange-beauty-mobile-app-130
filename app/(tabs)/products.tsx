@@ -589,8 +589,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={styles.container}>
       <View style={styles.headerWrapper}>
         <View style={[styles.headerCard, { paddingTop: insets.top + 10 }]}>
           <View style={styles.productHeaderRow}>
@@ -958,7 +957,7 @@ export default function HomeScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
+    </FloralBackdrop>
   );
 }
 

@@ -1,6 +1,6 @@
 import { useQueries, useMutation } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import {
   ActivityIndicator,
@@ -35,6 +35,8 @@ import { formatPrice, toArabicNumerals } from '@/utils/formatPrice';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.angebeauty.net/';
 const API_BASE = API_BASE_URL.replace(/\/+$/, '');
 
+type ProvenceOption = { id: string; name_ar: string; name_en?: string | null };
+
 function createIdempotencyKey(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, character => {
     const random = Math.floor(Math.random() * 16);
@@ -56,6 +58,8 @@ export default function BasketScreen() {
   const [email, setEmail] = useState('');
   const [telephone, setTelephone] = useState('');
   const [provence, setProvence] = useState('');
+  const [provences, setProvences] = useState<ProvenceOption[]>([]);
+  const [provinceListOpen, setProvinceListOpen] = useState(false);
   const [city, setCity] = useState('');
   const [addressLine, setAddressLine] = useState('');
   const [addressComplement, setAddressComplement] = useState('');
@@ -64,6 +68,20 @@ export default function BasketScreen() {
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const listRef = useRef<FlatList>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void debugFetch(`${API_BASE}/api/v1/locations/provences?country_id=country-iq`, {
+      headers: withClientSourceHeader({ Accept: 'application/json' }),
+      signal: controller.signal,
+    }, 'Locations')
+      .then(response => response.ok ? response.json() : Promise.reject())
+      .then(body => setProvences(Array.isArray(body?.data) ? body.data : []))
+      .catch(() => {
+        if (!controller.signal.aborted) setProvences([]);
+      });
+    return () => controller.abort();
+  }, []);
 
   const orderMutation = useMutation({
     mutationFn: async ({ orderData, idempotencyKey }: { orderData: any; idempotencyKey: string }) => {
@@ -288,20 +306,18 @@ export default function BasketScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <FloralBackdrop subtle />
+      <FloralBackdrop subtle style={styles.container}>
         <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
           <ActivityIndicator size="large" color="#1A1A1A" />
           <Text style={styles.loadingText}>{'\u062c\u0627\u0631\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0633\u0644\u0629...'}</Text>
         </View>
-      </View>
+      </FloralBackdrop>
     );
   }
 
   if (!selectedSellingPoint?.id) {
     return (
-      <View style={styles.container}>
-        <FloralBackdrop subtle />
+      <FloralBackdrop subtle style={styles.container}>
         <View style={[styles.missingStoreContainer, { paddingTop: insets.top }]}>
           <View style={styles.stateIconWrap}>
             <Feather name="map-pin" color="#B78690" size={56} />
@@ -319,14 +335,13 @@ export default function BasketScreen() {
             <Text style={styles.openStoreButtonText}>{'\u0627\u0641\u062a\u062d \u0627\u0644\u0645\u062a\u062c\u0631'}</Text>
           </Pressable>
         </View>
-      </View>
+      </FloralBackdrop>
     );
   }
 
   if (basket.length === 0) {
     return (
-      <View style={styles.container}>
-        <FloralBackdrop subtle />
+      <FloralBackdrop subtle style={styles.container}>
         <View style={[styles.emptyContainer, { paddingTop: insets.top }]}>
           <View style={styles.stateIconWrap}>
             <Feather name="shopping-bag" color="#B78690" size={56} />
@@ -334,7 +349,7 @@ export default function BasketScreen() {
           <Text style={styles.emptyTitle}>{'\u0633\u0644\u062a\u0643 \u0641\u0627\u0631\u063a\u0629'}</Text>
           <Text style={styles.emptySubtitle}>{'\u0627\u0628\u062f\u0623 \u0628\u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629'}</Text>
         </View>
-      </View>
+      </FloralBackdrop>
     );
   }
 
@@ -511,6 +526,7 @@ export default function BasketScreen() {
         name: name.trim(),
         ...(!isGuestCheckout ? { email: email.trim() } : {}),
         telephone: telephone.trim(),
+        country: '\u0627\u0644\u0639\u0631\u0627\u0642',
         provence: provence.trim(),
         city: city.trim(),
         address_line: addressLine.trim(),
@@ -542,8 +558,7 @@ export default function BasketScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View>
           <Text style={styles.itemCount}>{toArabicNumerals(totalItems)} {'\u0645\u0646\u062a\u062c'}</Text>
@@ -744,16 +759,34 @@ export default function BasketScreen() {
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>{'\u0627\u0644\u0645\u062d\u0627\u0641\u0638\u0629 *'}</Text>
-                <TextInput
-                  style={[styles.input, fieldErrors.provence ? styles.inputErrorBorder : null]}
-                  value={provence}
-                  onChangeText={(value) => {
-                    setProvence(value);
-                    if (fieldErrors.provence) setFieldErrors((prev) => ({ ...prev, provence: '' }));
-                  }}
-                  placeholder={'\u0623\u062f\u062e\u0644\u064a \u0627\u0644\u0645\u062d\u0627\u0641\u0638\u0629'}
-                  placeholderTextColor="#999"
-                />
+                <Pressable
+                  style={[styles.input, styles.pickerInput, fieldErrors.provence ? styles.inputErrorBorder : null]}
+                  onPress={() => setProvinceListOpen((open) => !open)}
+                >
+                  <Text style={provence ? styles.pickerText : styles.pickerPlaceholder}>
+                    {provence || '\u0627\u062e\u062a\u0631\u064a \u0627\u0644\u0645\u062d\u0627\u0641\u0638\u0629'}
+                  </Text>
+                  <Feather name={provinceListOpen ? 'chevron-up' : 'chevron-down'} size={20} color="#7A5A66" />
+                </Pressable>
+                {provinceListOpen ? (
+                  <View style={styles.pickerList}>
+                    <ScrollView style={styles.pickerScroll} nestedScrollEnabled>
+                      {provences.map((item) => (
+                        <Pressable
+                          key={item.id}
+                          style={styles.pickerItem}
+                          onPress={() => {
+                            setProvence(item.name_ar);
+                            setProvinceListOpen(false);
+                            if (fieldErrors.provence) setFieldErrors((prev) => ({ ...prev, provence: '' }));
+                          }}
+                        >
+                          <Text style={styles.pickerItemTitle}>{item.name_ar}</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+                ) : null}
                 {fieldErrors.provence ? <Text style={styles.errorText}>{fieldErrors.provence}</Text> : null}
               </View>
 
@@ -840,7 +873,7 @@ export default function BasketScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </FloralBackdrop>
   );
 }
 

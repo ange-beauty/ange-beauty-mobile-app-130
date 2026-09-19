@@ -155,8 +155,7 @@ export default function OrdersScreen() {
   const orders = ordersQuery.data || [];
 
   return (
-    <View style={styles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={styles.container}>
       <BrandedHeader topInset={insets.top} />
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 16) + 104 }]}
@@ -195,7 +194,7 @@ export default function OrdersScreen() {
         )}
       </ScrollView>
       <OrderDetails order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-    </View>
+    </FloralBackdrop>
   );
 }
 

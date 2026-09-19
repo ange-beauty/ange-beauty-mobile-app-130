@@ -59,6 +59,8 @@ function RootLayoutNav() {
   const router = useRouter();
 
   useEffect(() => {
+    if (Platform.OS === "web") return;
+
     const openNotificationRoute = (data: Record<string, unknown>) => {
       const route = data.route;
       if (
@@ -170,8 +172,7 @@ function CustomSplashScreen({ onFinish }: { onFinish: () => void }) {
   }, [fadeAnim, onFinish, scaleAnim]);
 
   return (
-    <View style={splashStyles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={splashStyles.container} contentStyle={splashStyles.content}>
       <Animated.View
         style={[
           splashStyles.card,
@@ -193,7 +194,7 @@ function CustomSplashScreen({ onFinish }: { onFinish: () => void }) {
           {"\u0623\u0646\u062c \u0628\u064a\u0648\u062a\u064a \u062c\u0645\u0627\u0644 \u0645\u0644\u0627\u0626\u0643\u064a"}
         </Text>
       </Animated.View>
-    </View>
+    </FloralBackdrop>
   );
 }
 
@@ -201,6 +202,9 @@ const splashStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: beautyTheme.colors.page,
+  },
+  content: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
@@ -355,6 +359,7 @@ export default function RootLayout() {
   const globalFontFamily = "Tajawal-Regular";
   const AnyText = Text as any;
   const AnyTextInput = TextInput as any;
+  const finishSplash = useCallback(() => setShowSplash(false), []);
 
   if (AnyText.defaultProps == null) AnyText.defaultProps = {};
   AnyText.defaultProps.style = [AnyText.defaultProps.style, { fontFamily: globalFontFamily }];
@@ -408,6 +413,12 @@ export default function RootLayout() {
     runUpdateCheck();
   }, [runUpdateCheck]);
 
+  useEffect(() => {
+    if (!showSplash) return;
+    const fallback = setTimeout(finishSplash, 4000);
+    return () => clearTimeout(fallback);
+  }, [finishSplash, showSplash]);
+
   if (!fontsLoaded) {
     return (
       <View style={splashStyles.container}>
@@ -423,7 +434,7 @@ export default function RootLayout() {
   }
 
   if (showSplash) {
-    return <CustomSplashScreen onFinish={() => setShowSplash(false)} />;
+    return <CustomSplashScreen onFinish={finishSplash} />;
   }
 
   if (isCheckingUpdate) {

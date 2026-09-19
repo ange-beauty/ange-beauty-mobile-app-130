@@ -81,21 +81,19 @@ export default function ProductDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <FloralBackdrop subtle />
+      <FloralBackdrop subtle style={styles.container}>
         <BrandedHeader topInset={insets.top} floating />
         <View style={[styles.stateContainer, { paddingTop: insets.top + 70 }]}>
           <ActivityIndicator size="large" color={beautyTheme.colors.accentDark} />
           <Text style={styles.stateText}>{'\u062c\u0627\u0631\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u0646\u062a\u062c...'}</Text>
         </View>
-      </View>
+      </FloralBackdrop>
     );
   }
 
   if (error || !product) {
     return (
-      <View style={styles.container}>
-        <FloralBackdrop subtle />
+      <FloralBackdrop subtle style={styles.container}>
         <BrandedHeader topInset={insets.top} floating />
         <View style={[styles.stateContainer, { paddingTop: insets.top + 70 }]}>
           <Text style={styles.stateTitle}>{'\u0644\u0645 \u064a\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 \u0627\u0644\u0645\u0646\u062a\u062c'}</Text>
@@ -103,7 +101,7 @@ export default function ProductDetailScreen() {
             <Text style={styles.retryButtonText}>{'\u0639\u0648\u062f\u0629'}</Text>
           </Pressable>
         </View>
-      </View>
+      </FloralBackdrop>
     );
   }
 
@@ -161,8 +159,7 @@ export default function ProductDetailScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={styles.container}>
       <BrandedHeader topInset={insets.top} floating />
 
       <ScrollView
@@ -341,7 +338,7 @@ export default function ProductDetailScreen() {
           </Text>
         </Pressable>
       </View>
-    </View>
+    </FloralBackdrop>
   );
 }
 

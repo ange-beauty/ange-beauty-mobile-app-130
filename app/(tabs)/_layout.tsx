@@ -71,6 +71,7 @@ export default function TabLayout() {
           paddingTop: 2,
         },
         sceneStyle: {
+          flex: 1,
           backgroundColor: 'transparent',
         },
       }}

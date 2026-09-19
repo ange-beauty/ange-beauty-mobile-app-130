@@ -1,65 +1,43 @@
-import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import React, { type ReactNode } from 'react';
+import { ImageBackground, type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 type FloralBackdropProps = {
   subtle?: boolean;
+  children?: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
 };
 
 const floralBackground = require('@/assets/images/2a9d0066-f747-4fd2-acf1-ebf61da942ae.png');
 
-export default function FloralBackdrop({ subtle = false }: FloralBackdropProps) {
+export default function FloralBackdrop({ subtle = false, children, style, contentStyle }: FloralBackdropProps) {
   return (
-    <View pointerEvents="none" style={styles.layer}>
-      <LinearGradient
-        colors={['#FDF8F9', '#FAF2F4', '#F7ECEF']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.baseTint}
-      />
-      <Image
+    <LinearGradient
+      colors={['#FDF8F9', '#FAF2F4', '#F7ECEF']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.container, style]}
+    >
+      <ImageBackground
         source={floralBackground}
-        style={[styles.backgroundImage, styles.leftImage, { opacity: subtle ? 0.28 : 0.36 }]}
+        style={[styles.content, contentStyle]}
+        imageStyle={{ opacity: subtle ? 0.18 : 0.26 }}
         resizeMode="cover"
-      />
-      <Image
-        source={floralBackground}
-        style={[styles.backgroundImage, styles.rightImage, { opacity: subtle ? 0.22 : 0.3 }]}
-        resizeMode="stretch"
-      />
-      <LinearGradient
-        colors={
-          subtle
-            ? ['rgba(255,250,251,0.42)', 'rgba(255,248,250,0.24)', 'rgba(255,255,255,0.02)']
-            : ['rgba(255,248,250,0.36)', 'rgba(255,243,246,0.18)', 'rgba(255,255,255,0.02)']
-        }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.wash}
-      />
-    </View>
+      >
+        {children}
+      </ImageBackground>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  layer: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
+  container: {
+    flex: 1,
+    backgroundColor: '#F9F3F4',
   },
-  baseTint: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  backgroundImage: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  leftImage: {
-    left: -40,
-  },
-  rightImage: {
-    right: -40,
-    transform: [{ scaleX: -1 }],
-  },
-  wash: {
-    ...StyleSheet.absoluteFillObject,
+  content: {
+    flex: 1,
+    width: '100%',
   },
 });

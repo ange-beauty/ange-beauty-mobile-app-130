@@ -135,8 +135,7 @@ export default function HomeScreen() {
   }, [showHighlightedProducts, highlightedProducts.length, highlightStep]);
 
   return (
-    <View style={styles.container}>
-      <FloralBackdrop subtle />
+    <FloralBackdrop subtle style={styles.container}>
       <BrandedHeader topInset={insets.top} showBackButton={false} floating />
 
       <ScrollView
@@ -375,7 +374,7 @@ export default function HomeScreen() {
           </>
         )}
       </ScrollView>
-    </View>
+    </FloralBackdrop>
   );
 }
 
