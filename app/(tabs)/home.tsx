@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Image,
   Platform,
   Pressable,
@@ -19,12 +20,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
+import ProductCard, { useProductCardActions } from '@/components/ProductCard';
 import ProductPrice from '@/components/ProductPrice';
 import { beautyTheme } from '@/constants/uiTheme';
 import { Brand, fetchBrands, fetchProducts, fetchPublicOffers, fetchTagsWithProducts, Offer } from '@/services/api';
 import { Product } from '@/types/product';
 
 const discountOffersHomeImage = require('@/assets/images/discount__offers_home.webp');
+
+const NEW_ARRIVALS_TITLE = 'وصل حديثاً';
+const NEW_BADGE_LABEL = 'جديد';
+const NEW_ARRIVALS_GAP = 10;
+const NEW_ARRIVALS_VISIBLE = 2.3;
+
+function NewArrivalsSeparator() {
+  return <View style={{ width: NEW_ARRIVALS_GAP }} />;
+}
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -64,6 +75,14 @@ export default function HomeScreen() {
     queryFn: () => fetchProducts({ page: 1, limit: 10, highlighted: 1 }),
   });
   const {
+    data: newArrivalsData,
+    error: newArrivalsError,
+    refetch: refetchNewArrivals,
+  } = useQuery({
+    queryKey: ['home-new-arrivals'],
+    queryFn: () => fetchProducts({ page: 1, limit: 8, newStockArrivals: true }),
+  });
+  const {
     data: brandsData,
     refetch: refetchBrands,
   } = useQuery({
@@ -83,6 +102,17 @@ export default function HomeScreen() {
     () => (highlightedData?.products || []).slice(0, 10),
     [highlightedData?.products]
   );
+  const newArrivals = useMemo(
+    () => (newArrivalsData?.products || []).filter((p) => p && p.id).slice(0, 8),
+    [newArrivalsData?.products]
+  );
+  const showNewArrivals = !newArrivalsError && newArrivals.length > 0;
+  // About 2.3 cards visible so the next one peeks; the row bleeds to the screen edges.
+  const newArrivalCardWidth = Math.floor(
+    (contentWidth - horizontalPadding - NEW_ARRIVALS_GAP * 2) / NEW_ARRIVALS_VISIBLE
+  );
+  const newArrivalStep = newArrivalCardWidth + NEW_ARRIVALS_GAP;
+  const { isFavorite, getItemQuantity, handleToggleFavorite, handleAddToBasket } = useProductCardActions();
   const brands = useMemo(() => (brandsData || []).slice(0, 12), [brandsData]);
   const tags = useMemo(() => (tagsData || []).slice(0, 20), [tagsData]);
   const isHomeLoading = isLoadingOffers || isLoadingHighlighted;
@@ -157,6 +187,7 @@ export default function HomeScreen() {
             onRefresh={() => {
               refetchOffers();
               refetchHighlighted();
+              refetchNewArrivals();
               refetchBrands();
               refetchTags();
             }}
@@ -322,6 +353,48 @@ export default function HomeScreen() {
                     ))}
                   </View>
                 ) : null}
+              </>
+            ) : null}
+
+            {showNewArrivals ? (
+              <>
+                <SectionTitle
+                  title={NEW_ARRIVALS_TITLE}
+                  actionLabel={'عرض الكل'}
+                  onAction={() =>
+                    router.push({
+                      pathname: '/(tabs)/products',
+                      params: { newStockArrivals: 'true' },
+                    })
+                  }
+                />
+                {/* inverted: first card sits on the right (RTL reading order) and the next one peeks on the left. */}
+                <FlatList
+                  data={newArrivals}
+                  horizontal
+                  inverted
+                  keyExtractor={(item) => item.id}
+                  showsHorizontalScrollIndicator={false}
+                  snapToInterval={newArrivalStep}
+                  snapToAlignment="start"
+                  decelerationRate="fast"
+                  style={{ marginHorizontal: -horizontalPadding }}
+                  contentContainerStyle={[styles.newArrivalsRow, { paddingHorizontal: horizontalPadding }]}
+                  ItemSeparatorComponent={NewArrivalsSeparator}
+                  accessibilityLabel={NEW_ARRIVALS_TITLE}
+                  renderItem={({ item }) => (
+                    <ProductCard
+                      product={item}
+                      style={{ width: newArrivalCardWidth }}
+                      badge={NEW_BADGE_LABEL}
+                      isFavorite={isFavorite(item.id)}
+                      basketQuantity={getItemQuantity(item.id)}
+                      onPress={() => router.push(`/product/${item.id}`)}
+                      onToggleFavorite={() => handleToggleFavorite(item.id)}
+                      onAddToBasket={() => handleAddToBasket(item)}
+                    />
+                  )}
+                />
               </>
             ) : null}
 
@@ -755,6 +828,10 @@ const styles = StyleSheet.create({
   brandsRow: {
     gap: 12,
     paddingBottom: 6,
+  },
+  newArrivalsRow: {
+    paddingTop: 2,
+    paddingBottom: 8,
   },
   tagsRow: {
     gap: 8,

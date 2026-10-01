@@ -3,14 +3,10 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
-  Alert,
   ActivityIndicator,
-  Animated,
   Dimensions,
   FlatList,
-  Image,
   Modal,
-  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -23,16 +19,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fetchProducts, fetchBrands, fetchCategories, Category } from '@/services/api';
 import { Product } from '@/types/product';
-import { useFavorites } from '@/contexts/FavoritesContext';
-import { useBasket } from '@/contexts/BasketContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSellingPoint } from '@/contexts/SellingPointContext';
 import FloralBackdrop from '@/components/FloralBackdrop';
-import ProductPrice from '@/components/ProductPrice';
+import ProductCard, { useProductCardActions } from '@/components/ProductCard';
 import { beautyTheme } from '@/constants/uiTheme';
-import { getAvailableQuantityForSellingPoint } from '@/utils/availability';
-import { getDisplayBrand } from '@/utils/brand';
-import { toArabicNumerals } from '@/utils/formatPrice';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -44,6 +34,8 @@ const getNumColumns = () => {
 };
 
 const NUM_COLUMNS = getNumColumns();
+const NEW_ARRIVALS_LABEL = 'وصل حديثاً';
+const NEW_BADGE_LABEL = 'جديد';
 const GRID_HORIZONTAL_PADDING = 12;
 const GRID_COLUMN_GAP = 10;
 
@@ -122,6 +114,7 @@ export default function HomeScreen() {
     offerIds?: string | string[];
     hasActiveOffer?: string | string[];
     tagId?: string;
+    newStockArrivals?: string | string[];
   }>();
   const categoryRouteParam = Array.isArray(params.categoryIds)
     ? params.categoryIds.join(',')
@@ -129,10 +122,8 @@ export default function HomeScreen() {
       ? params.categoryIds
       : params.categoryId;
   const insets = useSafeAreaInsets();
-  const { isFavorite, toggleFavorite } = useFavorites();
-  const { addToBasket, getItemQuantity } = useBasket();
   const { isAuthenticated } = useAuth();
-  const { selectedSellingPoint } = useSellingPoint();
+  const { isFavorite, getItemQuantity, handleToggleFavorite, handleAddToBasket } = useProductCardActions();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     parseCategoryIds(categoryRouteParam),
@@ -154,6 +145,7 @@ export default function HomeScreen() {
   const tagFilter = typeof params.tagId === 'string' ? params.tagId : '';
   const selectedOfferIds = parseCategoryIds(params.offerIds);
   const effectiveHasActiveOffer = selectedOfferIds.length > 0 ? true : hasActiveOfferFilter;
+  const newStockArrivalsFilter = parseOptionalBoolean(params.newStockArrivals) === true;
   const shouldFocusSearch = params.focusSearch === '1';
 
   const { data: brandsData } = useQuery({
@@ -293,6 +285,7 @@ export default function HomeScreen() {
       barcodeFilter,
       effectiveHasActiveOffer,
       selectedOfferIds,
+      newStockArrivalsFilter,
     ],
     queryFn: ({ pageParam = 1 }) => fetchProducts({
       page: pageParam,
@@ -305,6 +298,7 @@ export default function HomeScreen() {
       hasActiveOffer: effectiveHasActiveOffer,
       offerIds: selectedOfferIds.length > 0 ? selectedOfferIds.join(',') : undefined,
       tag: tagFilter || undefined,
+      newStockArrivals: newStockArrivalsFilter || undefined,
     }),
     getNextPageParam: (lastPage, allPages) => {
       if (!lastPage.hasMore) return undefined;
@@ -400,45 +394,6 @@ export default function HomeScreen() {
     );
   };
 
-  const promptSelectSellingPoint = useCallback(() => {
-    const title =
-      '\u0627\u062e\u062a\u064a\u0627\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639';
-    const message =
-      '\u064a\u0631\u062c\u0649 \u0627\u062e\u062a\u064a\u0627\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639 \u0623\u0648\u0644\u0627\u064b \u0642\u0628\u0644 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629.';
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const shouldOpenStore = window.confirm(`${title}\n\n${message}`);
-      if (shouldOpenStore) {
-        router.push('/(tabs)/store');
-      }
-      return;
-    }
-    Alert.alert(title, message, [
-      { text: '\u0627\u0641\u062a\u062d \u0627\u0644\u0645\u062a\u062c\u0631', onPress: () => router.push('/(tabs)/store') },
-      { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' },
-    ]);
-  }, [router]);
-  const handleToggleFavorite = useCallback((productId: string) => {
-    if (isAuthenticated) {
-      toggleFavorite(productId);
-      return;
-    }
-
-    const title = '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0645\u0637\u0644\u0648\u0628';
-    const message =
-      '\u064a\u062c\u0628 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0644\u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0625\u0644\u0649 \u0627\u0644\u0645\u0641\u0636\u0644\u0629.';
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      if (window.confirm(`${title}\n\n${message}`)) {
-        router.push('/(tabs)/account-login');
-      }
-      return;
-    }
-
-    Alert.alert(title, message, [
-      { text: '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644', onPress: () => router.push('/(tabs)/account-login') },
-      { text: '\u0625\u0644\u063a\u0627\u0621', style: 'cancel' },
-    ]);
-  }, [isAuthenticated, router, toggleFavorite]);
-
   React.useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
       const newNumColumns = (() => {
@@ -466,127 +421,18 @@ export default function HomeScreen() {
     ) / numColumns;
   }, [numColumns]);
 
-  const renderProduct = ({ item }: { item: Product }) => {
-    const scaleAnim = new Animated.Value(1);
-    const productImageSource =
-      item.image || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop';
-    const webImageStyle: React.CSSProperties = {
-      width: '100%',
-      height: '100%',
-      objectFit: item.image ? 'contain' : 'cover',
-      display: 'block',
-    };
-
-    const handlePressIn = () => {
-      Animated.spring(scaleAnim, {
-        toValue: 0.95,
-        useNativeDriver: true,
-      }).start();
-    };
-
-    const handlePressOut = () => {
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-      }).start();
-    };
-
-    const isItemFavorite = isFavorite(item.id);
-    const itemQuantity = getItemQuantity(item.id);
-    const selectedPointAvailable = getAvailableQuantityForSellingPoint(item, selectedSellingPoint?.id);
-    const displayBrand = getDisplayBrand(item.brand);
-    const canAddToBasket = Number.isFinite(item.price) && item.price > 0;
-
-    return (
-      <View style={{ width: cardWidth, marginBottom: 12 }}>
-        <Pressable
-          onPress={() => router.push(`/product/${item.id}`)}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-        >
-          <Animated.View style={[styles.productCard, { transform: [{ scale: scaleAnim }] }]}>
-          <View style={styles.productImageContainer}>
-            {Platform.OS === 'web' ? (
-              <img
-                alt={item.name}
-                src={productImageSource}
-                loading="lazy"
-                style={webImageStyle}
-                draggable={false}
-              />
-            ) : item.image ? (
-              <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="contain" />
-            ) : (
-              <Image 
-                source={{ uri: productImageSource }} 
-                style={styles.productImage} 
-                resizeMode="cover" 
-              />
-            )}
-            <Pressable
-              style={({ pressed }) => [
-                styles.favoriteButton,
-                pressed && styles.buttonPressed,
-              ]}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleToggleFavorite(item.id);
-              }}
-            >
-              <Feather
-                name="heart"
-                color={isItemFavorite ? palette.danger : palette.textMuted}
-                size={17}
-              />
-            </Pressable>
-          </View>
-          <View style={styles.productInfo}>
-            <Text style={styles.brandText} numberOfLines={1}>{displayBrand || ' '}</Text>
-            <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-            <View style={styles.productFooter}>
-              <ProductPrice
-                product={item}
-                containerStyle={styles.priceContainer}
-                priceStyle={styles.price}
-                oldPriceStyle={styles.oldPrice}
-              />
-              <Pressable
-                style={({ pressed }) => [
-                  styles.addToBasketButtonHome,
-                  !canAddToBasket && styles.addToBasketButtonDisabled,
-                  pressed && canAddToBasket && styles.buttonPressed,
-                ]}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  if (!selectedSellingPoint?.id) {
-                    promptSelectSellingPoint();
-                    return;
-                  }
-                  if (selectedPointAvailable !== null && itemQuantity >= selectedPointAvailable) {
-                    return;
-                  }
-                  addToBasket(item, 1);
-                }}
-                disabled={!canAddToBasket}
-              >
-                <Feather
-                  name="shopping-bag"
-                  color={canAddToBasket ? palette.accentDark : palette.textMuted}
-                  size={15}
-                />
-                {itemQuantity > 0 && (
-                  <View style={styles.basketCountBadge}>
-                    <Text style={styles.basketCountText}>{toArabicNumerals(itemQuantity)}</Text>
-                  </View>
-                )}
-              </Pressable>
-            </View>
-          </View>
-          </Animated.View>
-        </Pressable>
-      </View>
-    );
-  };
+  const renderProduct = ({ item }: { item: Product }) => (
+    <ProductCard
+      product={item}
+      style={{ width: cardWidth, marginBottom: 12 }}
+      isFavorite={isFavorite(item.id)}
+      basketQuantity={getItemQuantity(item.id)}
+      badge={newStockArrivalsFilter ? NEW_BADGE_LABEL : undefined}
+      onPress={() => router.push(`/product/${item.id}`)}
+      onToggleFavorite={() => handleToggleFavorite(item.id)}
+      onAddToBasket={() => handleAddToBasket(item)}
+    />
+  );
 
   return (
     <FloralBackdrop subtle style={styles.container}>
@@ -616,7 +462,7 @@ export default function HomeScreen() {
                 onPress={handleFilterOpen}
               >
                 <Feather name="sliders" color={palette.accentDark} size={20} />
-                {(productFilter || tagFilter || selectedCategories.length > 0 || selectedBrands.length > 0 || barcodeFilter || effectiveHasActiveOffer !== undefined) && (
+                {(productFilter || tagFilter || selectedCategories.length > 0 || selectedBrands.length > 0 || barcodeFilter || effectiveHasActiveOffer !== undefined || newStockArrivalsFilter) && (
                   <View style={styles.filterBadge} />
                 )}
               </Pressable>
@@ -624,7 +470,7 @@ export default function HomeScreen() {
 
           </View>
 
-          {(productFilter || tagFilter || selectedCategories.length > 0 || selectedBrands.length > 0 || barcodeFilter || effectiveHasActiveOffer !== undefined) && (
+          {(productFilter || tagFilter || selectedCategories.length > 0 || selectedBrands.length > 0 || barcodeFilter || effectiveHasActiveOffer !== undefined || newStockArrivalsFilter) && (
             <View style={styles.activeFiltersContainer}>
               {productFilter && (
                 <View style={styles.activeFilterChip}>
@@ -666,6 +512,19 @@ export default function HomeScreen() {
                 <View style={styles.activeFilterChip}>
                   <Text style={styles.activeFilterText}>{'\u0628\u0627\u0631\u0643\u0648\u062f'}: {barcodeFilter}</Text>
                   <Pressable onPress={() => setBarcodeFilter('')}>
+                    <Feather name="x" color="#666" size={14} />
+                  </Pressable>
+                </View>
+              )}
+              {newStockArrivalsFilter && (
+                <View style={styles.activeFilterChip}>
+                  <Text style={styles.activeFilterText}>{NEW_ARRIVALS_LABEL}</Text>
+                  <Pressable
+                    onPress={() => router.setParams({ newStockArrivals: '' })}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={'إزالة التصفية'}
+                  >
                     <Feather name="x" color="#666" size={14} />
                   </Pressable>
                 </View>
@@ -939,7 +798,7 @@ export default function HomeScreen() {
                   setSelectedBrands([]);
                   setBarcodeFilter('');
                   setHasActiveOfferFilter(undefined);
-                  router.setParams({ offerIds: '', hasActiveOffer: '', tagId: '' });
+                  router.setParams({ offerIds: '', hasActiveOffer: '', tagId: '', newStockArrivals: '' });
                 }}
               >
                 <Text style={styles.clearButtonText}>{'\u0645\u0633\u062d \u0627\u0644\u0643\u0644'}</Text>
@@ -1327,142 +1186,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row-reverse',
     gap: GRID_COLUMN_GAP,
     justifyContent: 'flex-start',
-  },
-  productCard: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E9E2E3',
-    shadowColor: '#7A5A62',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  productImageContainer: {
-    width: '100%',
-    aspectRatio: 1,
-    backgroundColor: '#FFFFFF',
-    position: 'relative' as const,
-  },
-  favoriteButton: {
-    position: 'absolute' as const,
-    top: 8,
-    right: 8,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  productImage: {
-    width: '100%',
-    height: '100%',
-  },
-  productInfo: {
-    height: 112,
-    padding: 10,
-  },
-  brandText: {
-    height: 13,
-    fontSize: 10,
-    lineHeight: 13,
-    color: palette.textMuted,
-    fontWeight: '600' as const,
-    marginBottom: 3,
-    textAlign: 'right' as const,
-  },
-  productName: {
-    height: 34,
-    fontSize: 13,
-    fontWeight: '500' as const,
-    color: palette.textPrimary,
-    marginBottom: 4,
-    lineHeight: 17,
-    textAlign: 'right' as const,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  rating: {
-    fontSize: 12,
-    color: '#FFB800',
-    fontWeight: '600' as const,
-    marginRight: 4,
-  },
-  reviewCount: {
-    fontSize: 11,
-    color: '#999',
-  },
-  price: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: palette.accentDark,
-    textAlign: 'right' as const,
-  },
-  productFooter: {
-    height: 34,
-    marginTop: 'auto',
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  oldPrice: {
-    fontSize: 11,
-    textAlign: 'right' as const,
-  },
-  priceContainer: {
-    height: 34,
-    flex: 1,
-    alignItems: 'stretch',
-    justifyContent: 'flex-end',
-  },
-  addToBasketButtonHome: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E9DDE0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#7A5A62',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  addToBasketButtonDisabled: {
-    backgroundColor: '#F1ECEE',
-    opacity: 0.65,
-  },
-  basketCountBadge: {
-    position: 'absolute' as const,
-    top: -4,
-    right: -4,
-    backgroundColor: '#FF3B30',
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  basketCountText: {
-    fontSize: 10,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
   },
   emptyContainer: {
     alignItems: 'center',

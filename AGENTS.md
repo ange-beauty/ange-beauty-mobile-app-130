@@ -14,8 +14,9 @@ Follow these rules before changing code.
 ## Directory Structure
 - `app/_layout.tsx`: global providers, splash, update check, push setup, global font defaults.
 - `app/(tabs)/_layout.tsx`: bottom tab navigator configuration.
-- `app/(tabs)/home.tsx`: currently reuses products screen.
-- `app/(tabs)/products.tsx`: product listing, filters, pagination.
+- `app/(tabs)/home.tsx`: home (offers carousel, featured products, "وصل حديثاً" new-arrivals strip, brands, tags).
+- `app/(tabs)/products.tsx`: product listing, filters, pagination. Route params include `brandId`, `categoryIds`, `tagId`, `offerIds`, `hasActiveOffer`, `newStockArrivals`.
+- `components/ProductCard.tsx`: the single shared product card (home strip, products grid, favorites) plus `useProductCardActions()` (guest login prompt for favorites, selling-point prompt + availability cap for basket). Change card visuals here, not per screen.
 - `app/product/[id].tsx`: product details.
 - `app/(tabs)/basket.tsx`: basket, checkout modal, order submission.
 - `app/(tabs)/store.tsx`: selling point selection.
@@ -33,7 +34,7 @@ Follow these rules before changing code.
 - `services/api.ts`: products/brands/version/product details APIs.
 - `services/notifications.ts`: push registration calls.
 - `utils/availability.ts`: selling-point stock helpers.
-- `utils/formatPrice.ts`: price/Arabic numeral formatting.
+- `utils/formatPrice.ts`: price/Arabic numeral formatting. `formatPrice` returns grouped digits only (no currency); `PRICE_DIGIT_SYSTEM` (`'arab'` / `'latn'`) switches the price digit style app-wide; `CURRENCY_LABEL` is the "د.ع" label callers append.
 
 ## Env And Build Rules
 - Dev env file: `.env.local`

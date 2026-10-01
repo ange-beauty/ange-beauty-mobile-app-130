@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
-  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -21,10 +20,9 @@ import { useBasket } from '@/contexts/BasketContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
 import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
-import ProductPrice from '@/components/ProductPrice';
+import ProductCard from '@/components/ProductCard';
 import { fetchProductById } from '@/services/api';
 import { Product } from '@/types/product';
-import { getDisplayBrand } from '@/utils/brand';
 
 const getNumColumns = () => {
   const screenWidth = Dimensions.get('window').width;
@@ -40,7 +38,7 @@ export default function FavoritesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { favorites, toggleFavorite } = useFavorites();
-  const { addToBasket } = useBasket();
+  const { addToBasket, getItemQuantity } = useBasket();
   const { selectedSellingPoint } = useSellingPoint();
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [numColumns, setNumColumns] = useState(getNumColumns());
@@ -92,8 +90,7 @@ export default function FavoritesScreen() {
 
   const favoriteProducts = productsData || [];
 
-  const handleAddToBasket = (product: Product, e: any) => {
-    e.stopPropagation();
+  const handleAddToBasket = (product: Product) => {
     if (!Number.isFinite(product.price) || product.price <= 0) return;
 
     if (!selectedSellingPoint?.id) {
@@ -138,61 +135,15 @@ export default function FavoritesScreen() {
   }, [numColumns]);
 
   const renderProduct = ({ item }: { item: Product }) => (
-    <View style={{ width: cardWidth, marginBottom: 16 }}>
-      {(() => {
-        const displayBrand = getDisplayBrand(item.brand);
-        const canAddToBasket = Number.isFinite(item.price) && item.price > 0;
-        return (
-      <Pressable
-        style={styles.productCard}
-        onPress={() => router.push(`/product/${item.id}`)}
-      >
-        <View style={styles.productImageContainer}>
-          {item.image ? (
-            <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="contain" />
-          ) : (
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop' }} 
-              style={styles.productImage} 
-              resizeMode="cover" 
-            />
-          )}
-          <Pressable
-            style={({ pressed }) => [
-              styles.favoriteButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={(e) => {
-              e.stopPropagation();
-              toggleFavorite(item.id);
-            }}
-          >
-            <Feather name="x" color="#FF3B30" size={20} />
-          </Pressable>
-        </View>
-        <View style={styles.productInfo}>
-          {!!displayBrand && <Text style={styles.brandText}>{displayBrand}</Text>}
-          <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-          <ProductPrice product={item} priceStyle={styles.price} />
-          <Pressable 
-            style={({ pressed }) => [
-              styles.addToBasketButton,
-              !canAddToBasket && styles.addToBasketButtonDisabled,
-              pressed && canAddToBasket && styles.buttonPressed,
-            ]}
-            onPress={(e) => handleAddToBasket(item, e)}
-            disabled={!canAddToBasket}
-          >
-            <Feather name={canAddToBasket ? 'plus' : 'clock'} color="#FFFFFF" size={16} />
-            <Text style={styles.addToBasketText}>
-              {canAddToBasket ? '\u0623\u0636\u0641 \u0644\u0644\u0633\u0644\u0629' : '\u064a\u062a\u0648\u0641\u0631 \u0642\u0631\u064a\u0628\u0627\u064b'}
-            </Text>
-          </Pressable>
-        </View>
-      </Pressable>
-        );
-      })()}
-    </View>
+    <ProductCard
+      product={item}
+      style={{ width: cardWidth, marginBottom: 16 }}
+      isFavorite
+      basketQuantity={getItemQuantity(item.id)}
+      onPress={() => router.push(`/product/${item.id}`)}
+      onToggleFavorite={() => toggleFavorite(item.id)}
+      onAddToBasket={() => handleAddToBasket(item)}
+    />
   );
 
   return (
@@ -264,103 +215,8 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   productRow: {
+    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
-  },
-  productCard: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  productImageContainer: {
-    width: '100%',
-    aspectRatio: 1,
-    backgroundColor: '#FFFFFF',
-    position: 'relative' as const,
-  },
-  productImage: {
-    width: '100%',
-    height: '100%',
-  },
-  favoriteButton: {
-    position: 'absolute' as const,
-    top: 8,
-    right: 8,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  productInfo: {
-    padding: 12,
-  },
-  brandText: {
-    fontSize: 11,
-    color: '#999',
-    fontWeight: '600' as const,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  productName: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#1A1A1A',
-    marginBottom: 6,
-    lineHeight: 18,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  rating: {
-    fontSize: 12,
-    color: '#FFB800',
-    fontWeight: '600' as const,
-    marginRight: 4,
-  },
-  reviewCount: {
-    fontSize: 11,
-    color: '#999',
-  },
-  price: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  addToBasketButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1A1A1A',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    gap: 4,
-  },
-  addToBasketButtonDisabled: {
-    backgroundColor: '#9A8B8E',
-    opacity: 0.7,
-  },
-  addToBasketText: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,

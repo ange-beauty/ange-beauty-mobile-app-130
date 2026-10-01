@@ -79,6 +79,8 @@ export interface FetchProductsParams {
   hasActiveOffer?: boolean;
   offerIds?: string;
   tag?: string;
+  /** Products with a positive inbound stock movement in the previous 14 days (`new_stock_arrivals`). */
+  newStockArrivals?: boolean;
 }
 
 function buildOfferHeroImageUrl(apiOffer: any): string {
@@ -184,6 +186,7 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<F
     hasActiveOffer,
     offerIds,
     tag,
+    newStockArrivals,
   } = params;
   
   try {
@@ -204,7 +207,8 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<F
     }
     if (offerIds) queryParams.append('offer_ids', offerIds);
     if (tag) queryParams.append('tag', tag);
-    
+    if (newStockArrivals) queryParams.append('new_stock_arrivals', '1');
+
     const url = `${API_BASE}/api/v1/products?${queryParams.toString()}`;
     
     const response = await debugFetch(url, {
