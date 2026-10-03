@@ -18,6 +18,7 @@ Follow these rules before changing code.
 - `app/(tabs)/products.tsx`: product listing, filters, pagination. Route params include `brandId`, `categoryIds`, `tagId`, `offerIds`, `hasActiveOffer`, `newStockArrivals`.
 - `components/ProductCard.tsx`: the single shared product card (home strip, products grid, favorites) plus `useProductCardActions()` (guest login prompt for favorites, selling-point prompt + availability cap for basket). Change card visuals here, not per screen.
 - `app/product/[id].tsx`: product details.
+- `app/(tabs)/categories.tsx`: n-level two-pane category picker (tree from flat `GET /categories`, tri-state branch selection, Arabic-normalised search with paths, chips, sticky bar). Tab bar hidden here; submits `categoryIds` (leaf ids + fully selected branch ids) to products.
 - `app/(tabs)/basket.tsx`: basket, checkout modal, order submission.
 - `app/(tabs)/store.tsx`: selling point selection.
 - `app/(tabs)/account.tsx`: login/profile screen.

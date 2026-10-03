@@ -392,6 +392,32 @@ export default function CategoriesScreen() {
         </View>
       ) : (
         <View style={styles.body}>
+          <ScrollView style={styles.mains} showsVerticalScrollIndicator={false}>
+            {mains.map((node) => {
+              const count = selectedCountIn(node);
+              const isActive = !isSearching && activeMain?.id === node.id;
+              return (
+                <Pressable
+                  key={node.id}
+                  style={[styles.main, isActive && styles.mainActive]}
+                  onPress={() => {
+                    setActiveMainId(node.id);
+                    setDrillPath([]);
+                    setQuery('');
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isActive }}
+                >
+                  {count ? (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{formatNumber(count)}</Text>
+                    </View>
+                  ) : null}
+                  <Text style={[styles.mainText, isActive && styles.mainTextActive]}>{node.label}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
           <View style={styles.pane}>
             {isSearching ? (
               <>
@@ -478,36 +504,18 @@ export default function CategoriesScreen() {
             ) : null}
           </View>
 
-          <ScrollView style={styles.mains} showsVerticalScrollIndicator={false}>
-            {mains.map((node) => {
-              const count = selectedCountIn(node);
-              const isActive = !isSearching && activeMain?.id === node.id;
-              return (
-                <Pressable
-                  key={node.id}
-                  style={[styles.main, isActive && styles.mainActive]}
-                  onPress={() => {
-                    setActiveMainId(node.id);
-                    setDrillPath([]);
-                    setQuery('');
-                  }}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isActive }}
-                >
-                  {count ? (
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>{formatNumber(count)}</Text>
-                    </View>
-                  ) : null}
-                  <Text style={[styles.mainText, isActive && styles.mainTextActive]}>{node.label}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
         </View>
       )}
 
       <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        <Pressable
+          style={styles.barClear}
+          onPress={() => setSelected(new Set())}
+          disabled={!selectedCount}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.barClearText, !selectedCount && styles.disabledText]}>{T.clear}</Text>
+        </Pressable>
         <Pressable
           style={styles.applyBtn}
           onPress={showProducts}
@@ -521,14 +529,6 @@ export default function CategoriesScreen() {
               </Text>
             </View>
           ) : null}
-        </Pressable>
-        <Pressable
-          style={styles.barClear}
-          onPress={() => setSelected(new Set())}
-          disabled={!selectedCount}
-          accessibilityRole="button"
-        >
-          <Text style={[styles.barClearText, !selectedCount && styles.disabledText]}>{T.clear}</Text>
         </Pressable>
       </View>
     </View>
