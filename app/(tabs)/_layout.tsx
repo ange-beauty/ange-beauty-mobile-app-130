@@ -116,6 +116,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="categories"
         options={{
+          tabBarStyle: { display: 'none' },
           title: '\u062a\u0635\u0646\u064a\u0641\u0627\u062a',
           tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={28} />,
         }}
