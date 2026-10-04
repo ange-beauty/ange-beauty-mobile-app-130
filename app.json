@@ -53,7 +53,17 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod\n-keep class com.facebook.hermes.unicode.** { *; }\n-keep class com.facebook.jni.** { *; }\n-keep class com.google.firebase.** { *; }\n-dontwarn com.facebook.**\n-dontwarn okhttp3.**\n-dontwarn okio.**"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
