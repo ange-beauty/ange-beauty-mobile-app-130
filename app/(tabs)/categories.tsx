@@ -1,525 +1,694 @@
 import { useQuery } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import FloralBackdrop from '@/components/FloralBackdrop';
 import { beautyTheme } from '@/constants/uiTheme';
 import { Category, fetchCategories } from '@/services/api';
 
-type CategoryTreeNode = {
-  category: Category;
-  children: CategoryTreeNode[];
+type CategoryNode = {
+  id: string;
+  label: string;
+  parent: CategoryNode | null;
+  children: CategoryNode[];
+  /** Ids of every leaf category under this node (the node itself when it is a leaf). */
+  leafIds: string[];
+  pathLabel: string;
 };
 
-function getCategoryName(category: Category) {
-  return category.category_name_ar || category.category_name_en || '';
+type CheckState = 'none' | 'some' | 'all';
+
+const T = {
+  title: 'التصنيفات',
+  clearAll: 'مسح الكل',
+  clear: 'مسح',
+  close: 'إغلاق',
+  search: 'ابحث في كل المستويات...',
+  selectAll: 'تحديد الكل',
+  back: 'رجوع',
+  results: 'عرض النتائج',
+  allProducts: 'عرض كل المنتجات',
+  searchResults: 'نتائج البحث',
+  noResults: 'لا توجد نتائج مطابقة.',
+  empty: 'لا توجد فئات',
+};
+
+function categoryLabel(category: Category) {
+  return category.category_name_ar || category.category_name_en || category.id;
 }
 
-function sortCategoryNodes(nodes: CategoryTreeNode[]) {
-  nodes.sort((a, b) => getCategoryName(a.category).localeCompare(getCategoryName(b.category), 'ar'));
-  nodes.forEach((node) => sortCategoryNodes(node.children));
-  return nodes;
+function formatNumber(value: number) {
+  return value.toLocaleString('ar-IQ');
 }
 
-function buildCategoryTree(categories: Category[]) {
-  const nodes = new Map<string, CategoryTreeNode>();
+function sectionsLabel(count: number) {
+  if (count === 1) return 'قسم واحد';
+  if (count === 2) return 'قسمان';
+  if (count <= 10) return `${formatNumber(count)} أقسام`;
+  return `${formatNumber(count)} قسماً`;
+}
+
+function normalize(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[ً-ٰـ]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .trim();
+}
+
+function buildModel(categories: Category[]) {
+  const byId = new Map<string, CategoryNode>();
+  categories.forEach((category) =>
+    byId.set(category.id, {
+      id: category.id,
+      label: categoryLabel(category),
+      parent: null,
+      children: [],
+      leafIds: [],
+      pathLabel: '',
+    }),
+  );
+
+  const roots: CategoryNode[] = [];
   categories.forEach((category) => {
-    nodes.set(category.id, { category, children: [] });
-  });
-
-  const roots: CategoryTreeNode[] = [];
-  nodes.forEach((node) => {
-    const parentId = node.category.parent_category;
-    const parent = parentId ? nodes.get(parentId) : undefined;
-    if (parent && parent.category.id !== node.category.id) {
+    const node = byId.get(category.id)!;
+    const parent = category.parent_category ? byId.get(category.parent_category) : undefined;
+    if (parent && parent !== node) {
+      node.parent = parent;
       parent.children.push(node);
     } else {
       roots.push(node);
     }
   });
 
-  return sortCategoryNodes(roots);
+  const sortNodes = (nodes: CategoryNode[]) => {
+    nodes.sort((a, b) => a.label.localeCompare(b.label, 'ar'));
+    nodes.forEach((node) => sortNodes(node.children));
+  };
+  sortNodes(roots);
+
+  const visited = new Set<string>();
+  const finalize = (node: CategoryNode) => {
+    if (visited.has(node.id)) return;
+    visited.add(node.id);
+    if (!node.children.length) {
+      node.leafIds = [node.id];
+      return;
+    }
+    node.children.forEach((child) => {
+      finalize(child);
+      node.leafIds.push(...child.leafIds);
+    });
+  };
+  roots.forEach(finalize);
+
+  // The catalog usually has one generic wrapper root: use its children as the main column.
+  const rootsWithChildren = roots.filter((root) => root.children.length);
+  let mains = roots;
+  if (rootsWithChildren.length === 1) {
+    const wrapper = rootsWithChildren[0];
+    mains = [...wrapper.children, ...roots.filter((root) => root !== wrapper)];
+  }
+  const mainSet = new Set(mains.map((node) => node.id));
+  byId.forEach((node) => {
+    const parts: string[] = [];
+    for (let current: CategoryNode | null = node; current; current = current.parent) {
+      parts.unshift(current.label);
+      if (mainSet.has(current.id)) break;
+    }
+    node.pathLabel = parts.join(' › ');
+  });
+
+  const allNodes = Array.from(byId.values()).filter((node) => {
+    for (let current: CategoryNode | null = node; current; current = current.parent) {
+      if (mainSet.has(current.id)) return true;
+    }
+    return false;
+  });
+
+  return { byId, mains, allNodes };
+}
+
+function Checkbox({ state, label, onPress }: { state: CheckState; label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={6}
+      style={styles.checkHit}
+      accessibilityRole="checkbox"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: state === 'all' ? true : state === 'some' ? 'mixed' : false }}
+    >
+      <View style={[styles.check, state !== 'none' && styles.checkOn]}>
+        {state === 'all' ? <Feather name="check" size={16} color="#FFFFFF" /> : null}
+        {state === 'some' ? <Feather name="minus" size={16} color="#FFFFFF" /> : null}
+      </View>
+    </Pressable>
+  );
 }
 
 export default function CategoriesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
-  const columns = width >= 900 ? 3 : 2;
-  const gap = 12;
-  const horizontalPadding = 16;
-  const tileWidth = Math.floor((width - horizontalPadding * 2 - gap * (columns - 1)) / columns);
+  const chipsRef = useRef<ScrollView>(null);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['categories'],
     queryFn: fetchCategories,
   });
 
-  const categories = useMemo(() => {
-    return [...(data || [])].sort((a, b) => getCategoryName(a).localeCompare(getCategoryName(b), 'ar'));
-  }, [data]);
+  const model = useMemo(() => buildModel(Array.isArray(data) ? data : []), [data]);
+  const { mains, allNodes } = model;
 
-  const categoryTree = useMemo(() => buildCategoryTree(categories), [categories]);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [activeMainId, setActiveMainId] = useState<string | null>(null);
+  const [drillPath, setDrillPath] = useState<string[]>([]);
+  const [query, setQuery] = useState('');
 
-  const categoryById = useMemo(() => {
-    return new Map(categories.map((category) => [category.id, category]));
-  }, [categories]);
+  const activeMain = mains.find((node) => node.id === activeMainId) || mains[0] || null;
+  const currentNode = drillPath.length
+    ? model.byId.get(drillPath[drillPath.length - 1]) || activeMain
+    : activeMain;
 
-  const childIdsByParent = useMemo(() => {
-    const children = new Map<string, string[]>();
-    categories.forEach((category) => {
-      if (!category.parent_category) return;
-      const ids = children.get(category.parent_category) || [];
-      ids.push(category.id);
-      children.set(category.parent_category, ids);
+  const stateOf = (node: CategoryNode): CheckState => {
+    if (!node.leafIds.length) return 'none';
+    let count = 0;
+    for (const id of node.leafIds) if (selected.has(id)) count += 1;
+    if (count === 0) return 'none';
+    return count === node.leafIds.length ? 'all' : 'some';
+  };
+  const selectedCountIn = (node: CategoryNode) =>
+    node.leafIds.reduce((sum, id) => sum + (selected.has(id) ? 1 : 0), 0);
+
+  const toggleNode = (node: CategoryNode) => {
+    setSelected((current) => {
+      const next = new Set(current);
+      const allSelected = node.leafIds.every((id) => next.has(id));
+      node.leafIds.forEach((id) => (allSelected ? next.delete(id) : next.add(id)));
+      return next;
     });
-    return children;
-  }, [categories]);
+  };
 
-  const chunkNodes = (items: CategoryTreeNode[]) => {
-    const rows: CategoryTreeNode[][] = [];
-    for (let i = 0; i < items.length; i += columns) {
-      rows.push(items.slice(i, i + columns));
+  const selectedCount = selected.size;
+
+  const chips = useMemo(() => {
+    const result: CategoryNode[] = [];
+    const walk = (node: CategoryNode) => {
+      if (!node.leafIds.length) return;
+      const count = node.leafIds.filter((id) => selected.has(id)).length;
+      if (count === 0) return;
+      if (count === node.leafIds.length) {
+        result.push(node);
+        return;
+      }
+      node.children.forEach(walk);
+    };
+    mains.forEach(walk);
+    return result;
+  }, [mains, selected]);
+
+  const openNode = (node: CategoryNode) => {
+    const chain: CategoryNode[] = [];
+    for (let current: CategoryNode | null = node; current; current = current.parent) {
+      chain.unshift(current);
+      if (mains.some((main) => main.id === current!.id)) break;
     }
-    return rows;
+    setActiveMainId(chain[0].id);
+    setDrillPath(chain.slice(1).map((item) => item.id));
+    setQuery('');
   };
 
-  const toggleCategory = (categoryId: string) => {
-    setSelectedCategoryIds((current) => {
-      if (current.includes(categoryId)) {
-        return current.filter((id) => id !== categoryId);
+  const showProducts = () => {
+    // The products screen expands descendants itself; also send each fully selected branch id.
+    const ids = new Set<string>(selected);
+    allNodes.forEach((node) => {
+      if (node.children.length && node.leafIds.length && node.leafIds.every((id) => selected.has(id))) {
+        ids.add(node.id);
       }
-
-      const relatedIds = new Set<string>();
-      let parentId = categoryById.get(categoryId)?.parent_category;
-      while (parentId) {
-        relatedIds.add(parentId);
-        parentId = categoryById.get(parentId)?.parent_category;
-      }
-
-      const descendants = [...(childIdsByParent.get(categoryId) || [])];
-      while (descendants.length > 0) {
-        const descendantId = descendants.pop();
-        if (!descendantId) continue;
-        relatedIds.add(descendantId);
-        descendants.push(...(childIdsByParent.get(descendantId) || []));
-      }
-
-      return [...current.filter((id) => !relatedIds.has(id)), categoryId];
     });
-  };
-
-  const applyCategoryFilters = () => {
     router.push({
       pathname: '/(tabs)/products',
-      params: { categoryIds: selectedCategoryIds.join(',') },
+      params: { categoryIds: Array.from(ids).join(',') },
     });
   };
 
-  const renderCategoryCard = (item: CategoryTreeNode) => {
-    const name = getCategoryName(item.category);
-    const subtitle = item.category.category_name_en;
-    const isSelected = selectedCategoryIds.includes(item.category.id);
+  const closeScreen = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/home');
+  };
 
+  const normalizedQuery = normalize(query);
+  const isSearching = Boolean(normalizedQuery);
+  const searchResults = useMemo(() => {
+    if (!normalizedQuery) return [];
+    return allNodes.filter((node) => normalize(node.label).includes(normalizedQuery)).slice(0, 60);
+  }, [allNodes, normalizedQuery]);
+
+  const breadcrumb: CategoryNode[] = [];
+  if (activeMain) {
+    breadcrumb.push(activeMain);
+    drillPath.forEach((id) => {
+      const node = model.byId.get(id);
+      if (node) breadcrumb.push(node);
+    });
+  }
+
+  const renderRow = (node: CategoryNode, showPath: boolean) => {
+    const state = stateOf(node);
+    const hasChildren = node.children.length > 0;
+    let sub = '';
+    if (state === 'some') {
+      sub = `محدد ${formatNumber(selectedCountIn(node))} من ${formatNumber(node.leafIds.length)}`;
+    } else if (hasChildren) {
+      sub = sectionsLabel(node.children.length);
+    }
+    const subText = showPath && node.parent ? node.pathLabel : sub;
     return (
-      <View style={{ width: tileWidth }}>
+      <View key={node.id} style={styles.row}>
+        <Checkbox state={state} label={node.label} onPress={() => toggleNode(node)} />
         <Pressable
-          style={({ pressed }) => [
-            styles.categoryCard,
-            isSelected && styles.categoryCardSelected,
-            { width: tileWidth, minHeight: tileWidth * 0.62 },
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={() => toggleCategory(item.category.id)}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: isSelected }}
+          style={styles.rowText}
+          onPress={() => (hasChildren && !showPath ? setDrillPath((c) => [...c, node.id]) : toggleNode(node))}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
         >
-          <View style={[styles.cardIcon, isSelected && styles.cardIconSelected]}>
-            <Feather
-              name={isSelected ? 'check' : 'grid'}
-              size={20}
-              color={isSelected ? '#FFFFFF' : beautyTheme.colors.accentDark}
-            />
-          </View>
-          <Text style={[styles.categoryName, isSelected && styles.categoryNameSelected]} numberOfLines={2}>
-            {name}
+          <Text style={[styles.rowName, state !== 'none' && styles.rowNameOn]} numberOfLines={2}>
+            {node.label}
           </Text>
-          {!!subtitle && (
-            <Text style={styles.categorySubtitle} numberOfLines={1}>
-              {subtitle}
+          {subText ? (
+            <Text style={[styles.rowSub, state === 'some' && styles.rowSubPartial]} numberOfLines={2}>
+              {subText}
             </Text>
-          )}
+          ) : null}
         </Pressable>
-        {item.children.length > 0 && (
-          <View style={styles.childChips}>
-            {item.children.map((child) => (
-              <Pressable
-                key={child.category.id}
-                style={[
-                  styles.childChip,
-                  selectedCategoryIds.includes(child.category.id) && styles.childChipSelected,
-                ]}
-                onPress={() => toggleCategory(child.category.id)}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: selectedCategoryIds.includes(child.category.id) }}
-              >
-                <Text
-                  style={[
-                    styles.childChipText,
-                    selectedCategoryIds.includes(child.category.id) && styles.childChipTextSelected,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {getCategoryName(child.category)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+        {hasChildren ? (
+          <Pressable
+            style={styles.openBtn}
+            onPress={() => openNode(node)}
+            accessibilityRole="button"
+            accessibilityLabel={`فتح أقسام ${node.label}`}
+          >
+            <Feather name="chevron-left" size={20} color={beautyTheme.colors.accentDark} />
+          </Pressable>
+        ) : (
+          <View style={styles.openSpacer} />
         )}
       </View>
     );
   };
 
-  const renderCategorySection = ({ item }: { item: CategoryTreeNode }) => {
-    const childCount = item.children.length;
-    const isSelected = selectedCategoryIds.includes(item.category.id);
-
-    if (childCount === 0) {
-      return (
-        <View style={styles.sectionBlock}>
-          <View style={[styles.categoryRow, { gap }]}>
-            {renderCategoryCard(item)}
-          </View>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.sectionBlock}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.parentHeader,
-            isSelected && styles.parentHeaderSelected,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={() => toggleCategory(item.category.id)}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: isSelected }}
-        >
-          <View style={[styles.parentIcon, isSelected && styles.cardIconSelected]}>
-            <Feather
-              name={isSelected ? 'check' : 'layers'}
-              size={20}
-              color={isSelected ? '#FFFFFF' : beautyTheme.colors.accentDark}
-            />
-          </View>
-          <View style={styles.parentTextWrap}>
-            <Text style={[styles.parentName, isSelected && styles.categoryNameSelected]} numberOfLines={1}>
-              {getCategoryName(item.category)}
-            </Text>
-            <Text style={styles.parentSubtitle} numberOfLines={1}>
-              {childCount > 0 ? `${childCount.toLocaleString('ar-IQ')} \u0641\u0626\u0627\u062a` : item.category.category_name_en || ''}
-            </Text>
-          </View>
-        </Pressable>
-
-        <View style={styles.childrenGrid}>
-          {chunkNodes(item.children).map((row, rowIndex) => (
-            <View key={`${item.category.id}-${rowIndex}`} style={[styles.categoryRow, { gap }]}>
-              {row.map((child) => (
-                <React.Fragment key={child.category.id}>{renderCategoryCard(child)}</React.Fragment>
-              ))}
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  };
+  const currentState = currentNode ? stateOf(currentNode) : 'none';
 
   return (
-    <FloralBackdrop subtle style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <Pressable
+          style={styles.closeBtn}
+          onPress={closeScreen}
+          accessibilityRole="button"
+          accessibilityLabel={T.close}
+        >
+          <Feather name="x" size={24} color="#17242A" />
+        </Pressable>
+        <Text style={styles.title}>{T.title}</Text>
+        <Pressable
+          style={styles.clearAllBtn}
+          onPress={() => setSelected(new Set())}
+          disabled={!selectedCount}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.clearAllText, !selectedCount && styles.disabledText]}>{T.clearAll}</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.searchBox}>
+        <Feather name="search" size={18} color={beautyTheme.colors.textMuted} />
+        <TextInput
+          style={styles.searchInput}
+          value={query}
+          onChangeText={setQuery}
+          placeholder={T.search}
+          placeholderTextColor={beautyTheme.colors.textMuted}
+          textAlign="right"
+          accessibilityLabel={T.search}
+        />
+        {query ? (
+          <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityRole="button">
+            <Feather name="x" size={16} color={beautyTheme.colors.textMuted} />
+          </Pressable>
+        ) : null}
+      </View>
+
+      {chips.length ? (
+        <ScrollView
+          ref={chipsRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipsScroll}
+          contentContainerStyle={styles.chipsContent}
+          onContentSizeChange={() => chipsRef.current?.scrollToEnd({ animated: false })}
+        >
+          {chips.map((chip) => (
+            <Pressable
+              key={chip.id}
+              style={styles.chip}
+              onPress={() =>
+                setSelected((current) => {
+                  const next = new Set(current);
+                  chip.leafIds.forEach((id) => next.delete(id));
+                  return next;
+                })
+              }
+              accessibilityRole="button"
+              accessibilityLabel={`إزالة ${chip.label}`}
+            >
+              <Text style={styles.chipText}>{chip.label}</Text>
+              <Feather name="x" size={14} color={beautyTheme.colors.accentDark} />
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : null}
 
       {isLoading ? (
-        <View style={styles.loadingBox}>
+        <View style={styles.center}>
           <ActivityIndicator color={beautyTheme.colors.accentDark} />
         </View>
+      ) : !mains.length ? (
+        <View style={styles.center}>
+          <Text style={styles.emptyText}>{T.empty}</Text>
+        </View>
       ) : (
-        <>
-          <View style={[styles.selectionHeader, { paddingTop: insets.top + 8 }]}>
-            <View style={styles.selectionStatus}>
-              <Text style={styles.selectionTitle}>{'\u062a\u0635\u0646\u064a\u0641\u0627\u062a'}</Text>
-              <Text style={styles.selectionCount}>
-                {selectedCategoryIds.length > 0
-                  ? `${selectedCategoryIds.length.toLocaleString('ar-IQ')} \u0641\u0626\u0627\u062a \u0645\u062d\u062f\u062f\u0629`
-                  : '\u0644\u0645 \u064a\u062a\u0645 \u0627\u0644\u062a\u062d\u062f\u064a\u062f'}
-              </Text>
-            </View>
-            <View style={styles.selectionActions}>
-              <Pressable
-                style={({ pressed }) => [styles.applyButton, pressed && styles.buttonPressed]}
-                onPress={applyCategoryFilters}
-              >
-                <Feather name="search" size={18} color="#FFFFFF" />
-                <Text style={styles.applyButtonText}>{'\u0628\u062d\u062b'}</Text>
-              </Pressable>
-              {selectedCategoryIds.length > 0 && (
+        <View style={styles.body}>
+          <ScrollView style={styles.mains} showsVerticalScrollIndicator={false}>
+            {mains.map((node) => {
+              const count = selectedCountIn(node);
+              const isActive = !isSearching && activeMain?.id === node.id;
+              return (
                 <Pressable
-                  style={({ pressed }) => [styles.clearButton, pressed && styles.buttonPressed]}
-                  onPress={() => setSelectedCategoryIds([])}
-                  accessibilityLabel={'\u0625\u0644\u063a\u0627\u0621 \u062a\u062d\u062f\u064a\u062f \u0627\u0644\u062a\u0635\u0646\u064a\u0641\u0627\u062a'}
+                  key={node.id}
+                  style={[styles.main, isActive && styles.mainActive]}
+                  onPress={() => {
+                    setActiveMainId(node.id);
+                    setDrillPath([]);
+                    setQuery('');
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isActive }}
                 >
-                  <Feather name="x" size={20} color={beautyTheme.colors.accentDark} />
+                  {count ? (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{formatNumber(count)}</Text>
+                    </View>
+                  ) : null}
+                  <Text style={[styles.mainText, isActive && styles.mainTextActive]}>{node.label}</Text>
                 </Pressable>
-              )}
-            </View>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.pane}>
+            {isSearching ? (
+              <>
+                <View style={styles.paneHead}>
+                  <Text style={styles.crumbCurrent}>
+                    {searchResults.length
+                      ? `${T.searchResults} (${formatNumber(searchResults.length)})`
+                      : T.searchResults}
+                  </Text>
+                </View>
+                {searchResults.length ? (
+                  <FlatList
+                    data={searchResults}
+                    keyExtractor={(node) => node.id}
+                    renderItem={({ item }) => renderRow(item, true)}
+                    keyboardShouldPersistTaps="handled"
+                    contentContainerStyle={{ paddingBottom: 16 }}
+                  />
+                ) : (
+                  <Text style={styles.emptyText}>{T.noResults}</Text>
+                )}
+              </>
+            ) : currentNode ? (
+              <>
+                <View style={styles.paneHead}>
+                  {drillPath.length ? (
+                    <Pressable
+                      style={styles.backBtn}
+                      onPress={() => setDrillPath((c) => c.slice(0, -1))}
+                      accessibilityRole="button"
+                      accessibilityLabel={T.back}
+                    >
+                      <Feather name="chevron-right" size={20} color={beautyTheme.colors.accentDark} />
+                    </Pressable>
+                  ) : null}
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.crumbs}
+                  >
+                    {breadcrumb.map((node, index) => {
+                      const isLast = index === breadcrumb.length - 1;
+                      return (
+                        <View key={node.id} style={styles.crumbItem}>
+                          {index > 0 ? (
+                            <Feather name="chevron-left" size={14} color={beautyTheme.colors.textMuted} />
+                          ) : null}
+                          {isLast ? (
+                            <Text style={styles.crumbCurrent}>{node.label}</Text>
+                          ) : (
+                            <Pressable onPress={() => setDrillPath(drillPath.slice(0, index))} hitSlop={8}>
+                              <Text style={styles.crumb}>{node.label}</Text>
+                            </Pressable>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+                <ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
+                  {currentNode.children.length ? (
+                    <View style={[styles.row, styles.rowAll]}>
+                      <Checkbox
+                        state={currentState}
+                        label={`${T.selectAll} ${currentNode.label}`}
+                        onPress={() => toggleNode(currentNode)}
+                      />
+                      <View style={styles.rowText}>
+                        <Text style={styles.rowNameAll}>{`${T.selectAll} ${currentNode.label}`}</Text>
+                        {currentState === 'some' ? (
+                          <Text style={[styles.rowSub, styles.rowSubPartial]}>
+                            {`محدد ${formatNumber(selectedCountIn(currentNode))} من ${formatNumber(currentNode.leafIds.length)}`}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <View style={styles.openSpacer} />
+                    </View>
+                  ) : (
+                    renderRow(currentNode, false)
+                  )}
+                  {currentNode.children.map((child) => renderRow(child, false))}
+                </ScrollView>
+              </>
+            ) : null}
           </View>
 
-          <FlatList
-            data={categoryTree}
-            extraData={selectedCategoryIds}
-            keyExtractor={(item) => item.category.id}
-            renderItem={renderCategorySection}
-            contentContainerStyle={[
-              styles.listContent,
-              {
-                paddingHorizontal: horizontalPadding,
-                paddingTop: 12,
-                paddingBottom: insets.bottom + 130,
-              },
-            ]}
-            showsVerticalScrollIndicator={false}
-            onRefresh={refetch}
-            refreshing={false}
-            ListEmptyComponent={
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyText}>{'\u0644\u0627 \u062a\u0648\u062c\u062f \u0641\u0626\u0627\u062a'}</Text>
-              </View>
-            }
-          />
-
-        </>
+        </View>
       )}
-    </FloralBackdrop>
+
+      <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        <Pressable
+          style={styles.barClear}
+          onPress={() => setSelected(new Set())}
+          disabled={!selectedCount}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.barClearText, !selectedCount && styles.disabledText]}>{T.clear}</Text>
+        </Pressable>
+        <Pressable
+          style={styles.applyBtn}
+          onPress={showProducts}
+          accessibilityRole="button"
+        >
+          <Text style={styles.applyText}>{selectedCount ? T.results : T.allProducts}</Text>
+          {selectedCount ? (
+            <View style={styles.applyCount}>
+              <Text style={styles.applyCountText}>
+                {`${formatNumber(selectedCount)} تصنيفات`}
+              </Text>
+            </View>
+          ) : null}
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
+const ACCENT = beautyTheme.colors.accentDark;
+const BORDER = '#EADDE0';
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFDFD',
-  },
-  loadingBox: {
-    flex: 1,
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: {
+    height: 56,
+    paddingHorizontal: 12,
+    flexDirection: 'row-reverse',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
   },
-  listContent: {
-    paddingTop: 8,
-    gap: 12,
-  },
-  sectionBlock: {
-    marginBottom: 8,
-  },
-  parentHeader: {
-    minHeight: 58,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.78)',
-    borderWidth: 1,
-    borderColor: '#EADDE0',
+  closeBtn: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 19, fontWeight: '800', color: '#17242A', textAlign: 'center' },
+  clearAllBtn: { minWidth: 72, height: 48, justifyContent: 'center', alignItems: 'flex-start' },
+  clearAllText: { color: ACCENT, fontWeight: '700', fontSize: 14 },
+  disabledText: { opacity: 0.4 },
+  searchBox: {
+    marginHorizontal: 14,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#F5F1F2',
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 10,
     flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: 10,
   },
-  parentHeaderSelected: {
-    backgroundColor: '#FFF3F7',
-    borderColor: beautyTheme.colors.accentDark,
+  searchInput: { flex: 1, fontSize: 15, color: '#17242A', textAlign: 'right', paddingVertical: 0 },
+  chipsScroll: { flexGrow: 0, marginTop: 10 },
+  chipsContent: { flexGrow: 1, flexDirection: 'row-reverse', paddingHorizontal: 14, gap: 8 },
+  chip: {
+    minHeight: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: ACCENT,
+    paddingHorizontal: 16,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 8,
   },
-  parentIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F8EEF2',
+  chipText: { color: ACCENT, fontWeight: '700', fontSize: 14 },
+  body: {
+    flex: 1,
+    marginTop: 10,
+    flexDirection: 'row-reverse',
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+  },
+  mains: { width: 124, flexGrow: 0, backgroundColor: '#FAF6F7' },
+  main: {
+    minHeight: 64,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 6,
+  },
+  mainActive: { backgroundColor: '#FFFFFF' },
+  mainText: { flex: 1, fontSize: 14, fontWeight: '600', color: '#4A3D40', textAlign: 'right' },
+  mainTextActive: { color: ACCENT, fontWeight: '800' },
+  badge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: ACCENT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  badgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
+  pane: { flex: 1 },
+  paneHead: {
+    minHeight: 48,
+    paddingHorizontal: 8,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  backBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  crumbs: { flexGrow: 1, flexDirection: 'row-reverse', alignItems: 'center', paddingHorizontal: 8, gap: 4 },
+  crumbItem: { flexDirection: 'row-reverse', alignItems: 'center', gap: 4 },
+  crumb: { color: beautyTheme.colors.textMuted, fontSize: 13, fontWeight: '600' },
+  crumbCurrent: { color: ACCENT, fontSize: 14, fontWeight: '800', textAlign: 'right', paddingHorizontal: 8 },
+  row: {
+    minHeight: 60,
+    paddingHorizontal: 8,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: BORDER,
+  },
+  rowAll: { backgroundColor: '#FFFAFB' },
+  rowText: { flex: 1, alignItems: 'flex-end', paddingVertical: 8 },
+  rowName: { fontSize: 15, fontWeight: '600', color: '#17242A', textAlign: 'right' },
+  rowNameOn: { fontWeight: '800' },
+  rowNameAll: { fontSize: 15, fontWeight: '800', color: '#17242A', textAlign: 'right' },
+  rowSub: { marginTop: 2, fontSize: 12, color: beautyTheme.colors.textMuted, textAlign: 'right' },
+  rowSubPartial: { color: ACCENT, fontWeight: '600' },
+  checkHit: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  check: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    borderColor: '#9A8A8E',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  parentTextWrap: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  parentName: {
-    color: '#17242A',
-    fontSize: 21,
-    lineHeight: 28,
-    fontWeight: '800',
-    textAlign: 'right',
-  },
-  parentSubtitle: {
-    marginTop: 1,
-    color: beautyTheme.colors.textMuted,
-    fontSize: 12,
-    textAlign: 'right',
-  },
-  childrenGrid: {
-    gap: 12,
-  },
-  categoryRow: {
-    flexDirection: 'row-reverse',
-  },
-  categoryCard: {
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#EADDE0',
-    padding: 14,
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    shadowColor: '#7A5A62',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  categoryCardSelected: {
-    backgroundColor: '#FFF3F7',
-    borderColor: beautyTheme.colors.accentDark,
-  },
-  cardIcon: {
+  checkOn: { backgroundColor: ACCENT, borderColor: ACCENT },
+  openBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: '#F8EEF2',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginLeft: 4,
   },
-  cardIconSelected: {
-    backgroundColor: beautyTheme.colors.accentDark,
-  },
-  categoryName: {
-    color: '#17242A',
-    fontSize: 18,
-    lineHeight: 25,
-    fontWeight: '700',
-    textAlign: 'right',
-  },
-  categoryNameSelected: {
-    color: beautyTheme.colors.accentDark,
-  },
-  categorySubtitle: {
-    marginTop: 4,
-    color: beautyTheme.colors.textMuted,
-    fontSize: 12,
-    textAlign: 'right',
-  },
-  childChips: {
-    marginTop: 8,
-    gap: 6,
-  },
-  childChip: {
-    borderRadius: 12,
-    backgroundColor: '#FFF7FA',
-    borderWidth: 1,
-    borderColor: '#EADDE0',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  childChipSelected: {
-    backgroundColor: beautyTheme.colors.accentDark,
-    borderColor: beautyTheme.colors.accentDark,
-  },
-  childChipText: {
-    color: beautyTheme.colors.accentDark,
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'right',
-  },
-  childChipTextSelected: {
-    color: '#FFFFFF',
-  },
-  selectionHeader: {
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    backgroundColor: 'rgba(255, 253, 253, 0.96)',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EADDE0',
+  openSpacer: { width: 40 },
+  emptyText: { color: beautyTheme.colors.textMuted, fontSize: 15, textAlign: 'center', padding: 24 },
+  bar: {
+    paddingTop: 10,
+    paddingHorizontal: 14,
     flexDirection: 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  selectionStatus: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  selectionTitle: {
-    color: '#17242A',
-    fontSize: 18,
-    fontWeight: '800',
-    textAlign: 'right',
-  },
-  selectionCount: {
-    marginTop: 1,
-    color: beautyTheme.colors.textMuted,
-    fontSize: 12,
-    textAlign: 'right',
-  },
-  selectionActions: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    gap: 8,
-  },
-  applyButton: {
-    minWidth: 84,
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: '#1A1A1A',
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  applyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-    textAlign: 'right',
-  },
-  clearButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#EADDE0',
+    gap: 10,
     backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+  },
+  applyBtn: {
+    flex: 1,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: ACCENT,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  applyText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
+  applyCount: { backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3 },
+  applyCountText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  barClear: {
+    width: 96,
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyBox: {
-    minHeight: 240,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    color: beautyTheme.colors.textMuted,
-    fontSize: 15,
-  },
-  buttonPressed: {
-    opacity: 0.78,
-    transform: [{ scale: 0.98 }],
-  },
+  barClearText: { color: '#17242A', fontSize: 15, fontWeight: '800' },
 });
