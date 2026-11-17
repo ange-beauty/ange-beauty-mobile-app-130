@@ -53,7 +53,7 @@ const queryClient = new QueryClient();
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.ange.beauty.cosmetic";
 const PLAY_STORE_APP_URL = "market://details?id=app.ange.beauty.cosmetic";
 const APP_STORE_URL = process.env.EXPO_PUBLIC_APP_STORE_URL || "https://apps.apple.com/";
-const appLogo = require("@/assets/images/icon.png");
+const appLogo = require("@/assets/images/logo.png");
 
 function RootLayoutNav() {
   const router = useRouter();
@@ -209,21 +209,13 @@ const splashStyles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 24,
   },
+  // No box: a translucent white card with elevation draws a white rectangle on Android while it fades in and out.
   card: {
     width: "100%",
     maxWidth: 360,
-    borderRadius: 28,
-    backgroundColor: "rgba(255, 255, 255, 0.85)",
-    borderWidth: 1,
-    borderColor: "#EBDDE1",
     paddingVertical: 30,
     paddingHorizontal: 20,
     alignItems: "center",
-    shadowColor: "#7A5A62",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    elevation: 6,
   },
   logoContainer: {
     width: Dimensions.get("window").width * 0.32,

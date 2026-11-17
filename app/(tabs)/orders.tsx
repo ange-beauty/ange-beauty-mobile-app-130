@@ -18,6 +18,8 @@ const STATUS_LABELS: Record<string, string> = {
   returned: '\u0645\u0631\u062a\u062c\u0639',
   cancelled: '\u0645\u0644\u063a\u0649',
   completed: '\u0645\u0643\u062a\u0645\u0644',
+  rejected: '\u0645\u0631\u0641\u0648\u0636',
+  preordered: '\u0637\u0644\u0628 \u0645\u0633\u0628\u0642',
 };
 
 function formatDate(value: string): string {
@@ -65,9 +67,9 @@ function OrderDetails({ order, onClose }: { order: ClientOrder | null; onClose: 
   });
 
   return (
-    <Modal visible={Boolean(order)} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable style={styles.detailsSheet} onPress={() => undefined}>
+    <Modal visible={Boolean(order)} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <View style={[styles.detailsScreen, { paddingTop: insets.top }]}>
+        <View style={styles.detailsSheet}>
           <View style={styles.detailsHeader}>
             <Pressable style={styles.closeButton} onPress={onClose} accessibilityLabel="Close order details">
               <Feather name="x" size={22} color={beautyTheme.colors.text} />
@@ -100,7 +102,7 @@ function OrderDetails({ order, onClose }: { order: ClientOrder | null; onClose: 
                 const image = item.image || product?.image || '';
 
                 return (
-                  <View key={`${item.productId}-${index}`} style={styles.detailItemRow}>
+                  <View key={`${item.productId}-${index}`} style={[styles.detailItemRow, item.added && styles.addedItemRow]}>
                     {image ? (
                       <Image source={{ uri: image }} style={styles.detailItemImage} resizeMode="contain" />
                     ) : (
@@ -109,6 +111,11 @@ function OrderDetails({ order, onClose }: { order: ClientOrder | null; onClose: 
                       </View>
                     )}
                     <View style={styles.detailItemContent}>
+                      {item.added ? (
+                        <View style={styles.addedBadge}>
+                          <Text style={styles.addedBadgeText}>{'مضاف'}</Text>
+                        </View>
+                      ) : null}
                       <Text style={styles.detailItemName} numberOfLines={2}>{displayName}</Text>
                       <View style={styles.detailItemMetrics}>
                         <View style={styles.detailMetric}>
@@ -129,14 +136,35 @@ function OrderDetails({ order, onClose }: { order: ClientOrder | null; onClose: 
                 );
               })}
 
+              {order.removedItems.length > 0 ? (
+                <>
+                  <Text style={styles.sectionTitle}>{'المنتجات المحذوفة'}</Text>
+                  {order.removedItems.map((item, index) => (
+                    <View key={`removed-${item.productId}-${index}`} style={[styles.detailItemRow, styles.removedItemRow]}>
+                      {item.image ? (
+                        <Image source={{ uri: item.image }} style={styles.detailItemImage} resizeMode="contain" />
+                      ) : (
+                        <View style={styles.detailItemImagePlaceholder} />
+                      )}
+                      <View style={styles.detailItemContent}>
+                        <Text style={[styles.detailItemName, styles.removedItemName]} numberOfLines={2}>
+                          {item.productName || 'منتج'}
+                        </Text>
+                        <Text style={styles.detailMetricValue}>{`${item.quantity} × ${formatPrice(item.price)}`}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              ) : null}
+
               <View style={styles.detailsTotalRow}>
                 <Text style={styles.detailsTotalPrice}>{formatPrice(order.totalPrice)}</Text>
                 <Text style={styles.detailsTotalLabel}>{'\u0627\u0644\u0645\u062c\u0645\u0648\u0639 \u0627\u0644\u0643\u0644\u064a'}</Text>
               </View>
             </ScrollView>
           ) : null}
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -218,8 +246,8 @@ const styles = StyleSheet.create({
   orderPrice: { color: beautyTheme.colors.accentDark, fontSize: 16, fontWeight: '700' },
   detailsHint: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   detailsHintText: { color: beautyTheme.colors.textMuted, fontSize: 12 },
-  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(24, 18, 20, 0.4)' },
-  detailsSheet: { height: '82%', minHeight: 320, borderTopLeftRadius: 20, borderTopRightRadius: 20, backgroundColor: beautyTheme.colors.card, overflow: 'hidden' },
+  detailsScreen: { flex: 1, backgroundColor: beautyTheme.colors.card },
+  detailsSheet: { flex: 1, backgroundColor: beautyTheme.colors.card },
   detailsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: beautyTheme.colors.border },
   detailsTitle: { color: beautyTheme.colors.text, fontSize: 20, fontWeight: '700', textAlign: 'right' },
   closeButton: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 19, backgroundColor: '#F6F0F2' },
@@ -238,6 +266,11 @@ const styles = StyleSheet.create({
   detailMetric: { alignItems: 'flex-end', gap: 2 },
   detailMetricLabel: { color: beautyTheme.colors.textMuted, fontSize: 10, textAlign: 'right' },
   detailMetricValue: { color: beautyTheme.colors.text, fontSize: 12, fontWeight: '600' },
+  addedItemRow: { backgroundColor: '#EAF6EE', borderRadius: 12, paddingHorizontal: 8 },
+  addedBadge: { alignSelf: 'flex-end', backgroundColor: '#2E8B57', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 2, marginBottom: 4 },
+  addedBadgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  removedItemRow: { opacity: 0.55 },
+  removedItemName: { textDecorationLine: 'line-through' },
   detailLineTotal: { color: beautyTheme.colors.accentDark, fontSize: 13, fontWeight: '700' },
   detailsTotalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 14, borderTopWidth: 1, borderTopColor: beautyTheme.colors.border },
   detailsTotalLabel: { color: beautyTheme.colors.text, fontSize: 15, fontWeight: '700' },

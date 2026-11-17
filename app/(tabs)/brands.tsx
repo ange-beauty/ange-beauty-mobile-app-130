@@ -40,9 +40,11 @@ function getBrandIconUrl(brand: Brand) {
   return `https://images.angebeauty.net/${root}/cdn/images/${brand.id}/${brand.icon}?v=${brand.aggregate_version || 1}`;
 }
 
-export default function BrandsScreen() {
+// embedded: shown inside the products filter modal, which already pads the safe area and wants the picked brand back.
+export default function BrandsScreen({ embedded, onPick, selectedIds }: { embedded?: boolean; onPick?: (brandId: string) => void; selectedIds?: string[] } = {}) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const safeInsets = useSafeAreaInsets();
+  const insets = embedded ? { ...safeInsets, top: 0 } : safeInsets;
   const { width } = useWindowDimensions();
   const listRef = useRef<FlatList<BrandSection>>(null);
   const [activeLetter, setActiveLetter] = useState('A');
@@ -108,8 +110,8 @@ export default function BrandsScreen() {
     return (
       <View key={item.id} style={{ width: tileWidth }}>
         <Pressable
-          style={({ pressed }) => [styles.brandTile, { width: tileWidth, height: tileWidth }, pressed && styles.buttonPressed]}
-          onPress={() => router.push(`/(tabs)/products?brandId=${item.id}`)}
+          style={({ pressed }) => [styles.brandTile, { width: tileWidth, height: tileWidth }, selectedIds?.includes(item.id) && styles.brandTileSelected, pressed && styles.buttonPressed]}
+          onPress={() => (onPick ? onPick(item.id) : router.push(`/(tabs)/products?brandId=${item.id}`))}
         >
           {iconUrl ? (
             <Image source={{ uri: iconUrl }} style={styles.brandLogoImage} contentFit="contain" transition={150} />
@@ -240,6 +242,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 10,
     elevation: 4,
+  },
+  brandTileSelected: {
+    borderWidth: 3,
+    borderColor: beautyTheme.colors.accentDark,
   },
   brandLogoText: {
     color: '#23282C',

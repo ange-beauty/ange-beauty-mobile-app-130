@@ -537,3 +537,32 @@ export async function fetchProductById(id: string): Promise<Product | null> {
     return null;
   }
 }
+
+export type BasketQuoteLine = { finalPrice: number; basePrice: number };
+
+/** Current server prices for basket lines (POST /basket/price), the same rule the dashboard and order submission use. Throws if the call fails. */
+export async function fetchBasketPrices(
+  sellingPointId: string | null | undefined,
+  items: { productId: string; quantity: number }[],
+): Promise<Map<string, BasketQuoteLine>> {
+  const prices = new Map<string, BasketQuoteLine>();
+  if (items.length === 0) return prices;
+
+  const response = await debugFetch(`${API_BASE}/api/v1/basket/price`, {
+    method: 'POST',
+    headers: withClientSourceHeader({ Accept: 'application/json', 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      selling_point: sellingPointId || undefined,
+      items: items.map((item) => ({ product_id: item.productId, quantity: item.quantity })),
+    }),
+  }, 'API');
+  if (!response) throw new Error('basket price failed');
+  if (!response.ok) throw new Error('basket price failed');
+  const body = await response.json();
+  for (const line of body?.data?.lines || []) {
+    if (line.found && line.final_price != null) {
+      prices.set(line.product_id, { finalPrice: Number(line.final_price), basePrice: Number(line.base_price ?? line.final_price) });
+    }
+  }
+  return prices;
+}

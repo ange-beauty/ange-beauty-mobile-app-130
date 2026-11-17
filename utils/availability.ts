@@ -4,6 +4,7 @@ export function getAvailableQuantityForSellingPoint(product: Product, sellingPoi
   if (!sellingPointId) return null;
   const list = product.availabilityBySellingPoint || [];
   const match = list.find((entry) => entry.sellingPointId === sellingPointId);
-  if (!match) return null;
+  // The API lists only selling points that hold stock, so no entry means none left there.
+  if (!match) return list.length || product.totalAvailable !== undefined ? 0 : null;
   return typeof match.totalAvailable === 'number' ? match.totalAvailable : null;
 }

@@ -30,6 +30,7 @@ import { useBasket } from '@/contexts/BasketContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
 import { fetchProductById } from '@/services/api';
 import { getDisplayBrand } from '@/utils/brand';
+import { getAvailableQuantityForSellingPoint } from '@/utils/availability';
 import { toArabicNumerals } from '@/utils/formatPrice';
 
 function normalizeDescriptionHtml(description: string): string {
@@ -108,7 +109,9 @@ export default function ProductDetailScreen() {
   const isFav = isFavorite(product.id);
   const quantity = getItemQuantity(product.id);
   const displayBrand = getDisplayBrand(product.brand);
-  const canAddToBasket = Number.isFinite(product.price) && product.price > 0;
+  const stock = getAvailableQuantityForSellingPoint(product, selectedSellingPoint?.id) ?? product.totalAvailable;
+  const outOfStock = typeof stock === 'number' && stock <= 0;
+  const canAddToBasket = Number.isFinite(product.price) && product.price > 0 && !outOfStock;
   const promptSelectSellingPoint = () => {
     const title =
       '\u0627\u062e\u062a\u064a\u0627\u0631 \u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064a\u0639';
@@ -155,6 +158,7 @@ export default function ProductDetailScreen() {
       promptSelectSellingPoint();
       return;
     }
+    if (typeof stock === 'number' && quantity >= stock) return;
     addToBasket(product, 1);
   };
 
@@ -215,11 +219,16 @@ export default function ProductDetailScreen() {
 
           <Animated.View style={[styles.bodyCard, isWideWeb && styles.bodyCardWeb, { transform: [{ scale: scaleAnim }] }]}>
             <View style={styles.metaRow}>
-              {!!product.category && (
-                <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryText}>{product.category}</Text>
-                </View>
-              )}
+              {(product.categories?.length ? product.categories : product.category ? [{ id: '', name: product.category }] : []).map((category) => (
+                <Pressable
+                  key={category.id || category.name}
+                  disabled={!category.id}
+                  onPress={() => router.push(`/(tabs)/products?categoryIds=${category.id}`)}
+                  style={styles.categoryBadge}
+                >
+                  <Text style={styles.categoryText}>{category.name}</Text>
+                </Pressable>
+              ))}
               {!!displayBrand && (
                 <Pressable
                   onPress={() => product.brandId && router.push(`/(tabs)/products?brandId=${product.brandId}`)}
@@ -233,6 +242,19 @@ export default function ProductDetailScreen() {
             <Text style={[styles.productName, isWideWeb && styles.productNameWeb]}>{product.name || '\u0645\u0646\u062a\u062c \u0628\u062f\u0648\u0646 \u0627\u0633\u0645'}</Text>
 
             <ProductVariationSelector key={product.id} productId={product.id} />
+            {!!product.ingredients?.length && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{'\u0627\u0644\u0648\u0633\u0648\u0645'}</Text>
+                <View style={styles.chipsWrap}>
+                  {product.ingredients.map((ingredient, index) => (
+                    <View key={index} style={styles.chip}>
+                      <Text style={styles.chipText}>{ingredient}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
             {!!descriptionHtml && (
               <View style={styles.section}>
                 <View style={styles.descriptionBox}>
@@ -286,19 +308,6 @@ export default function ProductDetailScreen() {
                 </View>
               </View>
             )}
-
-            {!!product.ingredients?.length && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{'\u0627\u0644\u0648\u0633\u0648\u0645'}</Text>
-                <View style={styles.chipsWrap}>
-                  {product.ingredients.map((ingredient, index) => (
-                    <View key={index} style={styles.chip}>
-                      <Text style={styles.chipText}>{ingredient}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
           </Animated.View>
         </View>
       </ScrollView>
@@ -330,7 +339,9 @@ export default function ProductDetailScreen() {
           disabled={!canAddToBasket}
         >
           <Text style={styles.addText}>
-            {!canAddToBasket
+            {outOfStock
+              ? '\u0646\u0641\u062f\u062a \u0627\u0644\u0643\u0645\u064a\u0629'
+              : !canAddToBasket
               ? '\u064a\u062a\u0648\u0641\u0631 \u0642\u0631\u064a\u0628\u0627\u064b'
               : quantity > 0
               ? `\u0641\u064a \u0627\u0644\u0633\u0644\u0629 (${toArabicNumerals(quantity)})`
@@ -453,8 +464,8 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginBottom: 10,
     gap: 8,
   },

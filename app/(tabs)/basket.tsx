@@ -1,4 +1,4 @@
-import { useQueries, useMutation } from '@tanstack/react-query';
+import { useQueries, useMutation, useQuery } from '@tanstack/react-query';
 import { Feather } from '@expo/vector-icons';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
@@ -24,7 +24,7 @@ import TurnstileWidget from '@/components/TurnstileWidget';
 import { useBasket } from '@/contexts/BasketContext';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchProductById } from '@/services/api';
+import { fetchBasketPrices, fetchProductById } from '@/services/api';
 import { withClientSourceHeader } from '@/services/requestHeaders';
 import { debugFetch } from '@/services/httpDebug';
 import { Product } from '@/types/product';
@@ -176,6 +176,14 @@ export default function BasketScreen() {
   });
 
 
+  // Server price rule (same as the dashboard and order submission); falls back to the fetched product price if it fails.
+  const { data: quote } = useQuery({
+    queryKey: ['basket-price', selectedSellingPoint?.id, basket.map(item => `${item.productId}:${item.quantity}`).join(',')],
+    queryFn: () => fetchBasketPrices(selectedSellingPoint?.id, basket),
+    enabled: basket.length > 0,
+    retry: false,
+  });
+
   const isLoading = productQueries.some(query => query.isLoading);
   const hasErrors = productQueries.some(query => query.error);
   const productsData = productQueries.map(query => query.data);
@@ -187,11 +195,16 @@ export default function BasketScreen() {
       if (!product) {
         return null;
       }
-      return { ...product, quantity: basketItem.quantity };
+      const priced = quote?.get(product.id);
+      return {
+        ...product,
+        ...(priced ? { price: priced.finalPrice, basePrice: priced.basePrice } : {}),
+        quantity: basketItem.quantity,
+      };
     }).filter((p): p is (Product & { quantity: number }) => p !== null);
     
     return products;
-  }, [basket, productsData]);
+  }, [basket, productsData, quote]);
 
   React.useEffect(() => {
     const zeroPriceProduct = basketProducts.find(

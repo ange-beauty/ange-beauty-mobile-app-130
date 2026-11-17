@@ -13,3 +13,7 @@ Read `AGENTS.md` first. Notes below are durable learnings.
 ## Play recommendations (open, not changed)
 - Edge-to-edge deprecated APIs (Window.setStatusBarColor etc.): come from React Native `StatusBarModule`/`WindowUtil` and Material `BottomSheetDialog`/`EdgeToEdgeUtils` internals; the app JS does not call them. Resolves by upgrading RN/Expo/material libs, not app code.
 - `orientation: "portrait"` in `app.json` locks MainActivity; Android 16 ignores it on large screens. Removing needs layout QA on tablets/foldables.
+
+## EAS release build: R8 "Missing class com.google.firebase.ktx.Firebase" (1.0.15)
+- `:app:minifyReleaseWithR8` failed: firebase-installations references `com.google.firebase.ktx.Firebase`, which is not on the classpath.
+- Fix: `-dontwarn com.google.firebase.ktx.Firebase` appended to `extraProguardRules` in `app.json` (same place as the other rules above). If R8 reports another missing class, add a `-dontwarn` for it from the build's `missing_rules.txt`.

@@ -22,6 +22,8 @@ import { Product } from '@/types/product';
 import { useAuth } from '@/contexts/AuthContext';
 import FloralBackdrop from '@/components/FloralBackdrop';
 import ProductCard, { useProductCardActions } from '@/components/ProductCard';
+import BrandsScreen from './brands';
+import CategoriesScreen from './categories';
 import { beautyTheme } from '@/constants/uiTheme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -135,6 +137,7 @@ export default function HomeScreen() {
     parseOptionalBoolean(params.hasActiveOffer),
   );
   const [showFilters, setShowFilters] = useState(false);
+  const [filterTab, setFilterTab] = useState<'brands' | 'categories' | 'general'>('brands');
   const [selectedLetter, setSelectedLetter] = useState<string>('A');
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [numColumns, setNumColumns] = useState(NUM_COLUMNS);
@@ -480,34 +483,45 @@ export default function HomeScreen() {
                   </Pressable>
                 </View>
               )}
-              {selectedCategories.map(categoryId => {
-                const category = categories.find(c => c && c.id === categoryId);
-                if (!category) return null;
-                return (
-                  <View key={categoryId} style={styles.activeFilterChip}>
+              {/* Several brands or categories collapse into one chip each, so the filter bar stays one line; tap opens that tab. */}
+              {selectedCategories.length > 0 && (
+                <View style={styles.activeFilterChip}>
+                  <Pressable
+                    onPress={() => {
+                      setFilterTab('categories');
+                      setShowFilters(true);
+                    }}
+                  >
                     <Text style={styles.activeFilterText}>
-                      {category.category_name_ar || '\u0627\u0644\u0641\u0626\u0629'}
+                      {selectedCategories.length === 1
+                        ? categories.find(c => c && c.id === selectedCategories[0])?.category_name_ar || 'الفئة'
+                        : `${selectedCategories.length} فئات`}
                     </Text>
-                    <Pressable onPress={() => setSelectedCategories(prev => prev.filter(id => id !== categoryId))}>
-                      <Feather name="x" color="#666" size={14} />
-                    </Pressable>
-                  </View>
-                );
-              })}
-              {selectedBrands.map(brandId => {
-                const brand = brands.find(b => b && b.id === brandId);
-                if (!brand) return null;
-                return (
-                  <View key={brandId} style={styles.activeFilterChip}>
+                  </Pressable>
+                  <Pressable onPress={() => setSelectedCategories([])}>
+                    <Feather name="x" color="#666" size={14} />
+                  </Pressable>
+                </View>
+              )}
+              {selectedBrands.length > 0 && (
+                <View style={styles.activeFilterChip}>
+                  <Pressable
+                    onPress={() => {
+                      setFilterTab('brands');
+                      setShowFilters(true);
+                    }}
+                  >
                     <Text style={styles.activeFilterText}>
-                      {brand.brand_name_ar || '\u0627\u0644\u0639\u0644\u0627\u0645\u0629'}
+                      {selectedBrands.length === 1
+                        ? brands.find(b => b && b.id === selectedBrands[0])?.brand_name_ar || 'العلامة'
+                        : `${selectedBrands.length} علامات تجارية`}
                     </Text>
-                    <Pressable onPress={() => setSelectedBrands(prev => prev.filter(id => id !== brandId))}>
-                      <Feather name="x" color="#666" size={14} />
-                    </Pressable>
-                  </View>
-                );
-              })}
+                  </Pressable>
+                  <Pressable onPress={() => setSelectedBrands([])}>
+                    <Feather name="x" color="#666" size={14} />
+                  </Pressable>
+                </View>
+              )}
               {barcodeFilter && (
                 <View style={styles.activeFilterChip}>
                   <Text style={styles.activeFilterText}>{'\u0628\u0627\u0631\u0643\u0648\u062f'}: {barcodeFilter}</Text>
@@ -651,6 +665,48 @@ export default function HomeScreen() {
               </Pressable>
             </View>
 
+            <View style={styles.filterTabs}>
+              {([
+                ['brands', 'العلامات التجارية'],
+                ['categories', 'الفئات'],
+                ['general', 'عام'],
+              ] as const).map(([key, label]) => (
+                <Pressable
+                  key={key}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: filterTab === key }}
+                  style={[styles.filterTab, filterTab === key && styles.filterTabActive]}
+                  onPress={() => setFilterTab(key)}
+                >
+                  <Text style={[styles.filterTabText, filterTab === key && styles.filterTabTextActive]}>{label}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {filterTab === 'brands' && (
+              <View style={styles.modalBody}>
+                <BrandsScreen
+                  embedded
+                  selectedIds={selectedBrands}
+                  onPick={(brandId) =>
+                    setSelectedBrands((prev) => (prev.includes(brandId) ? prev.filter((id) => id !== brandId) : [...prev, brandId]))
+                  }
+                />
+              </View>
+            )}
+            {filterTab === 'categories' && (
+              <View style={styles.modalBody}>
+                <CategoriesScreen
+                  embedded
+                  onClose={() => setShowFilters(false)}
+                  onApply={(ids) => {
+                    setSelectedCategories(ids);
+                    setShowFilters(false);
+                  }}
+                />
+              </View>
+            )}
+            {filterTab === 'general' && (<>
             <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0639\u0631\u0648\u0636'}</Text>
@@ -692,101 +748,10 @@ export default function HomeScreen() {
                   keyboardType="default"
                 />
               </View>
-
-              <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0639\u0644\u0627\u0645\u0629 \u0627\u0644\u062a\u062c\u0627\u0631\u064a\u0629'}</Text>
-                <View style={styles.alphabetNavigation}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent}>
-                    <View style={styles.alphabetRow}>
-                      {alphabet.map((letter) => {
-                        const isAvailable = availableLetters.includes(letter);
-                        const isSelected = selectedLetter === letter;
-                        return (
-                          <Pressable
-                            key={letter}
-                            style={[
-                              styles.letterButton,
-                              isSelected && styles.letterButtonActive,
-                              !isAvailable && styles.letterButtonDisabled,
-                            ]}
-                            onPress={() => isAvailable && setSelectedLetter(letter)}
-                            disabled={!isAvailable}
-                          >
-                            <Text
-                              style={[
-                                styles.letterText,
-                                isSelected && styles.letterTextActive,
-                                !isAvailable && styles.letterTextDisabled,
-                              ]}
-                            >
-                              {letter}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  </ScrollView>
-                </View>
-                <View style={styles.brandsGrid}>
-                  {brandsByLetter[selectedLetter]?.map((brand) => {
-                    const isSelected = selectedBrands.includes(brand.id);
-                    return (
-                      <Pressable
-                        key={brand.id}
-                        style={[
-                          styles.brandItem,
-                          isSelected && styles.brandItemSelected,
-                        ]}
-                        onPress={() => {
-                          if (isSelected) {
-                            setSelectedBrands(prev => prev.filter(id => id !== brand.id));
-                          } else {
-                            setSelectedBrands(prev => [...prev, brand.id]);
-                          }
-                        }}
-                      >
-                        <Text style={[
-                          styles.brandItemName,
-                          isSelected && styles.brandItemNameSelected,
-                        ]}>{brand.brand_name_ar || brand.brand_name_en}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                {(!brandsByLetter[selectedLetter] || brandsByLetter[selectedLetter].length === 0) && (
-                  <View style={styles.emptyBrandsContainer}>
-                    <Text style={styles.emptyBrandsText}>{'\u0644\u0627 \u062a\u0648\u062c\u062f \u0639\u0644\u0627\u0645\u0627\u062a \u062a\u062c\u0627\u0631\u064a\u0629 \u062a\u0628\u062f\u0623 \u0628\u0640'} {selectedLetter}</Text>
-                  </View>
-                )}
-              </View>
-
-              {categories.length > 0 && (
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterSectionTitle}>{'\u0627\u0644\u0641\u0626\u0629'}</Text>
-                  <View style={styles.categoryTree}>
-                    <Pressable
-                      style={[
-                        styles.categoryTreeChip,
-                        styles.categoryTreeAllChip,
-                        selectedCategories.length === 0 && styles.filterOptionActive,
-                      ]}
-                      onPress={() => setSelectedCategories([])}
-                    >
-                      <Text
-                        style={[
-                          styles.categoryTreeChipText,
-                          selectedCategories.length === 0 && styles.filterOptionTextActive,
-                        ]}
-                      >
-                        {'\u0627\u0644\u0643\u0644'}
-                      </Text>
-                    </Pressable>
-                    {categoryTree.map((node) => renderCategoryTreeNode(node))}
-                  </View>
-                </View>
-              )}
             </ScrollView>
+            </>)}
 
+            {filterTab !== 'categories' && (
             <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
               <Pressable
                 style={({ pressed }) => [
@@ -813,6 +778,7 @@ export default function HomeScreen() {
                 <Text style={styles.applyButtonText}>{'\u062a\u0637\u0628\u064a\u0642'}</Text>
               </Pressable>
             </View>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -821,6 +787,22 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  filterTabs: {
+    flexDirection: 'row-reverse',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EADDE0',
+    paddingHorizontal: 12,
+  },
+  filterTab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  filterTabActive: { borderBottomColor: beautyTheme.colors.accentDark },
+  filterTabText: { fontSize: 14, color: beautyTheme.colors.textMuted, fontWeight: '600' },
+  filterTabTextActive: { color: beautyTheme.colors.accentDark },
   container: {
     flex: 1,
     backgroundColor: palette.background,

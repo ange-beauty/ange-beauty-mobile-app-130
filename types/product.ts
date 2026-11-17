@@ -1,11 +1,13 @@
-export type ProductCategory = 'skincare' | 'makeup' | 'fragrance' | 'haircare' | 'bodycare';
 
 export interface Product {
   id: string;
   name: string;
   brand: string;
   brandId?: string;
-  category: ProductCategory;
+  /** Display name of the product's category ('' when it has none). */
+  category: string;
+  /** Every category the product belongs to (the detail page shows them all). */
+  categories?: { id: string; name: string }[];
   price: number;
   basePrice?: number;
   finalPrice?: number;
@@ -51,6 +53,7 @@ export interface APIProduct {
     name_ar?: string;
     name_en?: string;
   };
+  categories?: { id?: string | null; category_name_ar?: string | null; category_name_en?: string | null }[] | null;
   brand?: string | null;
   brand_id?: string | number | null;
   brand_name_ar?: string | null;
@@ -120,6 +123,23 @@ function parsePriceValue(value: number | string | null | undefined): number | un
   return undefined;
 }
 
+function getCategories(apiProduct: APIProduct): { id: string; name: string }[] {
+  const list = Array.isArray(apiProduct.categories) ? apiProduct.categories : [];
+  return list
+    .map((item) => ({ id: item?.id || '', name: (item?.category_name_ar || item?.category_name_en || '').trim() }))
+    .filter((item) => item.id && item.name);
+}
+
+function getCategoryName(apiProduct: APIProduct): string {
+  const list = Array.isArray(apiProduct.categories) ? apiProduct.categories : [];
+  const primary = list.find((item) => item?.id === apiProduct.category) || list[0];
+  if (primary) return (primary.category_name_ar || primary.category_name_en || '').trim();
+  if (typeof apiProduct.category === 'object' && apiProduct.category) {
+    return (apiProduct.category.name_ar || apiProduct.category.name || apiProduct.category.name_en || '').trim();
+  }
+  return '';
+}
+
 function mapProductTags(tags: APIProduct['tags']): string[] {
   if (!Array.isArray(tags)) return [];
 
@@ -153,22 +173,10 @@ function getPrimaryImageFileName(images: APIProduct['images'], productId: string
 }
 
 export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
-  const categoryMap: Record<string, ProductCategory> = {
-    'skincare': 'skincare',
-    'makeup': 'makeup',
-    'fragrance': 'fragrance',
-    'haircare': 'haircare',
-    'bodycare': 'bodycare',
-  };
-
   const productName = apiProduct.name_ar || apiProduct.name_en || apiProduct.name || '\u0645\u0646\u062a\u062c \u0628\u062f\u0648\u0646 \u0627\u0633\u0645';
   const productDescription = apiProduct.description_ar || apiProduct.description_en || apiProduct.description || '';
   
-  let category: ProductCategory = 'skincare';
-  if (typeof apiProduct.category === 'object' && apiProduct.category) {
-    const categoryName = (apiProduct.category.name_ar || apiProduct.category.name || apiProduct.category.name_en || 'skincare').toLowerCase();
-    category = categoryMap[categoryName] || 'skincare';
-  }
+  const category = getCategoryName(apiProduct);
   
   const brandName = apiProduct.brand_name_ar || apiProduct.brand_name_en || '\u0639\u0644\u0627\u0645\u0629 \u062a\u062c\u0627\u0631\u064a\u0629 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641\u0629';
   const brandId = apiProduct.brand_id?.toString() || apiProduct.brand?.toString() || undefined;
@@ -199,6 +207,7 @@ export function mapAPIProductToProduct(apiProduct: APIProduct): Product {
     brand: brandName,
     brandId,
     category,
+    categories: getCategories(apiProduct),
     price: finalPrice,
     basePrice,
     finalPrice,

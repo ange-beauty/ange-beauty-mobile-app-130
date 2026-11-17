@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   RefreshControl,
@@ -29,6 +31,9 @@ import { Product } from '@/types/product';
 const discountOffersHomeImage = require('@/assets/images/discount__offers_home.webp');
 
 const NEW_ARRIVALS_TITLE = 'وصل حديثاً';
+const ALL_PRODUCTS_TITLE = 'جميع المنتجات';
+const ALL_PRODUCTS_PAGE_SIZE = 20;
+const ALL_PRODUCTS_GAP = 12;
 const NEW_BADGE_LABEL = 'جديد';
 const NEW_ARRIVALS_GAP = 10;
 const NEW_ARRIVALS_VISIBLE = 2.3;
@@ -116,6 +121,34 @@ export default function HomeScreen() {
   const brands = useMemo(() => (brandsData || []).slice(0, 12), [brandsData]);
   const tags = useMemo(() => (tagsData || []).slice(0, 20), [tagsData]);
   const isHomeLoading = isLoadingOffers || isLoadingHighlighted;
+
+  // The full product list sits at the very end of the home screen: it loads once the client scrolls near the
+  // bottom, then keeps loading pages as they continue.
+  const [reachedEnd, setReachedEnd] = useState(false);
+  const {
+    data: allProductsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isLoadingAllProducts,
+  } = useInfiniteQuery({
+    queryKey: ['home-all-products'],
+    queryFn: ({ pageParam }) => fetchProducts({ page: pageParam, limit: ALL_PRODUCTS_PAGE_SIZE }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, pages) => (lastPage.hasMore ? pages.length + 1 : undefined),
+    enabled: reachedEnd,
+  });
+  const allProducts = useMemo(() => allProductsData?.pages.flatMap((page) => page.products) ?? [], [allProductsData]);
+  const allProductsColumns = contentWidth >= 1200 ? 5 : contentWidth >= 900 ? 4 : contentWidth >= 600 ? 3 : 2;
+  const allProductsCardWidth = Math.floor(
+    (usableWidth - ALL_PRODUCTS_GAP * (allProductsColumns - 1)) / allProductsColumns,
+  );
+  const handleHomeScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
+    if (contentOffset.y + layoutMeasurement.height < contentSize.height - 600) return;
+    if (!reachedEnd) setReachedEnd(true);
+    else if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+  };
   const hasHomeError = !!offersError && !!highlightedError;
   const showHighlights = !offersError && offers.length > 0;
   const showHighlightedProducts = !highlightedError && highlightedProducts.length > 0;
@@ -181,6 +214,8 @@ export default function HomeScreen() {
           },
         ]}
         showsVerticalScrollIndicator={false}
+        onScroll={handleHomeScroll}
+        scrollEventThrottle={200}
         refreshControl={
           <RefreshControl
             refreshing={isLoadingOffers || isLoadingHighlighted}
@@ -444,6 +479,25 @@ export default function HomeScreen() {
               </>
             ) : null}
 
+            <SectionTitle title={ALL_PRODUCTS_TITLE} />
+            <View style={styles.allProductsGrid}>
+              {allProducts.map((item) => (
+                <ProductCard
+                  key={item.id}
+                  product={item}
+                  style={{ width: allProductsCardWidth }}
+                  isFavorite={isFavorite(item.id)}
+                  basketQuantity={getItemQuantity(item.id)}
+                  onPress={() => router.push(`/product/${item.id}`)}
+                  onToggleFavorite={() => handleToggleFavorite(item.id)}
+                  onAddToBasket={() => handleAddToBasket(item)}
+                />
+              ))}
+            </View>
+            {isLoadingAllProducts || isFetchingNextPage ? (
+              <ActivityIndicator style={styles.allProductsLoader} color={beautyTheme.colors.accentDark} />
+            ) : null}
+
           </>
         )}
       </ScrollView>
@@ -479,9 +533,14 @@ function OfferHeroCard({
 }) {
   const [heroImageFailed, setHeroImageFailed] = useState(false);
   const hasHeroArtwork = !!item.image && !heroImageFailed;
-  const imageUri = hasHeroArtwork
-    ? item.image
-    : 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=800&fit=crop';
+  // No uploaded artwork: show the offer's own product next to the offer text instead of stock art under it.
+  const { data: offerProducts } = useQuery({
+    queryKey: ['offer-hero-product', item.id],
+    queryFn: () => fetchProducts({ page: 1, limit: 1, offerIds: item.id }),
+    enabled: !hasHeroArtwork,
+    staleTime: 10 * 60 * 1000,
+  });
+  const productImage = offerProducts?.products[0]?.fullImage || offerProducts?.products[0]?.image;
 
   return (
     <Pressable
@@ -490,24 +549,20 @@ function OfferHeroCard({
       accessibilityRole="button"
       accessibilityLabel={item.name}
     >
-      <Image
-        source={{ uri: imageUri }}
-        style={styles.highlightImage}
-        resizeMode={hasHeroArtwork ? 'contain' : 'cover'}
-        onError={() => {
-          if (hasHeroArtwork) setHeroImageFailed(true);
-        }}
-      />
-      {!hasHeroArtwork ? (
-        <LinearGradient
-          colors={['rgba(0,0,0,0)', 'rgba(34,22,25,0.92)']}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.highlightOverlay}
-        >
-          <View style={styles.highlightTextSurface}>
-            <Text style={styles.highlightBrand}>{formatOfferValue(item)}</Text>
-            <Text style={styles.highlightName} numberOfLines={2}>
+      {hasHeroArtwork ? (
+        <Image
+          source={{ uri: item.image }}
+          style={styles.highlightImage}
+          resizeMode="contain"
+          onError={() => setHeroImageFailed(true)}
+        />
+      ) : (
+        <LinearGradient colors={['#FFF7FA', '#F8E4EA']} style={styles.highlightFallback}>
+          <View style={styles.highlightFallbackText}>
+            <View style={styles.highlightValuePill}>
+              <Text style={styles.highlightValueText}>{formatOfferValue(item)}</Text>
+            </View>
+            <Text style={styles.highlightName} numberOfLines={3}>
               {item.name}
             </Text>
             {!!item.description && (
@@ -516,8 +571,11 @@ function OfferHeroCard({
               </Text>
             )}
           </View>
+          {productImage ? (
+            <Image source={{ uri: productImage }} style={styles.highlightFallbackImage} resizeMode="contain" />
+          ) : null}
         </LinearGradient>
-      ) : null}
+      )}
     </Pressable>
   );
 }
@@ -708,50 +766,45 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#FFF8FA',
   },
-  highlightOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+  highlightFallback: {
+    flex: 1,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    padding: 14,
+    gap: 12,
   },
-  highlightTextSurface: {
-    backgroundColor: 'rgba(20, 12, 14, 0.48)',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+  highlightFallbackText: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  highlightFallbackImage: {
+    width: '40%',
+    height: '100%',
+  },
+  highlightValuePill: {
+    backgroundColor: beautyTheme.colors.accentDark,
+    borderRadius: 999,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 4,
+    marginBottom: 8,
   },
-  highlightBrand: {
-    color: '#FCEFF3',
-    fontSize: 12,
-    marginBottom: 3,
-    textAlign: 'right',
-    textShadowColor: 'rgba(0,0,0,0.45)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+  highlightValueText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
   },
   highlightName: {
-    color: '#FFFFFF',
+    color: '#2F2527',
     fontSize: 17,
     lineHeight: 24,
     fontWeight: '700',
     textAlign: 'right',
-    textShadowColor: 'rgba(0,0,0,0.45)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   highlightPrice: {
     marginTop: 4,
-    color: '#FFDDE5',
-    fontSize: 15,
-    fontWeight: '700',
+    color: '#7A5A62',
+    fontSize: 14,
     textAlign: 'right',
-    textShadowColor: 'rgba(0,0,0,0.45)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   highlightDotsRow: {
     marginTop: 8,
@@ -828,6 +881,14 @@ const styles = StyleSheet.create({
   brandsRow: {
     gap: 12,
     paddingBottom: 6,
+  },
+  allProductsGrid: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: ALL_PRODUCTS_GAP,
+  },
+  allProductsLoader: {
+    marginVertical: 24,
   },
   newArrivalsRow: {
     paddingTop: 2,

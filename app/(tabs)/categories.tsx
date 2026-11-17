@@ -160,9 +160,11 @@ function Checkbox({ state, label, onPress }: { state: CheckState; label: string;
   );
 }
 
-export default function CategoriesScreen() {
+// embedded: shown inside the products filter modal; onApply gets the chosen ids instead of navigating, onClose replaces back.
+export default function CategoriesScreen({ embedded, onApply, onClose }: { embedded?: boolean; onApply?: (ids: string[]) => void; onClose?: () => void } = {}) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const safeInsets = useSafeAreaInsets();
+  const insets = embedded ? { ...safeInsets, top: 0 } : safeInsets;
   const chipsRef = useRef<ScrollView>(null);
 
   const { data, isLoading } = useQuery({
@@ -239,6 +241,10 @@ export default function CategoriesScreen() {
         ids.add(node.id);
       }
     });
+    if (onApply) {
+      onApply(Array.from(ids));
+      return;
+    }
     router.push({
       pathname: '/(tabs)/products',
       params: { categoryIds: Array.from(ids).join(',') },
@@ -246,6 +252,10 @@ export default function CategoriesScreen() {
   };
 
   const closeScreen = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)/home');
   };
@@ -314,6 +324,7 @@ export default function CategoriesScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {!embedded && (
       <View style={styles.header}>
         <Pressable
           style={styles.closeBtn}
@@ -333,6 +344,7 @@ export default function CategoriesScreen() {
           <Text style={[styles.clearAllText, !selectedCount && styles.disabledText]}>{T.clearAll}</Text>
         </Pressable>
       </View>
+      )}
 
       <View style={styles.searchBox}>
         <Feather name="search" size={18} color={beautyTheme.colors.textMuted} />

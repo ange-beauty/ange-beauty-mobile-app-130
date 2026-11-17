@@ -43,6 +43,7 @@ const LABEL_ADD_FAVORITE = 'إضافة إلى المفضلة';
 const LABEL_REMOVE_FAVORITE = 'إزالة من المفضلة';
 const LABEL_ADD_TO_BASKET = 'إضافة إلى السلة';
 const LABEL_COMING_SOON = 'يتوفر قريباً';
+const LABEL_OUT_OF_STOCK = 'نفدت الكمية';
 
 type ProductCardProps = {
   product: Product;
@@ -79,6 +80,10 @@ export default function ProductCard({
     product.basePrice > product.price &&
     (product.discountAmount ?? product.basePrice - product.price) > 0;
   const imageUri = product.image || FALLBACK_IMAGE;
+  const { selectedSellingPoint } = useSellingPoint();
+  const stock = getAvailableQuantityForSellingPoint(product, selectedSellingPoint?.id) ?? product.totalAvailable;
+  const outOfStock = typeof stock === 'number' && stock <= 0;
+  const basketDisabled = !canAddToBasket || outOfStock;
 
   return (
     <View style={[styles.card, pressed && styles.cardPressed, style]}>
@@ -112,6 +117,11 @@ export default function ProductCard({
               />
             )}
           </View>
+          {outOfStock ? (
+            <View style={styles.outOfStockOverlay} pointerEvents="none">
+              <Text style={styles.outOfStockText}>{LABEL_OUT_OF_STOCK}</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.body}>
@@ -167,20 +177,20 @@ export default function ProductCard({
         style={({ pressed: basketPressed }) => [
           styles.roundButton,
           styles.basketButton,
-          !canAddToBasket && styles.basketButtonDisabled,
-          basketPressed && canAddToBasket && styles.buttonPressed,
+          basketDisabled && styles.basketButtonDisabled,
+          basketPressed && !basketDisabled && styles.buttonPressed,
         ]}
         hitSlop={BUTTON_HIT_SLOP}
-        disabled={!canAddToBasket}
+        disabled={basketDisabled}
         onPress={(e) => {
           e.stopPropagation?.();
           onAddToBasket();
         }}
         accessibilityRole="button"
         accessibilityLabel={LABEL_ADD_TO_BASKET}
-        accessibilityState={{ disabled: !canAddToBasket }}
+        accessibilityState={{ disabled: basketDisabled }}
       >
-        <Feather name="shopping-bag" size={16} color={canAddToBasket ? cardColors.wine : cardColors.muted} />
+        <Feather name="shopping-bag" size={16} color={!basketDisabled ? cardColors.wine : cardColors.muted} />
         {basketQuantity > 0 ? (
           <View style={styles.basketCountBadge}>
             <Text style={styles.basketCountText}>{toArabicNumerals(basketQuantity)}</Text>
@@ -283,6 +293,29 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  outOfStockOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // Light veil: the product stays recognizable; the dark pill carries the label.
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  outOfStockText: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    overflow: 'hidden',
   },
   body: {
     padding: 10,

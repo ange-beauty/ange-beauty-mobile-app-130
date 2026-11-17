@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useBasket } from '@/contexts/BasketContext';
+import { getAvailableQuantityForSellingPoint } from '@/utils/availability';
 import { useSellingPoint } from '@/contexts/SellingPointContext';
 import BrandedHeader from '@/components/BrandedHeader';
 import FloralBackdrop from '@/components/FloralBackdrop';
@@ -97,6 +98,8 @@ export default function FavoritesScreen() {
       promptSelectSellingPoint();
       return;
     }
+    const available = getAvailableQuantityForSellingPoint(product, selectedSellingPoint.id) ?? product.totalAvailable;
+    if (typeof available === 'number' && getItemQuantity(product.id) >= available) return;
     addToBasket(product, 1);
   };
 
